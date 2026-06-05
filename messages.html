@@ -314,27 +314,7 @@
             cursor: pointer;
         }
 
-        .reply-info {
-            font-size: 13px;
-            color: #0c5460;
-            background: #e9f7fe;
-            padding: 6px 12px;
-            border-radius: 16px;
-            display: inline-block;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            text-align: left !important;
-            margin-left: 0 !important;
-            margin-right: auto !important;
-            float: none !important;
-        }
-        .reply-info:hover {
-            background: #d1ecf1;
-            text-decoration: underline;
-        }
-
-        .reply-btn {
+        .detail-btn {
             background: none;
             border: none;
             color: var(--theme-color);
@@ -345,34 +325,9 @@
             border-radius: 20px;
             transition: background 0.2s;
             display: inline-block;
-            text-align: left !important;
-            margin-left: 0 !important;
-            margin-right: auto !important;
-            float: none !important;
         }
-        .reply-btn:hover {
+        .detail-btn:hover {
             background: #e9ecef;
-        }
-
-        .reply-tip {
-            background: #e9f7fe;
-            padding: 12px 16px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            color: #0c5460;
-            text-align: left;
-        }
-
-        .cancel-reply {
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-            font-size: 14px;
         }
 
         .empty-message {
@@ -644,8 +599,6 @@
 
         <section class="message-form-section">
             <h2 class="form-title">📝 发表你的留言</h2>
-            <input type="hidden" id="replyToId" value="">
-            <div id="replyTipContainer"></div>
             <div class="form-group">
                 <label for="nicknameSelect">显示昵称</label>
                 <select id="nicknameSelect" class="form-control">
@@ -905,7 +858,7 @@
             if (!loggedIn) return;
             document.getElementById('contactEmail').value = currentUserEmail;
             initNicknameSelect();
-            await loadMessages();
+            await loadMainMessages(); // 只加载主楼
             await initUserExtra();
 
             document.getElementById('logoutBtn').onclick = async () => {
@@ -1003,7 +956,6 @@
             const username = document.getElementById('nicknameSelect').value;
             const content = document.getElementById('messageContent').value.trim();
             const files = document.getElementById('messagePicFile').files;
-            const replyToId = document.getElementById('replyToId').value;
             const submitBtn = document.getElementById('submitBtn');
 
             if (!content) { alert('留言内容不能为空！'); return; }
@@ -1016,27 +968,18 @@
                     user_id: currentUser.id,
                     username, content, pic_url: picUrls,
                     contact_email: currentUserEmail,
-                    flag: 0, reply_to: replyToId || null,
+                    flag: 0, reply_to: null, // 主楼没有回复目标
                     created_at: new Date().toISOString()
                 };
                 const { data: newMsg } = await supabase.from('messages').insert([insertData]).select().single();
 
                 await sendNotificationToAllAuditors("🔔 新留言待审核", `用户：${username}\n内容：${content.slice(0,50)}...`, newMsg.id);
 
-                if (replyToId) {
-                    const { data: original } = await supabase.from('messages').select('user_id').eq('id', replyToId).single();
-                    if (original?.user_id) {
-                        await sendNotificationToUser(original.user_id, `💬 ${username} 回复了你`, content.slice(0,80)+"...", "reply", replyToId);
-                    }
-                }
-
                 alert('留言发布成功！审核结果将通过站内通知告知您');
                 document.getElementById('messageContent').value = '';
                 document.getElementById('messagePicFile').value = '';
                 document.getElementById('previewContainer').innerHTML = '';
-                document.getElementById('replyToId').value = '';
-                document.getElementById('replyTipContainer').innerHTML = '';
-                loadMessages();
+                loadMainMessages();
             } catch (error) {
                 alert('发布失败：' + (error.message || error));
             } finally {
@@ -1045,36 +988,13 @@
             }
         }
 
-        function setReplyTo(id, authorName) {
-            document.getElementById('replyToId').value = id;
-            const container = document.getElementById('replyTipContainer');
-            container.innerHTML = `
-                <div class="reply-tip">
-                    <span>💬 正在回复 @${escapeHtml(authorName)} 的留言</span>
-                    <button class="cancel-reply" onclick="cancelReply()">取消回复</button>
-                </div>
-            `;
-            document.querySelector('.message-form-section').scrollIntoView({ behavior: 'smooth' });
-            document.getElementById('messageContent').focus();
+        // 跳转到详情页
+        function goToDetails(msgId) {
+            location.href = `details.html?id=${msgId}`;
         }
 
-        function cancelReply() {
-            document.getElementById('replyToId').value = '';
-            document.getElementById('replyTipContainer').innerHTML = '';
-        }
-
-        function jumpToOriginal(replyToId) {
-            const target = document.getElementById(`message-${replyToId}`);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                target.style.backgroundColor = '#f0f7ff';
-                setTimeout(() => target.style.backgroundColor = '', 1500);
-            } else {
-                alert('原留言不存在或未加载');
-            }
-        }
-
-        async function loadMessages() {
+        // 加载仅主楼的留言（排除回复）
+        async function loadMainMessages() {
             const container = document.getElementById('messageContainer');
             container.innerHTML = '<div class="loading">加载留言中...</div>';
             try {
@@ -1082,6 +1002,7 @@
                     .from('messages')
                     .select('*')
                     .eq('flag', 1)
+                    .is('reply_to', null) // 只加载主楼（无回复目标的）
                     .order('created_at', { ascending: false });
                 if (error) throw error;
                 if (!data.length) {
@@ -1102,10 +1023,6 @@
                         }
                         imageHtml += '</div>';
                     }
-                    let replyInfoHtml = '';
-                    if (msg.reply_to && userMap[msg.reply_to]) {
-                        replyInfoHtml = `<div class="reply-info" onclick="jumpToOriginal('${msg.reply_to}')">↳ 回复 @${escapeHtml(userMap[msg.reply_to])}</div>`;
-                    }
                     html += `
                     <div class="message-item" id="message-${msg.id}" data-user-id="${msg.user_id || ''}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
                         <div class="message-avatar-box"></div>
@@ -1114,10 +1031,9 @@
                                 <span class="message-author">${escapeHtml(msg.username)}</span>
                                 <span class="message-time">${time}</span>
                             </div>
-                            ${replyInfoHtml}
                             <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
                             ${imageHtml}
-                            <button class="reply-btn" onclick="setReplyTo('${msg.id}', '${escapeHtml(msg.username)}')">💬 回复</button>
+                            <button class="detail-btn" onclick="goToDetails('${msg.id}')">🔍 查看详情</button>
                         </div>
                     </div>`;
                 }

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>留言详情 - ISA Spectrum</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: "微软雅黑", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #fff;
+        }
+
+        :root {
+            --theme-color: #1e50ae;
+            --text-gray: #999;
+            --footer-bg: #262626;
+            --footer-text: #7b7b7b;
+            --card-bg: #f9f9f9;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--theme-color);
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--theme-color);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 80px auto 60px;
+            padding: 0 20px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--theme-color);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--theme-color);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background-color: var(--theme-color);
+            color: white;
+        }
+
+        .main-message-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .comment-section {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: var(--theme-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .message-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            text-align: left;
+            transition: background-color 0.3s;
+        }
+
+        .message-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .message-item.level-1 {
+            margin-left: 0;
+            background-color: transparent;
+            border-radius: 0;
+        }
+
+        .message-item.level-2 {
+            margin-left: 40px;
+            background-color: #f5f8ff;
+            border-radius: 8px;
+        }
+
+        .message-item.highlight {
+            background-color: #d7e7ff !important;
+            border-left: 4px solid var(--theme-color);
+        }
+
+        .message-avatar-box {
+            flex-shrink: 0;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .message-author {
+            font-weight: bold;
+            color: var(--theme-color);
+            font-size: 16px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .message-content {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            white-space: pre-line;
+            text-align: left;
+        }
+
+        .message-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .message-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .reply-info {
+            font-size: 13px;
+            color: #0c5460;
+            background: #e9f7fe;
+            padding: 6px 12px;
+            border-radius: 16px;
+            display: inline-block;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: left;
+        }
+        .reply-info:hover {
+            background: #d1ecf1;
+            text-decoration: underline;
+        }
+
+        .reply-btn, .comment-btn {
+            background: none;
+            border: none;
+            color: var(--theme-color);
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            transition: background 0.2s;
+            display: inline-block;
+            text-align: left;
+        }
+        .reply-btn:hover, .comment-btn:hover {
+            background: #e9ecef;
+        }
+
+        .comment-input-container {
+            display: none;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            min-height: 80px;
+            resize: vertical;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: var(--theme-color);
+            box-shadow: 0 0 0 2px rgba(30, 80, 174, 0.1);
+        }
+
+        /* 图片上传样式 —— 无删除按钮纯净版 */
+        .image-upload-container {
+            margin-bottom: 12px;
+            border: 1px dashed #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .image-upload-container:hover {
+            border-color: var(--theme-color);
+            background-color: #f8f9fa;
+        }
+        .image-upload-text {
+            color: #666;
+            font-size: 14px;
+        }
+        .image-upload-input {
+            display: none;
+        }
+        .preview-images {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .preview-image-item {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        /* 匿名勾选框样式 */
+        .anonymous-checkbox-container {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .anonymous-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .anonymous-label {
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .comment-submit-btn {
+            background-color: var(--theme-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .comment-submit-btn:hover {
+            background-color: #15408f;
+        }
+
+        .cancel-comment-btn {
+            background: none;
+            border: 1px solid #ddd;
+            color: #666;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s ease;
+        }
+
+        .cancel-comment-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .empty-comment {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .footer {
+            background-color: var(--footer-bg);
+            color: var(--footer-text);
+            padding: 40px 20px;
+            margin-top: 60px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+
+        .footer-section h3 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section p {
+            font-size: 13px;
+            line-height: 22px;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 30px auto 0;
+            padding-top: 20px;
+            border-top: 1px solid #2b2b2b;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 10px 20px;
+            }
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                text-align: center;
+                padding: 10px 0;
+            }
+            .nav-links.show {
+                display: flex !important;
+            }
+            .nav-links li {
+                margin: 10px 0;
+            }
+            .menu-toggle {
+                display: block !important;
+            }
+            .main-content {
+                margin: 80px auto 40px;
+                padding: 0 15px;
+            }
+            .main-message-card, .comment-section {
+                padding: 20px;
+            }
+            .message-image {
+                width: 100px;
+                height: 100px;
+            }
+            .message-item.level-2 {
+                margin-left: 20px;
+            }
+            .preview-image-item {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="./images/logo.png" alt="ISA Spectrum Logo">
+                <span>ISA Spectrum</span>
+            </a>
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <ul class="nav-links" id="navList">
+                <li><a href="main.html">首页</a></li>
+                <li><a href="notice.html">公告</a></li>
+                <li><a href="messages.html" class="active">校墙</a></li>
+                <li><a href="about.html">关于ISA Spectrum</a></li>
+                <li><a href="contact.html">联系我们</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <a href="messages.html" class="back-btn">← 返回校墙</a>
+        <h1 class="page-title" style="text-align:center; font-size:28px; color:var(--theme-color); margin-bottom:20px;">留言详情</h1>
+
+        <div class="main-message-card" id="mainMessageCard">
+            <div class="loading">加载主楼内容中...</div>
+        </div>
+
+        <div class="comment-section">
+            <h2 class="section-title">💬 全部评论</h2>
+            <div id="commentContainer" class="loading">加载评论中...</div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>ISA SPECTRUM</h3>
+            </div>
+            <div class="footer-section">
+                <p>联系邮箱<br>peiguo.li29@isawuhan.com</p>
+            </div>
+            <div class="footer-section">
+                <p>联系电话<br>16602707968</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>©2026 - ISA Spectrum 版权所有</p>
+        </div>
+    </footer>
+
+    <script>
+const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let mainMsgId = null;
+let currentUser = null;
+let userId = '';
+let currentUserRealName = '';
+let currentUserEmail = '';
+let allMessages = [];
+let userMap = {};
+
+function getMsgIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
+
+function getFreshAvatar(src) {
+    if (!src) return '';
+    return src + (src.includes('?') ? '&' : '?') + 't=' + Date.now();
+}
+
+// ==================== 登录验证 ====================
+async function initAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { alert('请先登录'); location.href = 'login.html'; return false; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { alert('登录已过期'); location.href = 'login.html'; return false; }
+    currentUser = user;
+    userId = user.id;
+    currentUserEmail = user.email || '';
+    currentUserRealName = user.user_metadata?.username || user.email?.split('@')[0] || '用户';
+    return true;
+}
+
+// ==================== 通知系统 ====================
+async function sendNotificationToAllAuditors(title, content, relatedId) {
+    const { data: auditors } = await supabase.from('checkers').select('user_id');
+    if (!auditors || auditors.length === 0) return;
+    const notices = auditors.map(a => ({
+        user_id: a.user_id,
+        title,
+        content,
+        related_id: relatedId,
+        type: 'audit',
+        read: false
+    }));
+    await supabase.from('notifications').insert(notices);
+}
+
+async function sendNotificationToUser(uid, title, c, t, rid) {
+    await supabase.from('notifications').insert([{
+        user_id: uid,
+        title,
+        content: c,
+        related_id: rid,
+        type: t,
+        read: false
+    }]);
+}
+
+// ==================== 图片上传 ====================
+async function uploadImages(files, targetId) {
+    if (!files || files.length === 0) return [];
+    const urls = [];
+    for (let f of files) {
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
+        const { error } = await supabase.storage.from('message-pics').upload(`comments/${targetId}/${name}`, f);
+        if (!error) {
+            const { data: urlData } = supabase.storage.from('message-pics').getPublicUrl(`comments/${targetId}/${name}`);
+            urls.push(urlData.publicUrl);
+        }
+    }
+    return urls;
+}
+
+function previewImages(targetId) {
+    const input = document.getElementById(`imageUpload-${targetId}`);
+    const box = document.getElementById(`preview-${targetId}`);
+    if (!input || !box) return;
+    box.innerHTML = '';
+    if (!input.files) return;
+    Array.from(input.files).forEach(file => {
+        const r = new FileReader();
+        r.onload = e => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'preview-image-item';
+            box.appendChild(img);
+        };
+        r.readAsDataURL(file);
+    });
+}
+
+// ==================== 头像渲染（通过 username === '匿名用户' 判断） ====================
+async function renderMessageAvatars() {
+    const items = document.querySelectorAll('.message-item');
+    const uids = [];
+    items.forEach(el => {
+        const uid = el.getAttribute('data-user-id');
+        if (uid && uid !== 'undefined' && uid !== 'null') uids.push(uid);
+    });
+    const { data: ps } = await supabase.from('profiles').select('user_id, avatar_url').in('user_id', uids);
+    const map = {};
+    if (ps) ps.forEach(p => { map[p.user_id] = p.avatar_url; });
+    items.forEach(el => {
+        const uid = el.getAttribute('data-user-id');
+        const box = el.querySelector('.message-avatar-box');
+        if (!box) return;
+        const name = el.querySelector('.message-author')?.textContent || '';
+        const c = name.charAt(0) || '?';
+        // 关键判断：用户名是否为"匿名用户"
+        if (name === '匿名用户') {
+            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
+            return;
+        }
+        if (uid && map[uid]) {
+            box.innerHTML = `<img src="${getFreshAvatar(map[uid])}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+        } else {
+            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${c}</div>`;
+        }
+    });
+}
+
+// ==================== 加载内容 ====================
+async function loadMainMessage() {
+    mainMsgId = getMsgIdFromUrl();
+    if (!mainMsgId) return;
+    const { data } = await supabase.from('messages').select('*').eq('id', mainMsgId).single();
+    if (data) { renderMainMessage(data); loadAllComments(); }
+}
+
+function renderMainMessage(msg) {
+    const t = new Date(msg.created_at).toLocaleString();
+    const imgs = msg.pic_url ? msg.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : '';
+    document.getElementById('mainMessageCard').innerHTML = `
+    <div class="message-item" id="msg-${msg.id}" data-user-id="${msg.user_id || ''}">
+        <div class="message-avatar-box"></div>
+        <div style="flex:1">
+            <div class="message-header">
+                <span class="message-author">${escapeHtml(msg.username)}</span>
+                <span class="message-time">${t}</span>
+            </div>
+            <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+            <div class="message-images">${imgs}</div>
+            <button class="comment-btn" onclick="showMainCommentBox('${msg.id}')">💬 评论</button>
+            <div id="reply-box-${msg.id}" class="comment-input-container"></div>
+        </div>
+    </div>`;
+    renderMessageAvatars();
+}
+
+async function loadAllComments() {
+    const { data } = await supabase.from('messages').select('*').eq('flag', 1).order('created_at', { ascending: true });
+    allMessages = data || [];
+    allMessages.forEach(m => userMap[m.id] = m.username);
+    renderCommentTree();
+}
+
+function renderCommentTree() {
+    const c = document.getElementById('commentContainer');
+    const roots = allMessages.filter(m => m.reply_to === mainMsgId);
+    if (!roots.length) { c.innerHTML = '<div class="empty-comment">暂无评论</div>'; return; }
+    let html = '';
+    function renderChildren(pid, d) {
+        allMessages.filter(m => m.reply_to === pid).forEach(x => {
+            html += `
+            <div class="message-item ${d === 1 ? 'level-1' : 'level-2'}" id="msg-${x.id}" data-user-id="${x.user_id || ''}">
+                <div class="message-avatar-box"></div>
+                <div style="flex:1">
+                    <div class="message-header">
+                        <span class="message-author">${escapeHtml(x.username)}</span>
+                        <span class="message-time">${new Date(x.created_at).toLocaleString()}</span>
+                    </div>
+                    ${d >= 2 ? `<div class="reply-info" onclick="jumpToComment('${x.reply_to}')">↳ 回复 @${escapeHtml(userMap[x.reply_to] || '用户')}</div>` : ''}
+                    <div class="message-content">${escapeHtml(x.content).replace(/\n/g, '<br>')}</div>
+                    <div class="message-images">${x.pic_url ? x.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
+                    <button class="reply-btn" onclick="showReplyBox('${x.id}','${escapeHtml(x.username)}')">💬 回复</button>
+                    <div id="reply-box-${x.id}" class="comment-input-container"></div>
+                </div>
+            </div>`;
+            renderChildren(x.id, d + 1);
+        });
+    }
+    roots.forEach(r => {
+        html += `
+        <div class="message-item level-1" id="msg-${r.id}" data-user-id="${r.user_id || ''}">
+            <div class="message-avatar-box"></div>
+            <div style="flex:1">
+                <div class="message-header">
+                    <span class="message-author">${escapeHtml(r.username)}</span>
+                    <span class="message-time">${new Date(r.created_at).toLocaleString()}</span>
+                </div>
+                <div class="message-content">${escapeHtml(r.content).replace(/\n/g, '<br>')}</div>
+                <div class="message-images">${r.pic_url ? r.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
+                <button class="reply-btn" onclick="showReplyBox('${r.id}','${escapeHtml(r.username)}')">💬 回复</button>
+                <div id="reply-box-${r.id}" class="comment-input-container"></div>
+            </div>
+        </div>`;
+        renderChildren(r.id, 2);
+    });
+    c.innerHTML = html;
+    renderMessageAvatars();
+}
+
+// ==================== 评论框 ====================
+function closeAllCommentBoxes() {
+    document.querySelectorAll('.comment-input-container').forEach(e => e.style.display = 'none');
+}
+
+function showMainCommentBox(tid) {
+    closeAllCommentBoxes();
+    const b = document.getElementById(`reply-box-${tid}`);
+    if (!b) return;
+    b.style.display = 'block';
+    b.innerHTML = `
+    <textarea class="comment-input" id="mainCommentInput" placeholder="写下你的评论..."></textarea>
+    <div class="image-upload-container" onclick="document.getElementById('imageUpload-${tid}').click()">
+        <div class="image-upload-text">🖼️ 点击选择图片（可选）</div>
+        <input type="file" id="imageUpload-${tid}" class="image-upload-input" accept="image/*" multiple onchange="previewImages('${tid}')">
+    </div>
+    <div id="preview-${tid}" class="preview-images"></div>
+    <div class="anonymous-checkbox-container">
+        <input type="checkbox" id="anonymous-${tid}" class="anonymous-checkbox">
+        <label for="anonymous-${tid}" class="anonymous-label">匿名发布</label>
+    </div>
+    <div>
+        <button class="comment-submit-btn" onclick="submitComment('${tid}', 'main')">发布评论</button>
+        <button class="cancel-comment-btn" onclick="closeAllCommentBoxes()">取消</button>
+    </div>`;
+}
+
+function showReplyBox(tid, name) {
+    closeAllCommentBoxes();
+    const b = document.getElementById(`reply-box-${tid}`);
+    if (!b) return;
+    b.style.display = 'block';
+    b.innerHTML = `
+    <textarea class="comment-input" id="replyInput-${tid}" placeholder="回复 @${name}"></textarea>
+    <div class="image-upload-container" onclick="document.getElementById('imageUpload-${tid}').click()">
+        <div class="image-upload-text">🖼️ 点击选择图片（可选）</div>
+        <input type="file" id="imageUpload-${tid}" class="image-upload-input" accept="image/*" multiple onchange="previewImages('${tid}')">
+    </div>
+    <div id="preview-${tid}" class="preview-images"></div>
+    <div class="anonymous-checkbox-container">
+        <input type="checkbox" id="anonymous-${tid}" class="anonymous-checkbox">
+        <label for="anonymous-${tid}" class="anonymous-label">匿名发布</label>
+    </div>
+    <div>
+        <button class="comment-submit-btn" onclick="submitComment('${tid}', 'reply')">发布回复</button>
+        <button class="cancel-comment-btn" onclick="closeAllCommentBoxes()">取消</button>
+    </div>`;
+}
+
+// ==================== 提交评论 ====================
+async function submitComment(rid, type) {
+    if (!currentUser || !currentUser.id) { alert('请重新登录'); location.href = 'login.html'; return; }
+
+    const el = type === 'main'
+        ? document.getElementById('mainCommentInput')
+        : document.getElementById(`replyInput-${rid}`);
+    const content = el?.value.trim();
+    if (!content) { alert('内容不能为空'); return; }
+
+    const ano = document.getElementById(`anonymous-${rid}`)?.checked || false;
+    const filesInput = document.getElementById(`imageUpload-${rid}`);
+    const files = filesInput?.files;
+    const urls = files && files.length > 0 ? await uploadImages(files, rid) : [];
+
+    const { data: newMsg, error } = await supabase.from('messages').insert([{
+        user_id: currentUser.id,
+        username: ano ? '匿名用户' : currentUserRealName,
+        content: content,
+        pic_url: urls.length > 0 ? urls : null,
+        contact_email: currentUserEmail,
+        flag: 0,
+        reply_to: rid
+    }]).select().single();
+
+    if (error) {
+        alert('发布失败：' + error.message);
+        return;
+    }
+
+    // 通知审核员
+    await sendNotificationToAllAuditors(
+        '🔔 新留言待审核',
+        `用户：${ano ? '匿名用户' : currentUserRealName}\n内容：${content.slice(0, 50)}...`,
+        newMsg.id
+    );
+
+    // 通知被回复者
+    const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
+console.log('targetMsg:', targetMsg, 'currentUser.id:', currentUser.id);
+
+if (targetMsg && targetMsg.user_id && targetMsg.user_id !== currentUser.id) {
+    console.log('✅ 进入通知逻辑，targetMsg.user_id:', targetMsg.user_id); // ← 加这行
+    try {
+        await sendNotificationToUser(
+            targetMsg.user_id,
+            `💬 ${ano ? '匿名用户' : currentUserRealName} 回复了你`,
+            content.slice(0, 80) + '...',
+            'reply',
+            rid
+        );
+        console.log('✅ 通知发送成功');
+    } catch (err) {
+        console.error('❌ 通知发送失败:', err);
+    }
+} else {
+    console.log('❌ 未进入通知逻辑，条件不满足');
+}
+
+    alert('发布成功！等待审核');
+    closeAllCommentBoxes();
+    loadAllComments();
+}
+
+// ==================== 跳转 + 高亮 ====================
+function jumpToComment(targetId) {
+    const el = document.getElementById(`msg-${targetId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth' });
+    el.classList.add('highlight');
+    setTimeout(() => el.classList.remove('highlight'), 2000);
+}
+
+// ==================== 初始化 ====================
+window.onload=async()=>{
+            document.getElementById('menuToggle').onclick=()=>document.getElementById('navList').classList.toggle('show');
+            if(await initAuth())loadMainMessage();
+        };
+    </script>
+</body>
+</html>

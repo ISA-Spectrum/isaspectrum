@@ -174,7 +174,7 @@
             if (!msg) { alert('留言不存在'); return; }
             
             await supabase.from('messages').update({ flag: 1 }).eq('id', id);
-            await sendNotify(msg.user_id, "✅ 留言审核通过", "你的留言已审核通过并公开显示", id);
+            await sendNotify(msg.user_id, "✅ 留言审核通过", "你的留言/评论/回复已审核通过并公开显示", id);
             await writeLog("approve", "审核通过", msg);
             
             alert('已通过');
@@ -206,7 +206,7 @@
                 if (!msg) throw new Error('未找到留言');
 
                 await supabase.from('messages').update({ flag: 2, reject_reason: reason }).eq('id', pendingRejectId);
-                await sendNotify(msg.user_id, "❌ 留言未通过审核", `拒绝原因：${reason}`, pendingRejectId);
+                await sendNotify(msg.user_id, "❌ 留言/评论/回复未通过审核", `拒绝原因：${reason}`, pendingRejectId);
                 await writeLog("reject", reason, msg);
 
                 alert('操作成功');
