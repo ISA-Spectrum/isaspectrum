@@ -250,7 +250,7 @@
             background-color: var(--card-bg);
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0.05);
         }
 
         .message-item {
@@ -724,74 +724,80 @@
         let currentUserRealName = '';
         let userId = '';
 
+        // 头像去缓存工具
+        function getFreshAvatar(src) {
+            if (!src) return "";
+            const sp = src.includes('?') ? '&t=' : '?t=';
+            return src + sp + Date.now();
+        }
+
         // =========================
         // 【独立通知表】发送通知
         // =========================
         async function sendNotificationToUser(targetUserId, title, content, type, relatedId = null) {
-          await supabase.from("notifications").insert([
-            { user_id: targetUserId, title, content, type, related_id: relatedId, read: false }
-          ]);
+            await supabase.from("notifications").insert([
+                { user_id: targetUserId, title, content, type, related_id: relatedId, read: false }
+            ]);
         }
 
         async function sendNotificationToAllAuditors(title, content, relatedId = null) {
-          const { data: checkers } = await supabase.from("checkers").select("user_id");
-          if (!checkers) return;
-          const notices = checkers.map(c => ({
-            user_id: c.user_id, title, content, type: "audit", related_id: relatedId, read: false
-          }));
-          if (notices.length === 0) return;
-          await supabase.from("notifications").insert(notices);
+            const { data: checkers } = await supabase.from("checkers").select("user_id");
+            if (!checkers) return;
+            const notices = checkers.map(c => ({
+                user_id: c.user_id, title, content, type: "audit", related_id: relatedId, read: false
+            }));
+            if (notices.length === 0) return;
+            await supabase.from("notifications").insert(notices);
         }
 
         // =========================
         // 红点刷新
         // =========================
         async function refreshNotificationDot() {
-          if (!userId) return;
-          const { data } = await supabase
-            .from("notifications")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("read", false)
-            .limit(1);
-          const hasUnread = data?.length > 0;
-          notificationDot.style.display = hasUnread ? "block" : "none";
-          dropdownDot.style.display = hasUnread ? "inline-block" : "none";
+            if (!userId) return;
+            const { data } = await supabase
+                .from("notifications")
+                .select("id")
+                .eq("user_id", userId)
+                .eq("read", false)
+                .limit(1);
+            const hasUnread = data?.length > 0;
+            notificationDot.style.display = hasUnread ? "block" : "none";
+            dropdownDot.style.display = hasUnread ? "inline-block" : "none";
         }
 
         // =========================
         // 打开通知中心
         // =========================
         async function openNotifications() {
-          const modal = document.getElementById("notificationModal");
-          modal.style.display = "flex";
-          const { data: notes } = await supabase
-            .from("notifications")
-            .select("*")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false })
-            .limit(50);
+            const modal = document.getElementById("notificationModal");
+            modal.style.display = "flex";
+            const { data: notes } = await supabase
+                .from("notifications")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(50);
 
-          await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
-          refreshNotificationDot();
+            await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+            refreshNotificationDot();
 
-          const listEl = document.getElementById("notificationList");
-          if (!notes || notes.length === 0) {
-            listEl.innerHTML = `<div style='text-align:center;padding:30px;color:#999;'>暂无通知</div>`;
-            return;
-          }
+            const listEl = document.getElementById("notificationList");
+            if (!notes || notes.length === 0) {
+                listEl.innerHTML = `<div style='text-align:center;padding:30px;color:#999;'>暂无通知</div>`;
+                return;
+            }
 
-          listEl.innerHTML = notes.map(n => `
+            listEl.innerHTML = notes.map(n => `
             <div class="notification-item ${n.type === 'rejected' ? 'rejected' : ''}">
               <h4>${n.title}</h4>
               <p>${n.content}</p>
               <p style='font-size:12px;color:#999;margin:5px 0 0 0;'>${new Date(n.created_at).toLocaleString()}</p>
-            </div>
-          `).join("");
+            </div>`).join("");
         }
 
         // =========================
-        // 初始化头像
+        // 初始化顶部个人头像（加时间戳防缓存）
         // =========================
         async function initUserExtra() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -800,7 +806,7 @@
             const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", userId).single();
             const url = data?.avatar_url;
             if (url) {
-                document.getElementById("avatarImg").src = url;
+                document.getElementById("avatarImg").src = getFreshAvatar(url);
                 document.getElementById("avatarImg").style.display = "block";
                 document.getElementById("avatarPlaceholder").style.display = "none";
             } else {
@@ -818,14 +824,14 @@
             if (error) { alert(error.message); return; }
             const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(userId);
             await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", userId);
-            avatarImg.src = publicUrl;
+            avatarImg.src = getFreshAvatar(publicUrl);
             avatarImg.style.display = "block";
             avatarPlaceholder.style.display = "none";
             alert("头像更新成功");
         }
 
         // =========================
-        // 渲染留言头像
+        // 渲染留言头像【关键改动：套防缓存函数】
         // =========================
         async function renderMessageAvatars() {
             const items = document.querySelectorAll(".message-item");
@@ -848,7 +854,8 @@
                     return;
                 }
                 if (uid && avatarMap[uid]) {
-                    box.innerHTML = `<img src="${avatarMap[uid]}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+                    // 套用防缓存
+                    box.innerHTML = `<img src="${getFreshAvatar(avatarMap[uid])}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
                 } else {
                     box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${firstChar}</div>`;
                 }
