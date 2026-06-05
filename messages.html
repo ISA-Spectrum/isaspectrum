@@ -259,6 +259,13 @@
             margin-bottom: 15px;
             scroll-margin-top: 80px;
             text-align: left !important;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .message-avatar-box {
+            flex-shrink: 0;
         }
 
         .message-item:last-child {
@@ -417,6 +424,135 @@
             font-size: 12px;
         }
 
+        /* ======================
+        头像 + 通知样式（修正版）
+        ====================== */
+        .logout-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px; /* 头像和退出登录按钮间距 */
+        }
+        .user-menu {
+            position: relative;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .avatar-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0;
+        }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: none;
+        }
+        .avatar-placeholder {
+            font-size: 18px;
+            color: #666;
+        }
+        .notification-dot {
+            width: 10px;
+            height: 10px;
+            background: red;
+            border-radius: 50%;
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            display: none;
+        }
+        .avatar-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 150px;
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+        }
+        .avatar-dropdown > div {
+            padding: 10px 14px;
+            cursor: pointer;
+        }
+        .avatar-dropdown > div:hover {
+            background: #f5f5f5;
+        }
+        .notification-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+        }
+        .modal-body {
+            padding: 16px;
+        }
+        .notification-item {
+            padding: 12px;
+            border-left: 4px solid #2196F3;
+            background: #f9f9f9;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+        .notification-item.rejected {
+            border-left-color: #f44336;
+        }
+        .dropdown-dot {
+            width: 8px;
+            height: 8px;
+            background: red;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        #closeModal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        /* 头像hover效果，可选 */
+.message-avatar-box img:hover {
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
         @media (max-width: 768px) {
             .nav-container {
                 flex-wrap: wrap;
@@ -469,7 +605,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
     <link rel="manifest" href="./images/site.webmanifest" />
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -491,15 +626,26 @@
 
     <main class="main-content">
         <h1 class="page-title">校墙</h1>
-        <div class="logout-bar" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-    <button id="logoutBtn" class="logout-btn" style="background: #dc3545; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer;">退出登录</button>
-</div>
+        <div class="logout-bar">
+            <div class="user-menu">
+                <button class="avatar-btn" id="avatarBtn">
+                    <img id="avatarImg" class="avatar-img" />
+                    <div class="avatar-placeholder" id="avatarPlaceholder">+</div>
+                    <div class="notification-dot" id="notificationDot"></div>
+                </button>
+                <div class="avatar-dropdown" id="avatarDropdown">
+                    <div id="changeAvatar">更改头像</div>
+                    <div id="openNotifications">通知中心 <span class="dropdown-dot" id="dropdownDot" style="display:none"></span></div>
+                </div>
+                <input type="file" id="avatarInput" accept="image/*" hidden>
+            </div>
+            <button id="logoutBtn" class="logout-btn" style="background: #dc3545; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer;">退出登录</button>
+        </div>
 
         <section class="message-form-section">
             <h2 class="form-title">📝 发表你的留言</h2>
             <input type="hidden" id="replyToId" value="">
             <div id="replyTipContainer"></div>
-            <!-- 昵称下拉框 -->
             <div class="form-group">
                 <label for="nicknameSelect">显示昵称</label>
                 <select id="nicknameSelect" class="form-control">
@@ -507,11 +653,10 @@
                 </select>
                 <p class="form-note" style="margin-top: 5px;">选择“匿名用户”将不显示您的真实昵称。</p>
             </div>
-            <!-- 邮箱自动填充（只读） -->
             <div class="form-group">
-                <label for="contactEmail">联系邮箱 <span style="color: red;">*</span></label>
+                <label for="contactEmail">联系邮箱</label>
                 <input type="email" id="contactEmail" class="form-control" readonly disabled style="background-color: #f5f5f5; cursor: not-allowed;">
-                <p class="form-note" style="margin-top: 5px;">此邮箱来自您的账号，仅用于审核和回复通知。</p>
+                <p class="form-note" style="margin-top: 5px;">站内通知将直接发送到您的账号</p>
             </div>
             <div class="form-group">
                 <label for="messageContent">留言内容 <span style="color: red;">*</span></label>
@@ -529,7 +674,7 @@
                 </div>
             </div>
             <button class="submit-btn" onclick="postMessage()" id="submitBtn">发布留言</button>
-            <p class="form-note">留言需经过审核后才会公开显示，请留意邮箱通知。</p>
+            <p class="form-note">留言审核结果将通过站内通知告知您</p>
         </section>
 
         <section class="message-list-section">
@@ -537,6 +682,16 @@
             <div id="messageContainer" class="loading">加载留言中...</div>
         </section>
     </main>
+
+    <div class="notification-modal" id="notificationModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>通知中心</h3>
+                <button id="closeModal">×</button>
+            </div>
+            <div class="modal-body" id="notificationList"></div>
+        </div>
+    </div>
 
     <footer class="footer">
         <div class="footer-container">
@@ -563,24 +718,146 @@
         const MAX_IMAGES = 5;
         const MAX_SIZE = 5 * 1024 * 1024;
 
-        // EmailJS 配置（保持不变）
-        const AUDIT_CONFIG = {
-            publicKey: 'pESVSeXQr0aep4iGL',
-            serviceId: 'service_9pshvlz',
-            templateId: 'template_new_pending'
-        };
-        const REPLY_CONFIG = {
-            publicKey: 'llBCrDfznsE4il9lF',
-            serviceId: 'service_vi16f3b',
-            templateId: 'reply_remind'
-        };
-
         let userMap = {};
-        let currentUser = null;       // 当前登录用户对象
+        let currentUser = null;
         let currentUserEmail = '';
         let currentUserRealName = '';
+        let userId = '';
 
-        // 检查登录状态并初始化用户信息
+        // =========================
+        // 【独立通知表】发送通知
+        // =========================
+        async function sendNotificationToUser(targetUserId, title, content, type, relatedId = null) {
+          await supabase.from("notifications").insert([
+            { user_id: targetUserId, title, content, type, related_id: relatedId, read: false }
+          ]);
+        }
+
+        async function sendNotificationToAllAuditors(title, content, relatedId = null) {
+          const { data: checkers } = await supabase.from("checkers").select("user_id");
+          if (!checkers) return;
+          const notices = checkers.map(c => ({
+            user_id: c.user_id, title, content, type: "audit", related_id: relatedId, read: false
+          }));
+          if (notices.length === 0) return;
+          await supabase.from("notifications").insert(notices);
+        }
+
+        // =========================
+        // 红点刷新
+        // =========================
+        async function refreshNotificationDot() {
+          if (!userId) return;
+          const { data } = await supabase
+            .from("notifications")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("read", false)
+            .limit(1);
+          const hasUnread = data?.length > 0;
+          notificationDot.style.display = hasUnread ? "block" : "none";
+          dropdownDot.style.display = hasUnread ? "inline-block" : "none";
+        }
+
+        // =========================
+        // 打开通知中心
+        // =========================
+        async function openNotifications() {
+          const modal = document.getElementById("notificationModal");
+          modal.style.display = "flex";
+          const { data: notes } = await supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(50);
+
+          await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+          refreshNotificationDot();
+
+          const listEl = document.getElementById("notificationList");
+          if (!notes || notes.length === 0) {
+            listEl.innerHTML = `<div style='text-align:center;padding:30px;color:#999;'>暂无通知</div>`;
+            return;
+          }
+
+          listEl.innerHTML = notes.map(n => `
+            <div class="notification-item ${n.type === 'rejected' ? 'rejected' : ''}">
+              <h4>${n.title}</h4>
+              <p>${n.content}</p>
+              <p style='font-size:12px;color:#999;margin:5px 0 0 0;'>${new Date(n.created_at).toLocaleString()}</p>
+            </div>
+          `).join("");
+        }
+
+        // =========================
+        // 初始化头像
+        // =========================
+        async function initUserExtra() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            userId = user.id;
+            const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", userId).single();
+            const url = data?.avatar_url;
+            if (url) {
+                document.getElementById("avatarImg").src = url;
+                document.getElementById("avatarImg").style.display = "block";
+                document.getElementById("avatarPlaceholder").style.display = "none";
+            } else {
+                document.getElementById("avatarImg").style.display = "none";
+                document.getElementById("avatarPlaceholder").style.display = "block";
+            }
+            refreshNotificationDot();
+        }
+
+        // =========================
+        // 上传头像
+        // =========================
+        async function uploadAvatar(file) {
+            const { error } = await supabase.storage.from("avatars").upload(userId, file, { upsert: true });
+            if (error) { alert(error.message); return; }
+            const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(userId);
+            await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", userId);
+            avatarImg.src = publicUrl;
+            avatarImg.style.display = "block";
+            avatarPlaceholder.style.display = "none";
+            alert("头像更新成功");
+        }
+
+        // =========================
+        // 渲染留言头像
+        // =========================
+        async function renderMessageAvatars() {
+            const items = document.querySelectorAll(".message-item");
+            const userIds = [];
+            items.forEach(el => {
+                const uid = el.dataset.userId;
+                if (uid && uid !== "undefined" && uid !== "null") userIds.push(uid);
+            });
+            const { data: profiles } = await supabase.from("profiles").select("user_id, avatar_url").in("user_id", userIds);
+            const avatarMap = {};
+            if (profiles) profiles.forEach(p => { avatarMap[p.user_id] = p.avatar_url; });
+            items.forEach(el => {
+                const uid = el.dataset.userId;
+                const anonymous = el.dataset.anonymous === "true";
+                const box = el.querySelector(".message-avatar-box");
+                const username = el.querySelector(".message-author")?.textContent || "";
+                const firstChar = username.charAt(0) || "?";
+                if (anonymous) {
+                    box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
+                    return;
+                }
+                if (uid && avatarMap[uid]) {
+                    box.innerHTML = `<img src="${avatarMap[uid]}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${firstChar}</div>`;
+                }
+            });
+        }
+
+        // =========================
+        // 登录验证
+        // =========================
         async function initAuth() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -588,7 +865,6 @@
                 location.href = 'login.html';
                 return false;
             }
-            // 获取用户详情
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) {
                 alert('登录超时，请重新登录');
@@ -597,13 +873,12 @@
                 return false;
             }
             currentUser = user;
+            userId = user.id;
             currentUserEmail = user.email;
-            // 从 user_metadata 中获取注册时的用户名，若没有则使用邮箱前缀作为默认
             currentUserRealName = user.user_metadata?.username || user.email.split('@')[0] || '用户';
             return true;
         }
 
-        // 初始化昵称下拉框
         function initNicknameSelect() {
             const select = document.getElementById('nicknameSelect');
             select.innerHTML = '';
@@ -615,46 +890,57 @@
             optionAnon.textContent = '匿名用户';
             select.appendChild(optionReal);
             select.appendChild(optionAnon);
-            select.value = currentUserRealName; // 默认显示真实昵称
+            select.value = currentUserRealName;
         }
 
         window.onload = async function() {
-            // 1. 验证登录
             const loggedIn = await initAuth();
             if (!loggedIn) return;
-
-            // 2. 初始化 EmailJS（审核账号）
-            emailjs.init(AUDIT_CONFIG.publicKey);
-            console.log('全局初始化审核账号完成');
-
-            // 3. 填充邮箱（只读）
-            const emailInput = document.getElementById('contactEmail');
-            emailInput.value = currentUserEmail;
-
-            // 4. 初始化昵称下拉框
+            document.getElementById('contactEmail').value = currentUserEmail;
             initNicknameSelect();
-
-            // 5. 加载留言列表
             await loadMessages();
+            await initUserExtra();
 
-            // 6. 处理 URL 锚点跳转
-            if (window.location.hash) {
-                setTimeout(() => {
-                    const element = document.querySelector(window.location.hash);
-                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 500);
-            }
-            const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            alert('已退出登录');
-            location.href = 'login.html';
-        });
-    }
+            document.getElementById('logoutBtn').onclick = async () => {
+                await supabase.auth.signOut();
+                alert('已退出登录');
+                location.href = 'login.html';
+            };
+
+            const avatarBtn = document.getElementById('avatarBtn');
+            const avatarDropdown = document.getElementById('avatarDropdown');
+            avatarBtn.onclick = (e) => {
+                e.stopPropagation();
+                avatarDropdown.style.display = avatarDropdown.style.display === "block" ? "none" : "block";
+            };
+            document.addEventListener('click', (e) => {
+                if (!avatarBtn.contains(e.target) && !avatarDropdown.contains(e.target)) {
+                    avatarDropdown.style.display = "none";
+                }
+            });
+
+            document.getElementById('changeAvatar').onclick = () => {
+                document.getElementById('avatarInput').click();
+                avatarDropdown.style.display = "none";
+            };
+            document.getElementById('avatarInput').onchange = async (e) => {
+                if (e.target.files[0]) await uploadAvatar(e.target.files[0]);
+            };
+
+            document.getElementById('openNotifications').onclick = async () => {
+                await openNotifications();
+                avatarDropdown.style.display = "none";
+            };
+            document.getElementById('closeModal').onclick = () => {
+                document.getElementById('notificationModal').style.display = "none";
+            };
+            document.getElementById('notificationModal').onclick = (e) => {
+                if (e.target === document.getElementById('notificationModal')) {
+                    document.getElementById('notificationModal').style.display = "none";
+                }
+            };
         };
 
-        // 图片预览（保持不变）
         function previewImages(input) {
             const container = document.getElementById('previewContainer');
             container.innerHTML = '';
@@ -678,7 +964,6 @@
             }
         }
 
-        // 上传图片到 Supabase Storage
         async function uploadImages(files) {
             if (!files || files.length === 0) return null;
             const urlList = [];
@@ -704,106 +989,41 @@
             }
         }
 
-        // 发送审核邮件
-        async function sendAuditEmail(userEmail, messageContent) {
-            try {
-                const { data: checkers } = await supabase.from('checkers').select('email');
-                if (!checkers || checkers.length === 0) return;
-                const checkerEmails = checkers.map(c => c.email).join(',');
-                await emailjs.send(
-                    AUDIT_CONFIG.serviceId,
-                    AUDIT_CONFIG.templateId,
-                    { to_email: checkerEmails, to: userEmail, content: messageContent }
-                );
-                console.log('审核邮件发送成功');
-            } catch (error) {
-                console.error('审核邮件失败:', error);
-                alert(`邮件通知失败（不影响发布）：${error.text || error.message}`);
-            }
-        }
-
-        // 发送回复通知（使用第三个账号）
-        async function sendReplyNotification(originalEmail, originalName, replyAuthor, replyContent, replyToId) {
-            try {
-                const replyLink = `${window.location.origin}${window.location.pathname}#message-${replyToId}`;
-                const templateParams = {
-                    to_email: originalEmail,
-                    to_name: originalName,
-                    reply_author: replyAuthor,
-                    reply_content: replyContent,
-                    reply_link: replyLink
-                };
-                // 临时切换到回复账号
-                emailjs.init(REPLY_CONFIG.publicKey);
-                const result = await emailjs.send(
-                    REPLY_CONFIG.serviceId,
-                    REPLY_CONFIG.templateId,
-                    templateParams
-                );
-                console.log('回复通知发送成功:', result);
-                return result;
-            } catch (error) {
-                console.error('回复通知失败:', error);
-                throw error;
-            } finally {
-                // 切回审核账号
-                emailjs.init(AUDIT_CONFIG.publicKey);
-            }
-        }
-
-        // 发布留言（支持回复）
+        // =========================
+        // 发布留言（专业版通知）
+        // =========================
         async function postMessage() {
-            // 从下拉框获取昵称
             const username = document.getElementById('nicknameSelect').value;
-            // 从只读输入框获取邮箱（实际已登录用户邮箱）
-            const contactEmail = document.getElementById('contactEmail').value;
             const content = document.getElementById('messageContent').value.trim();
             const files = document.getElementById('messagePicFile').files;
             const replyToId = document.getElementById('replyToId').value;
             const submitBtn = document.getElementById('submitBtn');
 
-            if (!contactEmail) { alert('无法获取您的邮箱，请重新登录'); return; }
             if (!content) { alert('留言内容不能为空！'); return; }
-
             submitBtn.disabled = true;
             submitBtn.textContent = '发布中...';
 
             try {
                 const picUrls = await uploadImages(Array.from(files));
-                if (files.length > 0 && picUrls === null) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '发布留言';
-                    return;
-                }
                 const insertData = {
-                    username, 
-                    content, 
-                    pic_url: picUrls, 
-                    contact_email: contactEmail, 
-                    flag: 0,
-                    reply_to: replyToId || null
+                    user_id: currentUser.id,
+                    username, content, pic_url: picUrls,
+                    contact_email: currentUserEmail,
+                    flag: 0, reply_to: replyToId || null,
+                    created_at: new Date().toISOString()
                 };
-                const { error, data: newMsg } = await supabase.from('messages').insert([insertData]).select();
-                if (error) throw error;
-                console.log('留言发布成功:', newMsg);
+                const { data: newMsg } = await supabase.from('messages').insert([insertData]).select().single();
 
-                // 如果是回复，发送通知给原留言者
+                await sendNotificationToAllAuditors("🔔 新留言待审核", `用户：${username}\n内容：${content.slice(0,50)}...`, newMsg.id);
+
                 if (replyToId) {
-                    const { data: original, error: fetchErr } = await supabase
-                        .from('messages')
-                        .select('contact_email, username')
-                        .eq('id', replyToId)
-                        .single();
-                    if (!fetchErr && original && original.contact_email) {
-                        await sendReplyNotification(original.contact_email, original.username, username, content, replyToId);
-                    } else {
-                        console.warn('未找到原留言作者或邮箱为空');
+                    const { data: original } = await supabase.from('messages').select('user_id').eq('id', replyToId).single();
+                    if (original?.user_id) {
+                        await sendNotificationToUser(original.user_id, `💬 ${username} 回复了你`, content.slice(0,80)+"...", "reply", replyToId);
                     }
                 }
 
-                await sendAuditEmail(contactEmail, content);
-                alert('留言发布成功！如果审核未通过相关信息会发送到您的邮箱。');
-                // 清空表单
+                alert('留言发布成功！审核结果将通过站内通知告知您');
                 document.getElementById('messageContent').value = '';
                 document.getElementById('messagePicFile').value = '';
                 document.getElementById('previewContainer').innerHTML = '';
@@ -811,7 +1031,6 @@
                 document.getElementById('replyTipContainer').innerHTML = '';
                 loadMessages();
             } catch (error) {
-                console.error('发布失败:', error);
                 alert('发布失败：' + (error.message || error));
             } finally {
                 submitBtn.disabled = false;
@@ -841,9 +1060,8 @@
             const target = document.getElementById(`message-${replyToId}`);
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                target.style.transition = 'background 0.3s';
                 target.style.backgroundColor = '#f0f7ff';
-                setTimeout(() => { target.style.backgroundColor = ''; }, 1500);
+                setTimeout(() => target.style.backgroundColor = '', 1500);
             } else {
                 alert('原留言不存在或未加载');
             }
@@ -882,27 +1100,23 @@
                         replyInfoHtml = `<div class="reply-info" onclick="jumpToOriginal('${msg.reply_to}')">↳ 回复 @${escapeHtml(userMap[msg.reply_to])}</div>`;
                     }
                     html += `
-                    <div class="message-item" id="message-${msg.id}">
-                        <div class="message-header">
-                            <span class="message-author">${escapeHtml(msg.username)}</span>
-                            <span class="message-time">${time}</span>
+                    <div class="message-item" id="message-${msg.id}" data-user-id="${msg.user_id || ''}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
+                        <div class="message-avatar-box"></div>
+                        <div style="flex:1">
+                            <div class="message-header">
+                                <span class="message-author">${escapeHtml(msg.username)}</span>
+                                <span class="message-time">${time}</span>
+                            </div>
+                            ${replyInfoHtml}
+                            <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+                            ${imageHtml}
+                            <button class="reply-btn" onclick="setReplyTo('${msg.id}', '${escapeHtml(msg.username)}')">💬 回复</button>
                         </div>
-                        ${replyInfoHtml}
-                        <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
-                        ${imageHtml}
-                        <button class="reply-btn" onclick="setReplyTo('${msg.id}', '${escapeHtml(msg.username)}')">💬 回复</button>
                     </div>`;
                 }
                 container.innerHTML = html;
-                if (window.location.hash) {
-                    const targetId = window.location.hash;
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                        setTimeout(() => targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-                    }
-                }
+                renderMessageAvatars();
             } catch (error) {
-                console.error('加载留言失败:', error);
                 container.innerHTML = `<div class="empty-message">加载失败：${error.message}</div>`;
             }
         }

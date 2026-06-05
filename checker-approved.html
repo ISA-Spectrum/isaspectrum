@@ -55,7 +55,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
     <link rel="manifest" href="/images/site.webmanifest" />
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -79,7 +78,7 @@
     <div class="modal-overlay" id="deleteModal">
         <div class="modal-box">
             <h3>删除原因</h3>
-            <p style="color:#666;font-size:13px;margin-bottom:12px">此原因将以匿名方式发送给发布者，同时实名发送给管理员。</p>
+            <p style="color:#666;font-size:13px;margin-bottom:12px">此原因将以匿名方式发送给发布者。</p>
             <textarea id="deleteReason" placeholder="请填写删除原因..."></textarea>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeDeleteModal()">取消</button>
@@ -93,16 +92,8 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 邮件服务公钥
-        const MAIN_PUBLIC_KEY = 'uahvFOAFb1xRmqK6F';
-        const SUB_PUBLIC_KEY = 'pESVSeXQr0aep4iGL';
         let currentChecker = null;
         let pendingDeleteId = null;
-
-        // 初始化 emailjs（基础配置）
-        emailjs.init({
-            publicKey: MAIN_PUBLIC_KEY, // 默认主密钥，发送时可覆盖
-        });
 
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -150,6 +141,21 @@
 
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML; }
 
+        async function sendNotify(user_id, title, content, related_id) {
+            try { await supabase.from("notifications").insert([{ user_id, title, content, type: "audit", related_id, read: false }]); } catch (e) {}
+        }
+
+        async function writeLog(action, reason, msg) {
+            try {
+                const user = (await supabase.auth.getUser()).data.user;
+                await supabase.from("logs").insert([{
+                    operator_id: user?.id, operator_email: user?.email,
+                    message_id: msg.id, action, reason,
+                    content: msg.content, username: msg.username, user_id: msg.user_id
+                }]);
+            } catch (e) {}
+        }
+
         function openDeleteModal(id) {
             pendingDeleteId = id;
             document.getElementById('deleteReason').value = '';
@@ -161,60 +167,31 @@
             document.getElementById('deleteModal').style.display = 'none';
         }
 
+        // 删除
         document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
-    const reason = document.getElementById('deleteReason').value.trim();
-    if (!reason) { alert('请填写删除原因'); return; }
-    
-    // 【关键1】强制校验ID
-    if (!pendingDeleteId) { alert('系统错误：未获取到留言ID'); return; }
+            const reason = document.getElementById('deleteReason').value.trim();
+            if (!reason) { alert('请填写删除原因'); return; }
+            if (!pendingDeleteId) return;
 
-    const btn = this;
-    btn.disabled = true;
-    btn.textContent = '处理中...';
+            const btn = this; btn.disabled = true; btn.textContent = '处理中...';
 
-    try {
-        // 1. 查询留言
-        const { data: msg, error: queryErr } = await supabase.from('messages').select('*').eq('id', pendingDeleteId).single();
-        if (queryErr || !msg) { alert('未找到该留言'); throw queryErr; }
+            try {
+                const { data: msg } = await supabase.from('messages').select('*').eq('id', pendingDeleteId).single();
+                if (!msg) throw new Error('未找到留言');
 
-        // 2. 更新数据库状态（删除）
-        const { error: updateErr } = await supabase.from('messages').update({ 
-            flag: 2, 
-            reject_reason: reason 
-        }).eq('id', pendingDeleteId);
-        if (updateErr) { alert('更新状态失败'); throw updateErr; }
+                await supabase.from('messages').update({ flag: 2, reject_reason: reason }).eq('id', pendingDeleteId);
+                await sendNotify(msg.user_id, "🗑️ 你的留言已被删除", `删除原因：${reason}`, pendingDeleteId);
+                await writeLog("delete", reason, msg);
 
-        // 3. 发送邮件给用户
-        await emailjs.send("service_o9y08vb", "template_reject_notify", {
-            action: '已删除',
-            reason: reason,
-            content: msg.content,
-            to: msg.contact_email
-        }, MAIN_PUBLIC_KEY);
-
-        // 4. 发送邮件给管理员
-        await emailjs.send("service_9pshvlz", "template_reject_admin", {
-            action: '已删除',
-            reason: reason,
-            reject_reason: reason,
-            content: msg.content,
-            to: msg.contact_email,
-            checker_name: currentChecker.username,
-            checker_email: currentChecker.email
-        }, SUB_PUBLIC_KEY);
-
-        alert('操作成功！');
-        closeDeleteModal();
-        loadList();
-
-    } catch (err) {
-        console.error('执行失败：', err);
-        alert('执行失败：' + (err.message || '未知错误'));
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '确认删除';
-    }
-});
+                alert('删除成功');
+                closeDeleteModal();
+                loadList();
+            } catch (err) {
+                alert('失败：' + err.message);
+            } finally {
+                btn.disabled = false; btn.textContent = '确认删除';
+            }
+        });
 
         async function doLogout() {
             await supabase.auth.signOut();

@@ -122,9 +122,31 @@
 
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML; }
 
+        async function sendNotify(user_id, title, content, related_id) {
+            try { await supabase.from("notifications").insert([{ user_id, title, content, type: "audit", related_id, read: false }]); } catch (e) {}
+        }
+
+        async function writeLog(action, reason, msg) {
+            try {
+                const user = (await supabase.auth.getUser()).data.user;
+                await supabase.from("logs").insert([{
+                    operator_id: user?.id, operator_email: user?.email,
+                    message_id: msg.id, action, reason,
+                    content: msg.content, username: msg.username, user_id: msg.user_id
+                }]);
+            } catch (e) {}
+        }
+
+        // 恢复
         async function restoreMsg(id) {
-            const { error } = await supabase.from('messages').update({ flag: 1, reject_reason: null }).eq('id', id);
-            if (error) { alert('操作失败'); return; }
+            const { data: msg } = await supabase.from('messages').select('*').eq('id', id).single();
+            if (!msg) { alert('不存在'); return; }
+            
+            await supabase.from('messages').update({ flag: 1, reject_reason: null }).eq('id', id);
+            await sendNotify(msg.user_id, "♻️ 你的留言已恢复", "你的留言已恢复并重新公开显示", id);
+            await writeLog("restore", "已恢复", msg);
+            
+            alert('已恢复');
             loadList();
         }
 
