@@ -9,17 +9,18 @@ fetch("header-checker.html")
     if(menuBtn&&navList){
         menuBtn.onclick = ()=> navList.classList.toggle("show");
     }
+// 自动匹配页面，兼容线上无.html / 本地带.html
+let pageRaw = location.pathname.split('/').pop();
+let currPage = pageRaw.replace(/\.html$/,'');
+if(currPage === '') currPage = 'checker-pending';
 
-    // 自动匹配页面，切换active高亮
-    const pageName = location.pathname.split('/').pop(); // 获取当前文件名
-    const links = document.querySelectorAll("#navList a");
-    links.forEach(link=>{
-        // 清空所有active
-        link.classList.remove("active");
-        // 当前页面和href一致就加上active
-        const hrefName = link.getAttribute("href");
-        if(hrefName === pageName){
-            link.classList.add("active");
-        }
-    })
+const links = document.querySelectorAll("#navList a");
+links.forEach(link=>{
+    link.classList.remove("active");
+    let hrefRaw = link.getAttribute("href");
+    let hrefName = hrefRaw.replace(/\.html$/,'');
+    if(hrefName === currPage){
+        link.classList.add("active");
+    }
+})
 })

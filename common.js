@@ -10,10 +10,19 @@ fetch('./header.html')
   const btn = document.getElementById('menuBtn')
   const navList = document.getElementById('navList')
   if(btn) btn.onclick = ()=> navList.classList.toggle('show')
-  const currPage = location.pathname.split('/').pop() || 'main.html'
-  document.querySelectorAll('.nav-links a').forEach(a=>{
-    a.classList.toggle('active',a.getAttribute('href')===currPage)
-  })
+  // 处理线上pages无.html、本地带.html兼容
+let pageRaw = location.pathname.split('/').pop();
+let currPage = pageRaw.replace(/\.html$/,'');
+if(currPage === '') currPage = 'main';
+
+document.querySelectorAll('.nav-links a').forEach(a=>{
+    a.classList.remove('active');
+    let hrefRaw = a.getAttribute('href');
+    let hrefName = hrefRaw.replace(/\.html$/,'');
+    if(hrefName === currPage){
+        a.classList.add('active');
+    }
+})
 }).catch(e=>console.error('头部加载失败',e))
 
 fetch('./footer.html')
