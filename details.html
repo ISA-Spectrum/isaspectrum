@@ -166,10 +166,16 @@
             border-radius: 8px;
         }
 
-        .message-item.highlight {
-            background-color: #d7e7ff !important;
-            border-left: 4px solid var(--theme-color);
-        }
+.message-item.highlight {
+    background-color: #d7e7ff !important;
+    border-left: 4px solid var(--theme-color);
+    animation: highlightFlash 2s ease-out;
+}
+@keyframes highlightFlash {
+    0% { background-color: #d7e7ff; }
+    50% { background-color: #b9d1ff; }
+    100% { background-color: #d7e7ff; }
+}
 
         .message-avatar-box {
             flex-shrink: 0;
@@ -805,17 +811,22 @@ async function submitComment(rid, type) {
         newMsg.id
     );
 
-    // 通知被回复者
-    const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
+// 通知被回复者
+const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
 console.log('targetMsg:', targetMsg, 'currentUser.id:', currentUser.id);
 
 if (targetMsg && targetMsg.user_id && targetMsg.user_id !== currentUser.id) {
     console.log('✅ 进入通知逻辑，targetMsg.user_id:', targetMsg.user_id); // ← 加这行
     try {
+        // 拼接跳转链接
+        const jumpLink = `<a href="details.html?id=${mainMsgId}&replyId=${newMsg.id}" style="color:#1e50ae; text-decoration:none;">点击查看>></a>`;
+        // 通知正文（带链接）
+        const noticeContent = `${content.slice(0, 80)}...<br>${jumpLink}`;
+        
         await sendNotificationToUser(
             targetMsg.user_id,
             `💬 ${ano ? '匿名用户' : currentUserRealName} 回复了你`,
-            content.slice(0, 80) + '...',
+            noticeContent,  // 核心：替换成带链接的内容
             'reply',
             rid
         );
@@ -840,12 +851,35 @@ function jumpToComment(targetId) {
     el.classList.add('highlight');
     setTimeout(() => el.classList.remove('highlight'), 2000);
 }
+// ==================== 页面加载自动定位回复（通知跳转专用） ====================
+async function autoJumpFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const replyId = params.get('replyId');
+    
+    if (!replyId) return;
 
+    // 等待评论加载完成
+    let retry = 0;
+    const interval = setInterval(() => {
+        const el = document.getElementById(`msg-${replyId}`);
+        if (el) {
+            clearInterval(interval);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('highlight');
+            setTimeout(() => el.classList.remove('highlight'), 2000);
+        }
+        retry++;
+        if (retry > 20) clearInterval(interval);
+    }, 100);
+}
 // ==================== 初始化 ====================
 window.onload=async()=>{
-            document.getElementById('menuToggle').onclick=()=>document.getElementById('navList').classList.toggle('show');
-            if(await initAuth())loadMainMessage();
-        };
+    document.getElementById('menuToggle').onclick=()=>document.getElementById('navList').classList.toggle('show');
+    if(await initAuth()) {
+        await loadMainMessage();
+        autoJumpFromUrl(); // 新增这一行
+    }
+};
     </script>
 </body>
 </html>
