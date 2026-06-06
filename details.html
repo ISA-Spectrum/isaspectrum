@@ -5,92 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>留言详情 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- 引入全局公共样式 -->
+    <link rel="stylesheet" href="./common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body { 
-            font-family: "微软雅黑", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-
-        :root {
-            --theme-color: #1e50ae;
-            --text-gray: #999;
-            --footer-bg: #262626;
-            --footer-text: #7b7b7b;
-            --card-bg: #f9f9f9;
-        }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--theme-color);
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo img {
-            height: 40px;
-            margin-right: 10px;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 30px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--theme-color);
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-            padding: 5px;
-        }
-
+        /* 移除全局通用、导航、页脚CSS，只保留页面独有样式 */
         .main-content {
             max-width: 1200px;
             margin: 80px auto 60px;
@@ -166,16 +84,16 @@
             border-radius: 8px;
         }
 
-.message-item.highlight {
-    background-color: #d7e7ff !important;
-    border-left: 4px solid var(--theme-color);
-    animation: highlightFlash 2s ease-out;
-}
-@keyframes highlightFlash {
-    0% { background-color: #d7e7ff; }
-    50% { background-color: #b9d1ff; }
-    100% { background-color: #d7e7ff; }
-}
+        .message-item.highlight {
+            background-color: #d7e7ff !important;
+            border-left: 4px solid var(--theme-color);
+            animation: highlightFlash 2s ease-out;
+        }
+        @keyframes highlightFlash {
+            0% { background-color: #d7e7ff; }
+            50% { background-color: #b9d1ff; }
+            100% { background-color: #d7e7ff; }
+        }
 
         .message-avatar-box {
             flex-shrink: 0;
@@ -283,7 +201,6 @@
             box-shadow: 0 0 0 2px rgba(30, 80, 174, 0.1);
         }
 
-        /* 图片上传样式 —— 无删除按钮纯净版 */
         .image-upload-container {
             margin-bottom: 12px;
             border: 1px dashed #ddd;
@@ -317,7 +234,6 @@
             object-fit: cover;
         }
 
-        /* 匿名勾选框样式 */
         .anonymous-checkbox-container {
             margin-bottom: 10px;
             display: flex;
@@ -380,63 +296,8 @@
             font-size: 14px;
         }
 
-        .footer {
-            background-color: var(--footer-bg);
-            color: var(--footer-text);
-            padding: 40px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            text-align: center;
-        }
-
-        .footer-section h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section p {
-            font-size: 13px;
-            line-height: 22px;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 30px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid #2b2b2b;
-            text-align: center;
-            font-size: 12px;
-        }
-
+        /* 页面移动端专属 */
         @media (max-width: 768px) {
-            .nav-container {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 20px;
-            }
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-                padding: 10px 0;
-            }
-            .nav-links.show {
-                display: flex !important;
-            }
-            .nav-links li {
-                margin: 10px 0;
-            }
-            .menu-toggle {
-                display: block !important;
-            }
             .main-content {
                 margin: 80px auto 40px;
                 padding: 0 15px;
@@ -457,30 +318,16 @@
             }
         }
     </style>
-    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-    <link rel="shortcut icon" href="/images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
+    <link rel="shortcut icon" href="./images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
-    <link rel="manifest" href="/images/site.webmanifest" />
+    <link rel="manifest" href="./images/site.webmanifest" />
 </head>
 <body>
-    <header class="header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="./images/logo.png" alt="ISA Spectrum Logo">
-                <span>ISA Spectrum</span>
-            </a>
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            <ul class="nav-links" id="navList">
-                <li><a href="main.html">首页</a></li>
-                <li><a href="notice.html">公告</a></li>
-                <li><a href="messages.html" class="active">校墙</a></li>
-                <li><a href="about.html">关于ISA Spectrum</a></li>
-                <li><a href="contact.html">联系我们</a></li>
-            </ul>
-        </div>
-    </header>
+    <!-- 公共头部挂载容器 -->
+    <div id="headerBox"></div>
 
     <main class="main-content">
         <a href="messages.html" class="back-btn">← 返回校墙</a>
@@ -496,23 +343,12 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>ISA SPECTRUM</h3>
-            </div>
-            <div class="footer-section">
-                <p>联系邮箱<br>peiguo.li29@isawuhan.com</p>
-            </div>
-            <div class="footer-section">
-                <p>联系电话<br>16602707968</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>©2026 - ISA Spectrum 版权所有</p>
-        </div>
-    </footer>
+    <!-- 公共页脚挂载容器 -->
+    <div id="footerBox"></div>
 
+    <!-- 全局导航JS -->
+    <script src="./common.js"></script>
+    <!-- 页面业务JS完整保留 -->
     <script>
 const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
@@ -614,7 +450,7 @@ function previewImages(targetId) {
     });
 }
 
-// ==================== 头像渲染（通过 username === '匿名用户' 判断） ====================
+// ==================== 头像渲染 ====================
 async function renderMessageAvatars() {
     const items = document.querySelectorAll('.message-item');
     const uids = [];
@@ -631,7 +467,6 @@ async function renderMessageAvatars() {
         if (!box) return;
         const name = el.querySelector('.message-author')?.textContent || '';
         const c = name.charAt(0) || '?';
-        // 关键判断：用户名是否为"匿名用户"
         if (name === '匿名用户') {
             box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
             return;
@@ -804,39 +639,25 @@ async function submitComment(rid, type) {
         return;
     }
 
-    // 通知审核员
     await sendNotificationToAllAuditors(
         '🔔 新留言待审核',
         `用户：${ano ? '匿名用户' : currentUserRealName}\n内容：${content.slice(0, 50)}...`,
         newMsg.id
     );
 
-// 通知被回复者
-const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
-console.log('targetMsg:', targetMsg, 'currentUser.id:', currentUser.id);
+    const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
 
-if (targetMsg && targetMsg.user_id && targetMsg.user_id !== currentUser.id) {
-    console.log('✅ 进入通知逻辑，targetMsg.user_id:', targetMsg.user_id); // ← 加这行
-    try {
-        // 拼接跳转链接
+    if (targetMsg && targetMsg.user_id && targetMsg.user_id !== currentUser.id) {
         const jumpLink = `<a href="details.html?id=${mainMsgId}&replyId=${newMsg.id}" style="color:#1e50ae; text-decoration:none;">点击查看>></a>`;
-        // 通知正文（带链接）
         const noticeContent = `${content.slice(0, 80)}...<br>${jumpLink}`;
-        
         await sendNotificationToUser(
             targetMsg.user_id,
             `💬 ${ano ? '匿名用户' : currentUserRealName} 回复了你`,
-            noticeContent,  // 核心：替换成带链接的内容
+            noticeContent,
             'reply',
             rid
         );
-        console.log('✅ 通知发送成功');
-    } catch (err) {
-        console.error('❌ 通知发送失败:', err);
     }
-} else {
-    console.log('❌ 未进入通知逻辑，条件不满足');
-}
 
     alert('发布成功！等待审核');
     closeAllCommentBoxes();
@@ -851,14 +672,13 @@ function jumpToComment(targetId) {
     el.classList.add('highlight');
     setTimeout(() => el.classList.remove('highlight'), 2000);
 }
-// ==================== 页面加载自动定位回复（通知跳转专用） ====================
+
 async function autoJumpFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const replyId = params.get('replyId');
     
     if (!replyId) return;
 
-    // 等待评论加载完成
     let retry = 0;
     const interval = setInterval(() => {
         const el = document.getElementById(`msg-${replyId}`);
@@ -872,12 +692,12 @@ async function autoJumpFromUrl() {
         if (retry > 20) clearInterval(interval);
     }, 100);
 }
+
 // ==================== 初始化 ====================
 window.onload=async()=>{
-    document.getElementById('menuToggle').onclick=()=>document.getElementById('navList').classList.toggle('show');
     if(await initAuth()) {
         await loadMainMessage();
-        autoJumpFromUrl(); // 新增这一行
+        autoJumpFromUrl();
     }
 };
     </script>

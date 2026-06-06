@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户端下载 - ISA Spectrum</title>
+    <link rel="stylesheet" href="./common.css">
+    <style>
+        /* 页面独有样式 */
+        .download-wrap {
+            max-width: 900px;
+            margin: 80px auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+        .download-title {
+            font-size: 32px;
+            color: var(--theme-color);
+            margin-bottom: 12px;
+        }
+        .download-desc {
+            color: var(--text-gray);
+            font-size:15px;
+            margin-bottom:40px;
+        }
+        .download-card {
+            background: var(--card-bg,#f9f9f9);
+            border-radius:12px;
+            padding:40px 20px;
+            box-shadow:0 3px 15px rgba(0,0,0,0.06);
+        }
+        .apk-info {
+            margin-bottom:30px;
+        }
+        .apk-name {
+            font-size:20px;
+            color:#333;
+            margin-bottom:8px;
+        }
+        .apk-tip {
+            color:#666;
+            font-size:14px;
+        }
+        .down-btn {
+            display:inline-block;
+            padding:14px 42px;
+            background:var(--theme-color);
+            color:#fff;
+            text-decoration:none;
+            border-radius:30px;
+            font-size:17px;
+            transition:0.25s;
+        }
+        .down-btn:hover {
+            background:#15408f;
+        }
+        .note-text {
+            margin-top:30px;
+            font-size:13px;
+            color:var(--text-gray);
+            line-height:1.7;
+        }
+    </style>
+    <!-- favicon 固定头部 -->
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
+    <link rel="shortcut icon" href="./images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
+    <link rel="manifest" href="./images/site.webmanifest" />
+</head>
+<body>
+    <header id="checkHeader"></header>
+
+    <div class="download-wrap">
+        <h1 class="download-title">ISA Spectrum 安卓审核端下载<br>——————————</h1>
+        <p class="download-desc">校园社区官方审核端APP · 随时随地审核留言</p>
+
+        <div class="download-card">
+            <div class="apk-info">
+                <div class="apk-name">ISA-Spectrum-checker.apk</div>
+                <div class="apk-tip">安装包大小：14MB | 适用：Android 8.0及以上</div>
+            </div>
+            <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISA-Spectrum-checker.apk" download="ISA-Spectrum-checker.apk" class="down-btn">立即下载APK安装包</a>
+        </div>
+
+        <p class="note-text">
+            下载提示：安卓安装时如提示“未知来源”，请在系统设置中临时开启允许安装未知应用；<br>
+            如有安装异常、软件BUG，可前往【联系我们】页面反馈问题。
+        </p>
+    </div>
+
+    <script src="./checker.js"></script>
+</body>
+</html>

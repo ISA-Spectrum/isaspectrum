@@ -4,96 +4,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>ISA Spectrum</title>
+    <!-- 引入全局公共CSS -->
+    <link rel="stylesheet" href="./common.css">
+    <!-- 仅保留本页面独有样式：轮播 + 主页介绍区域 -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: "微软雅黑", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-
-        :root {
-            --theme-color: #1e50ae;
-            --secondary-color: #3F23B4;
-            --text-gray: #999;
-            --text-light-gray: #ccc;
-            --footer-bg: #262626;
-            --footer-text: #7b7b7b;
-        }
-
-        /* 导航栏 - 电脑端正常横排 */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 9999;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--theme-color);
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo img {
-            height: 40px;
-            margin-right: 10px;
-        }
-
-        /* 电脑端导航正常显示 */
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 30px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--theme-color);
-        }
-
-        /* 汉堡按钮 - 电脑端隐藏 */
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        /* 轮播图 */
+        /* 轮播专属 */
         .banner {
             margin-top: 60px;
             width: 100%;
@@ -102,7 +17,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .banner-slide {
             position: absolute;
             top: 0;
@@ -114,11 +28,9 @@
             opacity: 0;
             transition: 0.6s;
         }
-
         .banner-slide.active {
             opacity: 1;
         }
-
         .banner-dots {
             position: absolute;
             bottom: 20px;
@@ -126,31 +38,26 @@
             transform: translateX(-50%);
             display: flex;
         }
-
         .banner-dot {
             width: 40px;
             height: 3px;
             background: rgba(255,255,255,0.5);
             margin: 0 5px;
         }
-
         .banner-dot.active {
             background: #fff;
         }
-
-        /* 内容 */
+        /* 主页介绍内容专属 */
         .main-content {
             max-width: 1200px;
             margin: 0 auto;
             padding: 60px 20px;
             text-align: center;
         }
-
         .main-logo {
             width: 200px;
             margin-bottom: 30px;
         }
-
         .intro-text {
             font-size: 14px;
             color: var(--text-gray);
@@ -158,7 +65,6 @@
             max-width: 600px;
             margin: 0 auto 20px;
         }
-
         .intro-text-en {
             font-size: 12px;
             color: var(--text-light-gray);
@@ -166,83 +72,14 @@
             max-width: 600px;
             margin: 0 auto 30px;
         }
-
         .more-link {
             color: var(--theme-color);
             text-decoration: none;
             font-size: 14px;
         }
-
-        /* 页脚 */
-        .footer {
-            background: var(--footer-bg);
-            color: var(--footer-text);
-            padding: 40px 20px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-            gap: 30px;
-            text-align: center;
-        }
-
-        .footer-section h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section p {
-            font-size: 13px;
-            line-height: 22px;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 30px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid #2b2b2b;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        /* ====================== */
-        /* 手机端样式（只在这里改） */
-        /* ====================== */
+        /* 移动端轮播适配 */
         @media (max-width: 768px) {
-            .nav-container {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 20px;
-            }
-
-            /* 手机端导航默认隐藏 */
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-                padding: 10px 0;
-            }
-
-            /* 手机点开后显示 */
-            .nav-links.show {
-                display: flex !important;
-            }
-
-            .nav-links li {
-                margin: 10px 0;
-            }
-
-            /* 手机端显示汉堡 */
-            .menu-toggle {
-                display: block !important;
-            }
-
             .banner {
-                margin-top: 60px;
                 height: 60vw;
             }
         }
@@ -255,26 +92,10 @@
     <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
+<!-- 公共头部容器（由common.js自动加载header.html） -->
+<div id="headerBox"></div>
 
-<!-- 导航 -->
-<header class="header">
-    <div class="nav-container">
-        <a href="index.html" class="logo">
-            <img src="./images/logo.png" alt="Logo">
-            <span>ISA Spectrum</span>
-        </a>
-        <button class="menu-toggle" id="menuBtn">☰</button>
-        <ul class="nav-links" id="navList">
-            <li><a href="main.html" class="active">首页</a></li>
-            <li><a href="notice.html">公告</a></li>
-            <li><a href="messages.html">校墙</a></li>
-            <li><a href="about.html">关于ISA Spectrum</a></li>
-            <li><a href="contact.html">联系我们</a></li>
-        </ul>
-    </div>
-</header>
-
-<!-- 轮播 -->
+<!-- 页面独有正文：轮播+介绍 -->
 <section class="banner">
     <div class="banner-slide active" style="background-image:url('./images/1.jpg')"></div>
     <div class="banner-slide" style="background-image:url('./images/2.jpg')"></div>
@@ -284,7 +105,6 @@
     </div>
 </section>
 
-<!-- 内容 -->
 <main class="main-content">
     <img src="./images/logo.png" class="main-logo">
     <p class="intro-text">
@@ -296,18 +116,13 @@
     <a href="about.html" class="more-link">MORE<br>————</a><br><br>
 </main>
 
-<!-- 页脚 -->
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-section"><h3>ISA SPECTRUM</h3></div>
-        <div class="footer-section"><p>联系邮箱<br>peiguo.li29@isawuhan.com</p></div>
-        <div class="footer-section"><p>联系电话<br>16602707968</p></div>
-    </div>
-    <div class="footer-bottom"><p>©2026 ISA Spectrum 版权所有</p></div>
-</footer>
+<!-- 公共页脚容器（由common.js自动加载footer.html） -->
+<div id="footerBox"></div>
 
+<!-- 加载全局公共JS：载入头尾+汉堡+导航高亮 -->
+<script src="./common.js"></script>
+<!-- 仅页面专属JS：轮播代码 -->
 <script>
-// 轮播
 let slides = document.querySelectorAll('.banner-slide');
 let dots = document.querySelectorAll('.banner-dot');
 let idx = 0;
@@ -319,15 +134,6 @@ function play(){
     idx = (idx+1)%slides.length;
 }
 setInterval(play,5000);
-
-// ======================
-// 汉堡菜单（最简！绝对能点）
-// ======================
-const btn = document.getElementById('menuBtn');
-const list = document.getElementById('navList');
-btn.onclick = function(){
-    list.classList.toggle('show');
-};
 </script>
 </body>
 </html>

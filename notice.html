@@ -4,97 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公告 - ISA Spectrum</title>
+    <!-- 引入全局公共样式 -->
+    <link rel="stylesheet" href="./common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: "微软雅黑", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-
-        /* 主题色变量 */
-        :root {
-            --theme-color: #1e50ae;
-            --secondary-color: #3F23B4;
-            --text-gray: #999;
-            --text-light-gray: #ccc;
-            --footer-bg: #262626;
-            --footer-text: #7b7b7b;
-        }
-
-        /* 导航栏 */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--theme-color);
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo img {
-            height: 40px;
-            margin-right: 10px;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 30px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--theme-color);
-        }
-
-        /* 汉堡按钮 - 电脑端隐藏 */
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        /* 公告区域样式 */
+        /* 只保留本页面独有：公告列表CSS，导航、全局、页脚样式全部删去 */
         .notice-container {
             max-width: 1200px;
             margin: 80px auto 3rem;
@@ -137,71 +50,8 @@
             line-height: 1.6;
             font-size: 1rem;
         }
-
-        /* 页脚 */
-        .footer {
-            background-color: var(--footer-bg);
-            color: var(--footer-text);
-            padding: 40px 20px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            text-align: center;
-        }
-
-        .footer-section h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section p {
-            font-size: 13px;
-            line-height: 22px;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 30px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid #2b2b2b;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        /* 移动端适配 */
-        @media (max-width: 768px) {
-            .nav-container {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 20px;
-            }
-
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-                padding: 10px 0;
-            }
-
-            .nav-links.show {
-                display: flex !important;
-            }
-
-            .nav-links li {
-                margin: 10px 0;
-            }
-
-            .menu-toggle {
-                display: block !important;
-            }
-        }
     </style>
+    <!-- favicon图标固定保留不动 -->
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
     <link rel="shortcut icon" href="/images/favicon.ico" />
@@ -210,25 +60,10 @@
     <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
-    <!-- 导航栏（已加入“公告”选项） -->
-    <header class="header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="./images/logo.png" alt="ISA Spectrum Logo">
-                <span>ISA Spectrum</span>
-            </a>
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            <ul class="nav-links" id="navList">
-                <li><a href="main.html">首页</a></li>
-                <li><a href="notice.html" class="active">公告</a></li>
-                <li><a href="messages.html">校墙</a></li>
-                <li><a href="about.html">关于ISA Spectrum</a></li>
-                <li><a href="contact.html">联系我们</a></li>
-            </ul>
-        </div>
-    </header>
+    <!-- 公共头部容器，JS自动加载header.html -->
+    <div id="headerBox"></div>
 
-    <!-- 公告核心区域 -->
+    <!-- 公告核心区域（页面独有正文原样保留） -->
     <div class="notice-container">
         <h2 class="notice-title">站内公告</h2>
         <ul class="notice-list" id="noticeList">
@@ -259,30 +94,11 @@
         </ul>
     </div>
 
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>ISA SPECTRUM</h3>
-            </div>
-            <div class="footer-section">
-                <p>联系邮箱<br>peiguo.li29@isawuhan.com</p>
-            </div>
-            <div class="footer-section">
-                <p>联系电话<br>16602707968</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>©2026 - ISA Spectrum 版权所有</p>
-        </div>
-    </footer>
+    <!-- 公共页脚容器 -->
+    <div id="footerBox"></div>
 
-    <script>
-        // 汉堡菜单（和全站统一，100%可用）
-        const btn = document.getElementById('menuToggle');
-        const list = document.getElementById('navList');
-        btn.onclick = function(){
-            list.classList.toggle('show');
-        };
-    </script>
+    <!-- 全局JS：自动加载头尾+汉堡+导航高亮，本页汉堡JS删掉 -->
+    <script src="./common.js"></script>
+    <!-- 本页面无独有JS，script空着就行，有公告动态再写 -->
 </body>
 </html>

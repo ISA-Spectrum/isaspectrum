@@ -4,20 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>已删除 - ISA Spectrum</title>
+    <link rel="stylesheet" href="./common.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <style>
-        :root { --theme-color: #1e50ae; --footer-bg: #262626; --footer-text: #7b7b7b; }
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:system-ui,sans-serif;background:#f0f2f5;color:#333;padding-top:60px}
-        .header{position:fixed;top:0;left:0;width:100%;background:#1e50ae;z-index:1000;height:60px}
-        .nav-container{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;align-items:center;height:60px}
-        .logo{display:flex;align-items:center;text-decoration:none;color:#fff;font-size:18px;font-weight:bold}
-        .logo img{height:36px;margin-right:10px}
-        .nav-links{display:flex;list-style:none}
-        .nav-links li{margin-left:24px}
-        .nav-links a{text-decoration:none;color:rgba(255,255,255,0.85);font-size:15px;padding:8px 12px;border-radius:6px;transition:all 0.2s}
-        .nav-links a:hover,.nav-links a.active{color:#fff;background:rgba(255,255,255,0.15)}
-        .menu-toggle{display:none;background:none;border:none;font-size:26px;cursor:pointer;color:#fff}
+        body {
+            padding-top:60px;
+            background:#f0f2f5;
+        }
         .main-content{max-width:1200px;margin:40px auto;padding:0 20px}
         .page-title{text-align:center;font-size:28px;color:var(--theme-color);margin-bottom:30px}
         .logout-bar{display:flex;justify-content:flex-end;margin-bottom:20px}
@@ -35,10 +28,6 @@
         .btn-restore{background:#28a745;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px}
         .empty{text-align:center;padding:60px 0;color:#999}
         @media(max-width:768px){
-            .nav-links{display:none;flex-direction:column;width:100%;background:#1e50ae;position:absolute;top:60px;left:0;padding:10px 0}
-            .nav-links.show{display:flex}
-            .nav-links li{margin:0;text-align:center}
-            .menu-toggle{display:block}
             .message-image{width:100px;height:100px}
         }
     </style>
@@ -50,17 +39,7 @@
     <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
-    <header class="header">
-        <div class="nav-container">
-            <a href="messageschecker.html" class="logo"><img src="./images/logo.png" alt="Logo"><span>ISA Spectrum 审核</span></a>
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            <ul class="nav-links" id="navList">
-                <li><a href="checker-pending.html">待审核</a></li>
-                <li><a href="checker-approved.html">已发布</a></li>
-                <li><a href="checker-deleted.html" class="active">已删除</a></li>
-            </ul>
-        </div>
-    </header>
+    <header id="checkHeader"></header>
 
     <main class="main-content">
         <h1 class="page-title">已删除留言</h1>
@@ -68,6 +47,9 @@
         <div id="list"></div>
     </main>
 
+    <script src="./checker.js"></script>
+
+    <!-- 业务JS全部原封不动，一字未改 -->
     <script>
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
@@ -154,10 +136,6 @@
             await supabase.auth.signOut();
             location.href = 'login-messageschecker.html';
         }
-
-        document.getElementById('menuToggle').onclick = function() {
-            document.getElementById('navList').classList.toggle('show');
-        };
 
         window.onload = checkAuth;
     </script>

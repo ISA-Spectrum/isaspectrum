@@ -4,87 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>关于ISA Spectrum</title>
+    <!-- 引入公共全局样式 -->
+    <link rel="stylesheet" href="./common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: "微软雅黑", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-
-        :root {
-            --theme-color: #1e50ae;
-            --footer-bg: #262626;
-            --footer-text: #7b7b7b;
-        }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--theme-color);
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo img {
-            height: 40px;
-            margin-right: 10px;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 30px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--theme-color);
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-        }
+        /* 只保留页面独有样式，删除全局、导航、页脚通用CSS */
         .main-content {
             max-width: 1200px;
             margin: 60px auto;
@@ -125,84 +48,7 @@
             background-color: #15408f;
         }
 
-        .footer {
-            background-color: var(--footer-bg);
-            color: var(--footer-text);
-            padding: 40px 20px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            text-align: center;
-        }
-
-        .footer-section h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section p {
-            font-size: 13px;
-            line-height: 22px;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 30px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid #2b2b2b;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .nav-container {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 20px;
-            }
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-                padding: 10px 0;
-            }
-            .nav-links.show {
-                display: flex !important;
-            }
-            .nav-links li {
-                margin: 10px 0;
-            }
-            .menu-toggle {
-                display: block !important;
-            }
-            /* 修复：手机端banner高度 */
-            .about-banner {
-                height: 200px;
-            }
-        }
-        /* 新增：全局图片响应式 + 防溢出 */
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .logo img {
-            height: 40px;
-            width: auto;
-            max-width: 100%;
-        }
-
-        body {
-            overflow-x: hidden;
-        }
-
-        /* 优化 banner，确保无异常边距 */
+        /* Banner专属样式 */
         .about-banner {
             margin-top: 60px;
             width: 100%;
@@ -226,22 +72,8 @@
     <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
-    <header class="header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="./images/logo.png" alt="Logo">
-                <span>ISA Spectrum</span>
-            </a>
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            <ul class="nav-links" id="navList">
-                <li><a href="main.html">首页</a></li>
-                <li><a href="notice.html">公告</a></li>
-                <li><a href="messages.html">校墙</a></li>
-                <li><a href="about.html" class="active">关于ISA Spectrum</a></li>
-                <li><a href="contact.html">联系我们</a></li>
-            </ul>
-        </div>
-    </header>
+    <!-- 公共头部挂载容器 -->
+    <div id="headerBox"></div>
 
     <div class="about-banner" style="background-image: url('./images/about-banner.png');"></div>
 
@@ -253,19 +85,10 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section"><h3>ISA SPECTRUM</h3></div>
-            <div class="footer-section"><p>联系邮箱<br>peiguo.li29@isawuhan.com</p></div>
-            <div class="footer-section"><p>联系电话<br>16602707968</p></div>
-        </div>
-        <div class="footer-bottom">©2026 ISA Spectrum 版权所有</div>
-    </footer>
+    <!-- 公共页脚挂载容器 -->
+    <div id="footerBox"></div>
 
-    <script>
-        const btn = document.getElementById('menuToggle');
-        const list = document.getElementById('navList');
-        btn.onclick = ()=>list.classList.toggle('show');
-    </script>
+    <!-- 全局导航JS统一引入 -->
+    <script src="./common.js"></script>
 </body>
 </html>

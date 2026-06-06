@@ -5,94 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>校墙 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- 引入全局公共样式 -->
+    <link rel="stylesheet" href="./common.css">
     <style>
-       * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body { 
-            font-family: "微软雅黑", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-
+        /* 只保留本页面独有CSS：去掉全局、导航、页脚、导航移动端样式 */
         :root {
-            --theme-color: #1e50ae;
-            --secondary-color: #3F23B4;
-            --text-gray: #999;
-            --text-light-gray: #ccc;
-            --footer-bg: #262626;
-            --footer-text: #7b7b7b;
             --card-bg: #f9f9f9;
         }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--theme-color);
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo img {
-            height: 40px;
-            margin-right: 10px;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-left: 30px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--theme-color);
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-            padding: 5px;
-        }
-
         .main-content {
             max-width: 1200px;
             margin: 80px auto 60px;
@@ -250,7 +169,7 @@
             background-color: var(--card-bg);
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .message-item {
@@ -344,50 +263,13 @@
             font-size: 16px;
         }
 
-        .footer {
-            background-color: var(--footer-bg);
-            color: var(--footer-text);
-            padding: 40px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            text-align: center;
-        }
-
-        .footer-section h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section p {
-            font-size: 13px;
-            line-height: 22px;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 30px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid #2b2b2b;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        /* ======================
-        头像 + 通知样式（修正版）
-        ====================== */
+        /* 头像 + 通知弹窗独有样式 */
         .logout-bar {
             display: flex;
             justify-content: flex-end;
             align-items: center;
             margin-bottom: 20px;
-            gap: 12px; /* 头像和退出登录按钮间距 */
+            gap: 12px;
         }
         .user-menu {
             position: relative;
@@ -502,34 +384,14 @@
             cursor: pointer;
             padding: 0 8px;
         }
-        /* 头像hover效果，可选 */
-.message-avatar-box img:hover {
-    box-shadow: 0 0 5px rgba(0,0,0,0.2);
-    transform: scale(1.05);
-    transition: all 0.2s ease;
-}
+        .message-avatar-box img:hover {
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            transform: scale(1.05);
+            transition: all 0.2s ease;
+        }
+
+        /* 页面专属移动端适配 */
         @media (max-width: 768px) {
-            .nav-container {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 20px;
-            }
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-                padding: 10px 0;
-            }
-            .nav-links.show {
-                display: flex !important;
-            }
-            .nav-links li {
-                margin: 10px 0;
-            }
-            .menu-toggle {
-                display: block !important;
-            }
             .page-title {
                 font-size: 24px;
             }
@@ -562,22 +424,8 @@
     <link rel="manifest" href="./images/site.webmanifest" />
 </head>
 <body>
-    <header class="header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="./images/logo.png" alt="ISA Spectrum Logo">
-                <span>ISA Spectrum</span>
-            </a>
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            <ul class="nav-links" id="navList">
-                <li><a href="main.html">首页</a></li>
-                <li><a href="notice.html">公告</a></li>
-                <li><a href="messages.html" class="active">校墙</a></li>
-                <li><a href="about.html">关于ISA Spectrum</a></li>
-                <li><a href="contact.html">联系我们</a></li>
-            </ul>
-        </div>
-    </header>
+    <!-- 公共头部容器 -->
+    <div id="headerBox"></div>
 
     <main class="main-content">
         <h1 class="page-title">校墙</h1>
@@ -646,23 +494,12 @@
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>ISA SPECTRUM</h3>
-            </div>
-            <div class="footer-section">
-                <p>联系邮箱<br>peiguo.li29@isawuhan.com</p>
-            </div>
-            <div class="footer-section">
-                <p>联系电话<br>16602707968</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>©2026 - ISA Spectrum 版权所有</p>
-        </div>
-    </footer>
+    <!-- 公共页脚容器 -->
+    <div id="footerBox"></div>
 
+    <!-- 加载全局公共JS（汉堡、导航高亮已移入，删掉页面原有汉堡JS） -->
+    <script src="./common.js"></script>
+    <!-- 页面独有业务JS全部保留 -->
     <script>
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
@@ -807,7 +644,6 @@
                     return;
                 }
                 if (uid && avatarMap[uid]) {
-                    // 套用防缓存
                     box.innerHTML = `<img src="${getFreshAvatar(avatarMap[uid])}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
                 } else {
                     box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${firstChar}</div>`;
@@ -858,7 +694,7 @@
             if (!loggedIn) return;
             document.getElementById('contactEmail').value = currentUserEmail;
             initNicknameSelect();
-            await loadMainMessages(); // 只加载主楼
+            await loadMainMessages();
             await initUserExtra();
 
             document.getElementById('logoutBtn').onclick = async () => {
@@ -949,9 +785,6 @@
             }
         }
 
-        // =========================
-        // 发布留言（专业版通知）
-        // =========================
         async function postMessage() {
             const username = document.getElementById('nicknameSelect').value;
             const content = document.getElementById('messageContent').value.trim();
@@ -968,7 +801,7 @@
                     user_id: currentUser.id,
                     username, content, pic_url: picUrls,
                     contact_email: currentUserEmail,
-                    flag: 0, reply_to: null, // 主楼没有回复目标
+                    flag: 0, reply_to: null,
                     created_at: new Date().toISOString()
                 };
                 const { data: newMsg } = await supabase.from('messages').insert([insertData]).select().single();
@@ -988,12 +821,10 @@
             }
         }
 
-        // 跳转到详情页
         function goToDetails(msgId) {
             location.href = `details.html?id=${msgId}`;
         }
 
-        // 加载仅主楼的留言（排除回复）
         async function loadMainMessages() {
             const container = document.getElementById('messageContainer');
             container.innerHTML = '<div class="loading">加载留言中...</div>';
@@ -1002,7 +833,7 @@
                     .from('messages')
                     .select('*')
                     .eq('flag', 1)
-                    .is('reply_to', null) // 只加载主楼（无回复目标的）
+                    .is('reply_to', null)
                     .order('created_at', { ascending: false });
                 if (error) throw error;
                 if (!data.length) {
@@ -1049,10 +880,6 @@
             div.textContent = text || '';
             return div.innerHTML;
         }
-
-        const btn = document.getElementById('menuToggle');
-        const list = document.getElementById('navList');
-        if (btn) btn.onclick = function() { list.classList.toggle('show'); };
     </script>
 </body>
 </html>
