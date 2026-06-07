@@ -8,7 +8,7 @@
     <style>
         /* 页面独有样式 */
         .download-wrap {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 80px auto;
             padding: 0 20px;
             text-align: center;
@@ -23,23 +23,35 @@
             font-size:15px;
             margin-bottom:40px;
         }
+
+        /* 双卡片并排 */
+        .download-container {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         .download-card {
             background: var(--card-bg,#f9f9f9);
             border-radius:12px;
             padding:40px 20px;
             box-shadow:0 3px 15px rgba(0,0,0,0.06);
+            width: 380px;
+            box-sizing: border-box;
         }
-        .apk-info {
+
+        .apk-info, .win-info {
             margin-bottom:30px;
         }
-        .apk-name {
+        .apk-name, .win-name {
             font-size:20px;
             color:#333;
             margin-bottom:8px;
         }
-        .apk-tip {
+        .apk-tip, .win-tip {
             color:#666;
             font-size:14px;
+            line-height: 1.6;
         }
         .down-btn {
             display:inline-block;
@@ -59,6 +71,7 @@
             font-size:13px;
             color:var(--text-gray);
             line-height:1.7;
+            text-align: left;
         }
     </style>
     <!-- favicon 固定头部 -->
@@ -74,20 +87,34 @@
     <div id="headerBox"></div>
 
     <div class="download-wrap">
-        <h1 class="download-title">ISA Spectrum<br>安卓客户端下载</h1>
+        <h1 class="download-title">ISA Spectrum<br>客户端下载</h1>
         <p class="download-desc">校园社区官方APP · 随时随地浏览校墙、接收站内通知</p>
 
-        <div class="download-card">
-            <div class="apk-info">
-                <div class="apk-name">ISA-Spectrum.apk</div>
-                <div class="apk-tip">安装包大小：14MB<br>适用：Android 8.0及以上</div>
+        <div class="download-container">
+            <!-- 安卓 -->
+            <div class="download-card">
+                <div class="apk-info">
+                    <div class="apk-name">安卓客户端 APK</div>
+                    <div class="apk-tip">安装包大小：14MB<br>适用：Android 8.0及以上</div>
+                </div>
+                <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISA-Spectrum.apk" download="ISA-Spectrum.apk" class="down-btn">立即下载APK安装包</a>
             </div>
-            <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISA-Spectrum.apk" download="ISA-Spectrum.apk" class="down-btn">立即下载APK安装包</a>
+
+            <!-- Windows -->
+            <div class="download-card">
+                <div class="win-info">
+                    <div class="win-name">Windows 桌面客户端</div>
+                    <div class="win-tip">安装包大小：3.8MB<br>适用：Windows 10 / 11</div>
+                </div>
+                <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISAS_app_Windows.zip" download="ISA-Spectrum-Windows.zip" class="down-btn">立即下载Windows版</a>
+            </div>
         </div>
 
         <p class="note-text">
-            下载提示：安卓安装时如提示“未知来源”，请在系统设置中临时开启允许安装未知应用；<br>
-            如有安装异常、软件BUG，可前往【联系我们】页面反馈问题。
+            📱 安卓安装提示：安装时如提示“未知来源”，请在系统设置中临时开启允许安装未知应用即可。<br>
+            💻 Windows安装提示：下载后解压全部文件，双击 ISAS.msixbundle 安装；如遇权限问题可运行 install.ps1 脚本。<br>
+            🔄 内容更新：打开客户端后按 Ctrl+Shift+R 可强制刷新最新网页内容，无需重装。<br>
+            🐛 如有安装异常、软件BUG，可前往【联系我们】页面反馈问题。
         </p>
     </div>
 
