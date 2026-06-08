@@ -1,4 +1,4 @@
-![LOGO](./images/logo.png)
+![LOGO](./images/web-app-manifest-512x512.png)
 # ISA Spectrum
 ISA Wuhan 校园社区平台
 
