@@ -51,5 +51,5 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 3. 完成修改并提交
 4. 提交 Pull Request
 
-## 许可证
-MIT
+## License
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
