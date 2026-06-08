@@ -40,15 +40,15 @@
             box-sizing: border-box;
         }
 
-        .apk-info, .win-info {
+        .apk-info, .win-info, .mac-info {
             margin-bottom:30px;
         }
-        .apk-name, .win-name {
+        .apk-name, .win-name, .mac-name {
             font-size:20px;
             color:#333;
             margin-bottom:8px;
         }
-        .apk-tip, .win-tip {
+        .apk-tip, .win-tip, .mac-tip {
             color:#666;
             font-size:14px;
             line-height: 1.6;
@@ -108,11 +108,22 @@
                 </div>
                 <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISAS_app_Windows.zip" download="ISA-Spectrum-Windows.zip" class="down-btn">立即下载Windows版</a>
             </div>
+
+            <!-- macOS 新增卡片 -->
+            <div class="download-card">
+                <div class="mac-info">
+                    <div class="mac-name">macOS 桌面客户端</div>
+                    <div class="mac-tip">安装包格式：DMG镜像<br>适用：macOS 12.0及以上</div>
+                </div>
+                <!-- 把下方 href 替换成你 DMG 文件的真实在线地址 -->
+                <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISAS_app_Mac.dmg" download="ISA-Spectrum-mac.dmg" class="down-btn">立即下载macOS版</a>
+            </div>
         </div>
 
         <p class="note-text">
             📱 安卓安装提示：安装时如提示“未知来源”，请在系统设置中临时开启允许安装未知应用即可。<br>
             💻 Windows安装提示：下载后解压全部文件，双击 ISAS.msixbundle 安装；如遇权限问题可运行 install.ps1 脚本。<br>
+            🍎 macOS安装提示：双击 DMG 文件，将 ISA Spectrum 拖入「应用程序」文件夹；首次打开请右键选择「打开」绕过系统安全限制。全屏状态按 Esc 退出全屏，Command+Q 关闭应用。<br>
             🔄 内容更新：打开客户端后按 Ctrl+Shift+R 可强制刷新最新网页内容，无需重装。<br>
             🐛 如有安装异常、软件BUG，可前往【联系我们】页面反馈问题。
         </p>
