@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISA Spectrum macOS 安装说明</title>
+    <style>
+        :root {
+            --theme-color: #1e50ae;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--theme-color);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--theme-color);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background-color: var(--theme-color);
+            color: white;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 0 20px;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            color: #2d3748;
+            border-bottom: 2px solid #4299e1;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2b6cb0;
+            margin-top: 30px;
+        }
+        .step {
+            background: white;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2d3748;
+        }
+        .note {
+            background-color: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 10px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        code {
+            background-color: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Menlo, Monaco, Consolas, monospace;
+        }
+        .down-btn {
+            display:inline-block;
+            padding:14px 42px;
+            background:var(--theme-color);
+            color:#fff;
+            text-decoration:none;
+            border-radius:30px;
+            font-size:17px;
+            transition:0.25s;
+        }
+        .down-btn:hover {
+            background:#15408f;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
+    <link rel="manifest" href="/images/site.webmanifest" />
+</head>
+<body>
+    <a href="download.html" class="back-btn">← 返回</a>
+    <h1>📦 ISA Spectrum macOS 安装说明</h1>
+
+    <div class="note">
+        <strong>安装前请确认：</strong>
+        <ul>
+            <li>您的设备是MacOS操作系统</li>
+            <li>您拥有此设备的管理员权限（否则无法执行以下步骤）</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>第一步：下载并打开 DMG 文件</h3>
+        <p>双击下载好的 <code>ISAS_app_Mac.dmg</code> 文件，系统会自动挂载并打开安装窗口。</p>
+    </div>
+
+    <div class="step">
+        <h3>第二步：安装应用</h3>
+        <p>将窗口内的 <strong>ISA Spectrum</strong> 图标，拖到「应用程序」文件夹里，完成安装。</p>
+    </div>
+
+    <div class="step">
+        <h3>第三步：首次打开（系统安全提示处理）</h3>
+        <ol>
+            <li>找到 <strong>ISA Spectrum</strong></li>
+            <li><strong>双击打开</strong></li>
+            <li>此时会有禁止打开的提示，点击<strong>完成</strong>即可</li>
+            <li>进入<strong>系统设置</strong></li>
+            <li>找到<strong>隐私与安全性</strong></li>
+            <li>翻到最下方，点击<strong>仍要打开</strong>，输入密码即可打开</li>
+        </ol>
+        <p>这是 macOS 对非 App Store 应用的通用安全限制，只需操作一次，之后双击即可正常打开。</p>
+    </div>
+
+    <div class="step">
+        <h3>退出与关闭</h3>
+        <p>应用全屏运行时，按 <code>Esc</code> 键可退出全屏；按 <code>Command + Q</code> 可完全关闭应用。</p>
+    </div>
+
+    <div class="note">
+        <strong>如果遇到问题：</strong>
+        <ul>
+            <li>打不开：请检查是否已按第三步操作，绕过安全限制。</li>
+            <li>窗口问题：首次打开后，可通过菜单栏「视图」调整显示模式。</li>
+        </ul>
+    </div>
+    <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISAS_app_Mac.dmg" class="down-btn">确认下载</a>
+    <p style="text-align: center; margin-top: 40px; color: #718096;">
+        有任何问题，欢迎反馈~
+    </p>
+</body>
+</html>

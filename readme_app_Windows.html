@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISA Spectrum 桌面客户端安装说明</title>
+    <style>
+        :root {
+            --theme-color: #1e50ae;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--theme-color);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--theme-color);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background-color: var(--theme-color);
+            color: white;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", "PingFang SC", sans-serif;
+        }
+        body {
+            max-width: 850px;
+            margin: 2rem auto;
+            padding: 0 20px;
+            line-height: 1.7;
+            color: #333;
+        }
+        h1 {
+            color: #1a3b80;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 12px;
+            margin-bottom: 2rem;
+        }
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .section h3 {
+            color: #2980b9;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-list {
+            padding-left: 1.5rem;
+        }
+        .step-list li {
+            margin-bottom: 0.8rem;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1.5rem 0;
+        }
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+        }
+        .down-btn {
+            display:inline-block;
+            padding:14px 42px;
+            background:var(--theme-color);
+            color:#fff;
+            text-decoration:none;
+            border-radius:30px;
+            font-size:17px;
+            transition:0.25s;
+        }
+        .down-btn:hover {
+            background:#15408f;
+        }
+    </style>
+</head>
+<body>
+    <a href="download.html" class="back-btn">← 返回</a>
+    <h1>ISA Spectrum 桌面客户端安装说明</h1>
+
+    <div class="section">
+        <h3>✨ 客户端介绍</h3>
+        <p>这是 <strong>ISA Spectrum 校墙</strong> 的 Windows 桌面客户端，将网站打包为独立应用，打开即可使用，无需再开浏览器。所有功能与网页版完全同步，留言、公告、通知都能正常使用。</p>
+    </div>
+    <div class="note">
+        <h3>安装前请确认：</h3>
+        <ul>
+            <li>您有这台设备的<strong>管理员权限</strong></li>
+        </ul>
+    </div>
+    <div class="section">
+        <h3>✅ 推荐安装方式（大部分用户适用）</h3>
+        <ol class="step-list">
+            <li>下载并解压客户端压缩包，确保所有文件都在同一个文件夹中。</li>
+            <li>找到文件 <strong>ISAS.msixbundle</strong>，双击该文件。</li>
+            <li>按照系统提示完成安装，等待几秒即可。</li>
+            <li>安装完成后，在「开始菜单」中找到 <strong>ISAS</strong>，打开即可使用。</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h3>⚠️ 安装报错时的备用方案</h3>
+        <p>如果遇到「无法验证发布者证书」或脚本运行报错，请按以下步骤操作：</p>
+        <ol class="step-list">
+            <li>解压压缩包后，在文件夹空白处按住 <code>Shift</code> 键，然后右键，选择「在此处打开 PowerShell 窗口（管理员）」。</li>
+            <li>在弹出的窗口中输入以下命令，按回车执行：<br>
+                <code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
+            </li>
+            <li>系统会提示确认，输入 <code>A</code>（全是）并按回车。</li>
+            <li>继续输入以下命令，按回车执行安装脚本：<br>
+                <code>.\install.ps1</code>
+            </li>
+            <li>按照脚本提示完成安装即可。</li>
+        </ol>
+    </div>
+
+    <div class="note">
+        <h3>💡 使用小贴士</h3>
+        <ul>
+            <li><strong>内容更新</strong>：客户端打开时会自动加载最新内容，若未更新，可在应用内按 <code>Ctrl+Shift+R</code> 强制刷新。</li>
+            <li><strong>同步功能</strong>：留言、公告、通知等所有功能与网页版完全同步，无需额外登录或设置。</li>
+            <li><strong>卸载方法</strong>：在 Windows「设置 → 应用」中找到 <strong>ISAS</strong>，点击卸载即可。</li>
+        </ul>
+    </div>
+    <a href="https://bbcnrsktqarvceekrswb.supabase.co/storage/v1/object/public/app-download/ISAS_app_Windows.zip" class="down-btn">确认下载</a>
+    <div class="footer">
+        <p>ISA Spectrum 校墙项目 | 沧海四象 制作</p>
+    </div>
+</body>
+</html>
