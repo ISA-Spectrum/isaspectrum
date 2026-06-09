@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于ISA Spectrum</title>
+    <!-- 引入公共全局样式 -->
+    <link rel="stylesheet" href="./common.css">
+    <style>
+        /* 只保留页面独有样式，删除全局、导航、页脚通用CSS */
+        .main-content {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            font-size: 32px;
+            color: var(--theme-color);
+            margin-bottom: 40px;
+        }
+
+        .content-section {
+            margin-bottom: 40px;
+            line-height: 1.8;
+            color: #555;
+            font-size: 16px;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
+    <link rel="manifest" href="/images/site.webmanifest" />
+</head>
+<body>
+    <!-- 公共头部挂载容器 -->
+    <div id="headerBox"></div>
+    <main class="main-content">
+        <div class="content-section">
+            <p>很抱歉，但由于官方是学生，所使用的电脑权限不齐全、无法使用XCode，导致下载XCode后git push等部署指令被锁死、创建http等本地服务器进行测试的指令也被锁死，正在尝试修复。MacOS端也由于无法使用XCode进行制作暂停下载服务。</p>
+        </div>
+    </main>
+
+    <!-- 公共页脚挂载容器 -->
+    <div id="footerBox"></div>
+
+    <!-- 全局导航JS统一引入 -->
+    <script src="./common.js"></script>
+</body>
+</html>
