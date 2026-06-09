@@ -9,15 +9,16 @@
         /* 仅保留页面独有样式，导航、页脚、全局样式移入common.css */
         .main-content {
             max-width: 1200px;
-            margin: 60px auto;
+            margin: 80px auto;
             padding: 0 20px;
         }
 
         .contact-title {
             text-align: center;
             font-size: 36px;
-            color: #333;
+            color: var(--theme-color);
             margin-bottom: 10px;
+            font-weight: 600;
         }
 
         .contact-subtitle {
@@ -34,6 +35,10 @@
             align-items: center;
             gap: 50px;
             margin-bottom: 40px;
+            background: var(--card-bg, #f9f9f9);
+            padding: 50px 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
         }
 
         .contact-image {
@@ -51,34 +56,36 @@
             flex: 1;
             min-width: 300px;
             font-size: 16px;
-            line-height: 2;
+            line-height: 2.2;
         }
 
         .contact-info p {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: #555;
         }
 
         .contact-info strong {
-            color: #333;
+            color: var(--theme-color);
         }
 
+        /* 升级按钮样式，和全站下载页按钮统一 */
         .contact-button {
-            display: block;
-            width: 180px;
-            height: 40px;
-            line-height: 40px;
-            text-align: center;
-            border: 1px solid #333;
-            color: #333;
+            display: inline-block;
+            padding: 14px 42px;
+            background: var(--theme-color);
+            color: #fff;
             text-decoration: none;
-            margin-top: 20px;
-            transition: all 0.3s ease;
+            border-radius: 30px;
+            font-size: 17px;
+            transition: 0.25s;
+            margin-top: 25px;
+            border: none;
+            cursor: pointer;
         }
 
         .contact-button:hover {
-            background-color: #333;
-            color: white;
+            background: #15408f;
+            color: #fff;
         }
 
         .contact-note {
@@ -87,6 +94,13 @@
             color: #555;
             max-width: 800px;
             margin: 0 auto 40px;
+            line-height: 1.8;
+        }
+
+        .backup-tip {
+            font-size: 14px;
+            color: #888;
+            margin-top: 15px;
         }
     </style>
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
@@ -102,7 +116,7 @@
 
     <!-- 主要内容 -->
     <main class="main-content">
-        <h1 class="contact-title"><br>CONTACT US</h1>
+        <h1 class="contact-title">CONTACT US</h1>
         <p class="contact-subtitle">联系我们</p>
         <p class="contact-note">如果发现问题、想加入我们、提供建议、举报违规行为或有其他相关需要，欢迎联系我们，我们会尽力为大家服务，请通过以下方式联系我们：</p>
         
@@ -116,7 +130,9 @@
                 <p><strong>QQ:</strong> 12158168</p>
                 <p><strong>Email:</strong> peiguo.li29@isawuhan.com</p>
                 <p><strong>Address:</strong> 武汉爱莎学校</p>
+                <!-- 标准 mailto 链接，保留预设主题与正文 -->
                 <a href="mailto:peiguo.li29@isawuhan.com?subject=给ISA%20Spectrum%20官方的一封信&body=您好，我在使用ISA%20Spectrum时获得了一些灵感/发现了一些问题：%0A%0A" class="contact-button">CONTACT US</a>
+                <p class="backup-tip">若邮件按钮无法唤起邮箱客户端，可手动复制上方邮箱地址发送邮件</p>
             </div>
         </div>
     </main>
