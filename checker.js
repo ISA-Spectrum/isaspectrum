@@ -1,3 +1,6 @@
+// Copyright (c) 2026 ISA Spectrum
+// Copyright (c) 2026 沧海四象
+// Licensed under the MIT License.
 // 加载审核导航 + 自动高亮当前页面菜单
 fetch("header-checker.html")
 .then(res=>res.text())

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 ISA Spectrum
+// Copyright (c) 2026 沧海四象
+// Licensed under the MIT License.
 // common.js最终代码
 fetch('./header.html')
 .then(res=>{
