@@ -35,11 +35,8 @@ Licensed under the MIT License.
         <input id="email" type="email" placeholder="邮箱">
         <input id="password" type="password" placeholder="密码">
 
-        <!-- Turnstile 验证组件（带回调） -->
-        <div class="cf-turnstile" 
-             data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" 
-             data-callback="onTurnstileSuccess">
-        </div>
+        <!-- Turnstile 验证组件（无回调纯前端模式） -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U"></div>
 
         <button class="login-btn" id="loginBtn">登录</button>
         <p class="error-msg" id="errorMsg"></p>
@@ -52,19 +49,6 @@ Licensed under the MIT License.
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let turnstileToken = null;
-
-        // Turnstile 验证成功回调：保存 Token 并启用按钮
-        function onTurnstileSuccess(token) {
-            turnstileToken = token;
-            document.getElementById('loginBtn').disabled = false;
-        }
-
-        // 页面加载时禁用按钮，防止未验证提交
-        window.onload = function() {
-            document.getElementById('loginBtn').disabled = true;
-        };
 
         async function doLogin() {
             const email = document.getElementById('email').value.trim();
@@ -80,20 +64,22 @@ Licensed under the MIT License.
                 return;
             }
 
-            if (!turnstileToken) {
+            // 手动获取 Turnstile 验证 Token
+            const tokenInput = document.querySelector('input[name="cf-turnstile-response"]');
+            if (!tokenInput || !tokenInput.value) {
                 errorMsg.textContent = '请先完成人机验证';
                 errorMsg.style.display = 'block';
                 return;
             }
+            const captchaToken = tokenInput.value;
 
             btn.disabled = true;
             btn.textContent = '登录中...';
 
             try {
-                // 关键：带上 captchaToken 传给 Supabase
                 const { data, error } = await supabase.auth.signInWithPassword(
                     { email, password },
-                    { captchaToken: turnstileToken }
+                    { captchaToken: captchaToken }
                 );
 
                 if (error) throw error;
