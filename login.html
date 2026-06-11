@@ -9,7 +9,10 @@ Licensed under the MIT License.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - ISA Spectrum</title>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
         body { background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
@@ -23,6 +26,8 @@ Licensed under the MIT License.
         .login-btn:disabled { background: #999; cursor: not-allowed; }
         .back-link { display: block; text-align: center; margin-top: 10px; color: #1e50ae; text-decoration: none; font-size: 14px; }
         .error-msg { color: #dc3545; text-align: center; font-size: 13px; margin-top: 8px; display: none; }
+        .input-error { border-color: #dc3545 !important; }
+        .cf-turnstile { margin: 10px 0 16px 0; }
     </style>
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
@@ -37,6 +42,24 @@ Licensed under the MIT License.
         <p class="sub">欢迎登录 ISA Spectrum 账号</p>
         <input id="email" type="email" placeholder="邮箱">
         <input id="password" type="password" placeholder="密码">
+
+        <!-- 把原来的 <div class="cf-turnstile"> 替换成下面这段 -->
+<div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" data-callback="onTurnstileSuccess"></div>
+
+<script>
+// 监听 Turnstile 验证成功事件
+function onTurnstileSuccess(token) {
+    // 验证成功后，才启用登录按钮
+    document.getElementById('loginBtn').disabled = false;
+}
+
+// 页面加载完成后初始化 Turnstile
+window.onload = function() {
+    // 初始状态下禁用登录按钮，防止用户未验证就点击
+    document.getElementById('loginBtn').disabled = true;
+};
+</script>
+
         <button class="login-btn" id="loginBtn">登录</button>
         <p class="error-msg" id="errorMsg"></p>
         <a href="forgot-password.html" class="back-link">找回密码</a>
@@ -48,6 +71,7 @@ Licensed under the MIT License.
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         async function doLogin() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;

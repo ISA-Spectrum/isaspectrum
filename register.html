@@ -10,19 +10,23 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册账号 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
         body { background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
         .login-box { background: #fff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 400px; }
         .login-box h2 { text-align: center; margin-bottom: 8px; color: #1e50ae; font-size: 24px; }
         .login-box .sub { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }
-        .login-box input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; transition: border-color 0.2s; }
+        .login-box input { width: 100%; padding: 14px 16px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; transition: border-color 0.2s; }
         .login-box input:focus { outline: none; border-color: #1e50ae; }
         .login-btn { width: 100%; padding: 14px; background: #1e50ae; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .login-btn:hover { background: #15408f; }
         .login-btn:disabled { background: #999; cursor: not-allowed; }
         .back-link { display: block; text-align: center; margin-top: 10px; color: #1e50ae; text-decoration: none; font-size: 14px; }
         .error-msg { color: #dc3545; text-align: center; font-size: 13px; margin-top: 8px; display: none; }
+        .input-error { border-color: #dc3545 !important; }
+        .tip-text { font-size: 12px; color: #666; margin: 0 0 14px 4px; }
+        .cf-turnstile { margin: 10px 0 16px 0; }
         #accountTips { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:999; }
         .tipsContent { background:white; padding:25px; border-radius:16px; max-width:320px; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.12); }
         .closeTips { margin-top:15px; padding:8px 20px; background:#1e50ae; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:600; }
@@ -49,7 +53,26 @@ Licensed under the MIT License.
         <input id="username" placeholder="设置用户名" type="text">
         <input id="email" placeholder="邮箱" type="email">
         <input id="password" placeholder="设置密码" type="password">
-        <button class="login-btn" id="registerBtn">完成注册</button>
+        <p class="tip-text">密码规则：至少8位，需同时包含字母和数字</p>
+
+        <!-- 把原来的 <div class="cf-turnstile"> 替换成下面这段 -->
+<div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" data-callback="onTurnstileSuccess"></div>
+
+<script>
+// 监听 Turnstile 验证成功事件
+function onTurnstileSuccess(token) {
+    // 验证成功后，才启用登录按钮
+    document.getElementById('loginBtn').disabled = false;
+}
+
+// 页面加载完成后初始化 Turnstile
+window.onload = function() {
+    // 初始状态下禁用登录按钮，防止用户未验证就点击
+    document.getElementById('loginBtn').disabled = true;
+};
+</script>
+
+        <button class="login-btn" id="registerBtn" disabled>完成注册</button>
         <p class="error-msg" id="errorMsg"></p>
         <a href="login.html" class="back-link">返回登录</a>
         <a href="main.html" class="back-link">返回首页</a>
@@ -67,20 +90,49 @@ Licensed under the MIT License.
         window.onload = () => document.getElementById('accountTips').style.display = 'flex';
         function closeTips() { document.getElementById('accountTips').style.display = 'none'; }
 
+        // 密码校验规则：8位以上 + 同时含字母、数字
+        function checkPwdRule(pwd) {
+            const regNum = /\d/;
+            const regLetter = /[a-zA-Z]/;
+            return pwd.length >= 8 && regNum.test(pwd) && regLetter.test(pwd);
+        }
+
+        const usernameInp = document.getElementById('username');
+        const emailInp = document.getElementById('email');
+        const pwdInp = document.getElementById('password');
+        const regBtn = document.getElementById('registerBtn');
+        const errorMsg = document.getElementById('errorMsg');
+
+        // 实时校验
+        function validateForm() {
+            const un = usernameInp.value.trim();
+            const em = emailInp.value.trim();
+            const pwd = pwdInp.value;
+
+            let allValid = true;
+            // 清空错误样式
+            usernameInp.classList.remove('input-error');
+            emailInp.classList.remove('input-error');
+            pwdInp.classList.remove('input-error');
+
+            if(!un) { usernameInp.classList.add('input-error'); allValid = false; }
+            if(!em) { emailInp.classList.add('input-error'); allValid = false; }
+            if(!checkPwdRule(pwd)) { pwdInp.classList.add('input-error'); allValid = false; }
+
+            regBtn.disabled = !allValid;
+        }
+
+        usernameInp.addEventListener('input', validateForm);
+        emailInp.addEventListener('input', validateForm);
+        pwdInp.addEventListener('input', validateForm);
+
         window.doRegister = async function() {
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('registerBtn');
-            const errorMsg = document.getElementById('errorMsg');
+            const username = usernameInp.value.trim();
+            const email = emailInp.value.trim();
+            const password = pwdInp.value;
+            const btn = regBtn;
             
             errorMsg.style.display = 'none';
-
-            if (!username || !email || !password) {
-                errorMsg.textContent = '请填写完整信息';
-                errorMsg.style.display = 'block';
-                return;
-            }
 
             btn.disabled = true;
             btn.textContent = '注册中...';
