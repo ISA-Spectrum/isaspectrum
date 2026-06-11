@@ -77,10 +77,13 @@ Licensed under the MIT License.
             btn.textContent = '登录中...';
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword(
-                    { email, password },
-                    { captchaToken: captchaToken }
-                );
+                const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password,
+    options: {
+        captchaToken: captchaToken
+    }
+});
 
                 if (error) throw error;
                 

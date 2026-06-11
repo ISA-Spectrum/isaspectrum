@@ -106,10 +106,14 @@ Licensed under the MIT License.
             btn.textContent = '注册中...';
 
             try {
-                const { error } = await supabase.auth.signUp(
-                    { email, password, options: { data: { username } } },
-                    { captchaToken: captchaToken }
-                );
+                const { error } = await supabase.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+        data: { username: username },
+        captchaToken: captchaToken
+    }
+});
                 
                 if (error) throw error;
                 
