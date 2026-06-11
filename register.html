@@ -32,12 +32,6 @@ Licensed under the MIT License.
         .closeTips { margin-top:15px; padding:8px 20px; background:#1e50ae; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:600; }
         .closeTips:hover { background:#15408f; }
     </style>
-    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-    <link rel="shortcut icon" href="/images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
-    <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
     <div id="accountTips">
@@ -55,22 +49,11 @@ Licensed under the MIT License.
         <input id="password" placeholder="设置密码" type="password">
         <p class="tip-text">密码规则：至少8位，需同时包含字母和数字</p>
 
-        <!-- 把原来的 <div class="cf-turnstile"> 替换成下面这段 -->
-<div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" data-callback="onTurnstileSuccess"></div>
-
-<script>
-// 监听 Turnstile 验证成功事件
-function onTurnstileSuccess(token) {
-    // 验证成功后，才启用登录按钮
-    document.getElementById('loginBtn').disabled = false;
-}
-
-// 页面加载完成后初始化 Turnstile
-window.onload = function() {
-    // 初始状态下禁用登录按钮，防止用户未验证就点击
-    document.getElementById('loginBtn').disabled = true;
-};
-</script>
+        <!-- Turnstile 验证组件（带回调） -->
+        <div class="cf-turnstile" 
+             data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" 
+             data-callback="onTurnstileSuccess">
+        </div>
 
         <button class="login-btn" id="registerBtn" disabled>完成注册</button>
         <p class="error-msg" id="errorMsg"></p>
@@ -87,61 +70,75 @@ window.onload = function() {
         }
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        window.onload = () => document.getElementById('accountTips').style.display = 'flex';
-        function closeTips() { document.getElementById('accountTips').style.display = 'none'; }
+        let turnstileToken = null;
 
-        // 密码校验规则：8位以上 + 同时含字母、数字
+        // Turnstile 验证成功回调：保存 Token 并启用按钮
+        function onTurnstileSuccess(token) {
+            turnstileToken = token;
+            validateForm();
+        }
+
+        // 关闭提示框
+        function closeTips() { 
+            document.getElementById('accountTips').style.display = 'none'; 
+        }
+
+        // 密码校验规则：8位以上 + 同时含字母和数字
         function checkPwdRule(pwd) {
             const regNum = /\d/;
             const regLetter = /[a-zA-Z]/;
             return pwd.length >= 8 && regNum.test(pwd) && regLetter.test(pwd);
         }
 
-        const usernameInp = document.getElementById('username');
-        const emailInp = document.getElementById('email');
-        const pwdInp = document.getElementById('password');
-        const regBtn = document.getElementById('registerBtn');
-        const errorMsg = document.getElementById('errorMsg');
-
-        // 实时校验
+        // 表单实时校验：所有字段都填好且验证成功才启用按钮
         function validateForm() {
-            const un = usernameInp.value.trim();
-            const em = emailInp.value.trim();
-            const pwd = pwdInp.value;
-
-            let allValid = true;
-            // 清空错误样式
-            usernameInp.classList.remove('input-error');
-            emailInp.classList.remove('input-error');
-            pwdInp.classList.remove('input-error');
-
-            if(!un) { usernameInp.classList.add('input-error'); allValid = false; }
-            if(!em) { emailInp.classList.add('input-error'); allValid = false; }
-            if(!checkPwdRule(pwd)) { pwdInp.classList.add('input-error'); allValid = false; }
-
-            regBtn.disabled = !allValid;
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const allFilled = username && email && checkPwdRule(password);
+            
+            document.getElementById('registerBtn').disabled = !(allFilled && turnstileToken);
         }
 
-        usernameInp.addEventListener('input', validateForm);
-        emailInp.addEventListener('input', validateForm);
-        pwdInp.addEventListener('input', validateForm);
+        // 页面加载时禁用按钮
+        window.onload = function() {
+            document.getElementById('registerBtn').disabled = true;
+            // 绑定输入框变化事件，实时校验
+            document.getElementById('username').addEventListener('input', validateForm);
+            document.getElementById('email').addEventListener('input', validateForm);
+            document.getElementById('password').addEventListener('input', validateForm);
+        };
 
-        window.doRegister = async function() {
-            const username = usernameInp.value.trim();
-            const email = emailInp.value.trim();
-            const password = pwdInp.value;
-            const btn = regBtn;
+        async function doRegister() {
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('registerBtn');
+            const errorMsg = document.getElementById('errorMsg');
             
             errorMsg.style.display = 'none';
+
+            if (!username || !email || !checkPwdRule(password)) {
+                errorMsg.textContent = '请填写所有必填项并设置符合规则的密码';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            if (!turnstileToken) {
+                errorMsg.textContent = '请先完成人机验证';
+                errorMsg.style.display = 'block';
+                return;
+            }
 
             btn.disabled = true;
             btn.textContent = '注册中...';
 
             try {
-                const { error } = await supabase.auth.signUp({
-                    email, password,
-                    options: { data: { username } }
-                });
+                // 关键：带上 captchaToken 传给 Supabase
+                const { error } = await supabase.auth.signUp(
+                    { email, password, options: { data: { username } } },
+                    { captchaToken: turnstileToken }
+                );
                 
                 if (error) throw error;
                 
@@ -154,10 +151,9 @@ window.onload = function() {
                 btn.disabled = false;
                 btn.textContent = '完成注册';
             }
-        };
+        }
 
-        document.getElementById('registerBtn').addEventListener('click', window.doRegister);
-        document.addEventListener('keydown', e => e.key === 'Enter' && window.doRegister());
+        document.getElementById('registerBtn').addEventListener('click', doRegister);
     </script>
 </body>
 </html>

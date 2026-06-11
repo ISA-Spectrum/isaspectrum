@@ -9,9 +9,7 @@ Licensed under the MIT License.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - ISA Spectrum</title>
-    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <!-- Turnstile -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
@@ -29,12 +27,6 @@ Licensed under the MIT License.
         .input-error { border-color: #dc3545 !important; }
         .cf-turnstile { margin: 10px 0 16px 0; }
     </style>
-    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-    <link rel="shortcut icon" href="/images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
-    <link rel="manifest" href="/images/site.webmanifest" />
 </head>
 <body>
     <div class="login-box">
@@ -43,22 +35,11 @@ Licensed under the MIT License.
         <input id="email" type="email" placeholder="邮箱">
         <input id="password" type="password" placeholder="密码">
 
-        <!-- 把原来的 <div class="cf-turnstile"> 替换成下面这段 -->
-<div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" data-callback="onTurnstileSuccess"></div>
-
-<script>
-// 监听 Turnstile 验证成功事件
-function onTurnstileSuccess(token) {
-    // 验证成功后，才启用登录按钮
-    document.getElementById('loginBtn').disabled = false;
-}
-
-// 页面加载完成后初始化 Turnstile
-window.onload = function() {
-    // 初始状态下禁用登录按钮，防止用户未验证就点击
-    document.getElementById('loginBtn').disabled = true;
-};
-</script>
+        <!-- Turnstile 验证组件（带回调） -->
+        <div class="cf-turnstile" 
+             data-sitekey="0x4AAAAAADiuoBfqizSwVz3U" 
+             data-callback="onTurnstileSuccess">
+        </div>
 
         <button class="login-btn" id="loginBtn">登录</button>
         <p class="error-msg" id="errorMsg"></p>
@@ -71,6 +52,19 @@ window.onload = function() {
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let turnstileToken = null;
+
+        // Turnstile 验证成功回调：保存 Token 并启用按钮
+        function onTurnstileSuccess(token) {
+            turnstileToken = token;
+            document.getElementById('loginBtn').disabled = false;
+        }
+
+        // 页面加载时禁用按钮，防止未验证提交
+        window.onload = function() {
+            document.getElementById('loginBtn').disabled = true;
+        };
 
         async function doLogin() {
             const email = document.getElementById('email').value.trim();
@@ -86,11 +80,22 @@ window.onload = function() {
                 return;
             }
 
+            if (!turnstileToken) {
+                errorMsg.textContent = '请先完成人机验证';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = '登录中...';
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                // 关键：带上 captchaToken 传给 Supabase
+                const { data, error } = await supabase.auth.signInWithPassword(
+                    { email, password },
+                    { captchaToken: turnstileToken }
+                );
+
                 if (error) throw error;
                 
                 const username = data.user.user_metadata.username || data.user.email.split('@')[0];
@@ -101,6 +106,7 @@ window.onload = function() {
                 let errorText = '';
                 if (err.message.includes('Invalid login credentials')) errorText = '邮箱或密码错误';
                 else if (err.message.includes('Email not confirmed')) errorText = '邮箱未验证，请先激活';
+                else if (err.message.includes('captcha_token')) errorText = '人机验证失败，请刷新重试';
                 else errorText = err.message;
                 
                 errorMsg.textContent = '登录失败：' + errorText;

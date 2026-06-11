@@ -1,5 +1,8 @@
 # 更新日志 / Changelog
 
+## v3.3.0
+- 增加人机验证
+
 ## v3.2.2
 - 修复找回密码系统 / Fix forgot-password.html & Create reset-password.html
 
