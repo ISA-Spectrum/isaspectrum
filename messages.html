@@ -506,6 +506,10 @@ Licensed under the MIT License.
     <script src="./common.js"></script>
     <!-- 页面独有业务JS全部保留 -->
     <script>
+        let currentPage = 0;
+        const PAGE_SIZE = 20;
+        let hasMore = true;
+        let isLoadingMore = false;
         const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -740,6 +744,19 @@ Licensed under the MIT License.
                     document.getElementById('notificationModal').style.display = "none";
                 }
             };
+            // 滚动监听：快到底部时自动加载
+window.addEventListener('scroll', () => {
+    if (isLoadingMore || !hasMore) return;
+    
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // 距离底部 300px 时触发加载
+    if (scrollTop + windowHeight >= documentHeight - 300) {
+        loadMainMessages(true);
+    }
+});
         };
 
         function previewImages(input) {
@@ -830,55 +847,104 @@ Licensed under the MIT License.
             location.href = `details.html?id=${msgId}`;
         }
 
-        async function loadMainMessages() {
-            const container = document.getElementById('messageContainer');
-            container.innerHTML = '<div class="loading">加载留言中...</div>';
-            try {
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .eq('flag', 1)
-                    .is('reply_to', null)
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data.length) {
-                    container.innerHTML = '<div class="empty-message">暂无留言，快来发布第一条留言吧！</div>';
-                    userMap = {};
-                    return;
-                }
-                userMap = {};
-                data.forEach(msg => { userMap[msg.id] = msg.username; });
-                let html = '';
-                for (let msg of data) {
-                    const time = new Date(msg.created_at).toLocaleString('zh-CN');
-                    let imageHtml = '';
-                    if (msg.pic_url && msg.pic_url.length > 0) {
-                        imageHtml = '<div class="message-images">';
-                        for (let url of msg.pic_url) {
-                            imageHtml += `<img src="${escapeHtml(url)}" class="message-image" onclick="window.open(this.src)">`;
-                        }
-                        imageHtml += '</div>';
-                    }
-                    html += `
-                    <div class="message-item" id="message-${msg.id}" data-user-id="${msg.user_id || ''}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
-                        <div class="message-avatar-box"></div>
-                        <div style="flex:1">
-                            <div class="message-header">
-                                <span class="message-author">${escapeHtml(msg.username)}</span>
-                                <span class="message-time">${time}</span>
-                            </div>
-                            <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
-                            ${imageHtml}
-                            <button class="detail-btn" onclick="goToDetails('${msg.id}')">🔍 查看详情</button>
-                        </div>
-                    </div>`;
-                }
-                container.innerHTML = html;
-                renderMessageAvatars();
-            } catch (error) {
-                container.innerHTML = `<div class="empty-message">加载失败：${error.message}</div>`;
-            }
+async function loadMainMessages(isLoadMore = false) {
+    if (isLoadMore && (!hasMore || isLoadingMore)) return;
+    if (isLoadMore) isLoadingMore = true;
+    
+    const container = document.getElementById('messageContainer');
+    
+    if (!isLoadMore) {
+        container.innerHTML = '<div class="loading">加载留言中...</div>';
+        currentPage = 0;
+        hasMore = true;
+    }
+    
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    
+    try {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact' })
+            .eq('flag', 1)
+            .is('reply_to', null)
+            .order('created_at', { ascending: false })
+            .range(from, to);
+            
+        if (error) throw error;
+        
+        // 判断是否还有更多
+        if (!data || data.length < PAGE_SIZE) {
+            hasMore = false;
         }
+        
+        if (!data || data.length === 0) {
+            if (!isLoadMore) {
+                container.innerHTML = '<div class="empty-message">暂无留言，快来发布第一条留言吧！</div>';
+            }
+            userMap = {};
+            return;
+        }
+        
+        // 更新 userMap
+        data.forEach(msg => { userMap[msg.id] = msg.username; });
+        
+        let html = '';
+        for (let msg of data) {
+            const time = new Date(msg.created_at).toLocaleString('zh-CN');
+            let imageHtml = '';
+            if (msg.pic_url && msg.pic_url.length > 0) {
+                imageHtml = '<div class="message-images">';
+                for (let url of msg.pic_url) {
+                    imageHtml += `<img src="${escapeHtml(url)}" class="message-image" onclick="window.open(this.src)">`;
+                }
+                imageHtml += '</div>';
+            }
+            html += `
+            <div class="message-item" id="message-${msg.id}" data-user-id="${msg.user_id || ''}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
+                <div class="message-avatar-box"></div>
+                <div style="flex:1">
+                    <div class="message-header">
+                        <span class="message-author">${escapeHtml(msg.username)}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+                    ${imageHtml}
+                    <button class="detail-btn" onclick="goToDetails('${msg.id}')">🔍 查看详情</button>
+                </div>
+            </div>`;
+        }
+        
+        if (isLoadMore) {
+            // 追加到现有列表
+            container.insertAdjacentHTML('beforeend', html);
+            currentPage++;
+        } else {
+            container.innerHTML = html;
+            currentPage = 1;
+        }
+        
+        // 添加"加载更多"按钮（如果还有数据）
+        if (hasMore) {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (!loadMoreBtn) {
+                container.insertAdjacentHTML('afterend', '<div style="text-align:center;margin:20px 0;"><button id="loadMoreBtn" class="submit-btn" style="width:auto;padding:10px 30px;">加载更多</button></div>');
+                document.getElementById('loadMoreBtn').addEventListener('click', () => loadMainMessages(true));
+            }
+        } else {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) loadMoreBtn.remove();
+        }
+        
+        renderMessageAvatars();
+    } catch (error) {
+        if (!isLoadMore) {
+            container.innerHTML = `<div class="empty-message">加载失败：${error.message}</div>`;
+        }
+    } finally {
+        isLoadingMore = false;
+    }
+}
 
         function escapeHtml(text) {
             const div = document.createElement('div');
