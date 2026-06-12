@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 - 禁止访问 | ISA Spectrum</title>
+    <style>
+        :root {
+            --theme-color: #1e50ae;
+            --text-gray: #666;
+            --bg: #f7f9fc;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+        .error-code {
+            font-size: 8rem;
+            font-weight: 900;
+            color: #ffc107;
+            line-height: 1;
+        }
+        .title {
+            font-size: 1.8rem;
+            margin: 20px 0 10px;
+            color: #333;
+        }
+        .desc {
+            font-size: 1rem;
+            color: var(--text-gray);
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background-color: var(--theme-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #15408f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">403</div>
+        <h1 class="title">哎呀，你没有权限访问这个页面</h1>
+        <p class="desc">请使用审核账号登录后再访问</p>
+        <!-- 这里改成审核专属登录页 -->
+        <a href="login-messageschecker.html" class="btn">前往审核登录</a>
+    </div>
+</body>
+</html>
