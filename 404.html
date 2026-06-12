@@ -1,0 +1,88 @@
+<!--
+Copyright (c) 2026 ISA Spectrum
+Copyright (c) 2026 沧海四象
+Licensed under the MIT License.
+-->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - 页面不存在 | ISA Spectrum</title>
+    <style>
+        :root {
+            --theme-color: #1e50ae;
+            --text-gray: #666;
+            --bg: #f7f9fc;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+        .error-code {
+            font-size: 8rem;
+            font-weight: 900;
+            color: var(--theme-color);
+            line-height: 1;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .title {
+            font-size: 1.8rem;
+            margin: 20px 0 10px;
+            color: #333;
+        }
+        .desc {
+            font-size: 1rem;
+            color: var(--text-gray);
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background-color: var(--theme-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #15408f;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
+    <link rel="manifest" href="/images/site.webmanifest" />
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1 class="title">哎呀，页面走丢了</h1>
+        <p class="desc">你访问的页面不存在、已被删除或链接错误</p>
+        <a href="index.html" class="btn">返回校墙首页</a>
+    </div>
+</body>
+</html>
