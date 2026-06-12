@@ -10,6 +10,7 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>审核员登录 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
         body { background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
@@ -23,6 +24,7 @@ Licensed under the MIT License.
         .login-btn:disabled { background: #999; cursor: not-allowed; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: #1e50ae; text-decoration: none; font-size: 14px; }
         .error-msg { color: #dc3545; text-align: center; font-size: 13px; margin-top: 8px; display: none; }
+        .cf-turnstile { margin: 10px 0 16px 0; }
     </style>
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
@@ -37,6 +39,10 @@ Licensed under the MIT License.
         <p class="sub">仅限 ISA Spectrum 授权审核员</p>
         <input id="email" type="email" placeholder="邮箱">
         <input id="password" type="password" placeholder="密码">
+
+        <!-- 新增 Turnstile 验证组件 -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U"></div>
+
         <button class="login-btn" id="loginBtn">登录</button>
         <p class="error-msg" id="errorMsg"></p>
         <a href="index.html" class="back-link">返回用户端首页</a>
@@ -47,47 +53,62 @@ Licensed under the MIT License.
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        async function doLogin() {
-            var email = document.getElementById('email').value.trim();
-            var password = document.getElementById('password').value;
-            var btn = document.getElementById('loginBtn');
-            var error = document.getElementById('errorMsg');
+async function doLogin() {
+    var email = document.getElementById('email').value.trim();
+    var password = document.getElementById('password').value;
+    var btn = document.getElementById('loginBtn');
+    var error = document.getElementById('errorMsg');
 
-            error.style.display = 'none';
+    error.style.display = 'none';
 
-            if (!email || !password) {
-                error.textContent = '请填写邮箱和密码';
-                error.style.display = 'block';
-                return;
-            }
+    if (!email || !password) {
+        error.textContent = '请填写邮箱和密码';
+        error.style.display = 'block';
+        return;
+    }
 
-            btn.disabled = true;
-            btn.textContent = '登录中...';
+    // 获取 Turnstile 验证 Token
+    const tokenInput = document.querySelector('input[name="cf-turnstile-response"]');
+    if (!tokenInput || !tokenInput.value) {
+        error.textContent = '请先完成人机验证';
+        error.style.display = 'block';
+        return;
+    }
+    const captchaToken = tokenInput.value;
 
-            var { data, error: loginError } = await supabase.auth.signInWithPassword({ email: email, password: password });
+    btn.disabled = true;
+    btn.textContent = '登录中...';
 
-            if (loginError) {
-                error.textContent = '登录失败：' + loginError.message;
-                error.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = '登录';
-                return;
-            }
-
-            // 检查是否为审核员
-            var { data: checker } = await supabase.from('checkers').select('*').eq('user_id', data.user.id).maybeSingle();
-
-            if (!checker) {
-                error.textContent = '您没有被授权为审核员，请联系管理员。';
-                error.style.display = 'block';
-                await supabase.auth.signOut();
-                btn.disabled = false;
-                btn.textContent = '登录';
-                return;
-            }
-
-            location.href = 'checker-pending.html';
+    var { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+        options: {
+            captchaToken: captchaToken
         }
+    });
+
+    if (loginError) {
+        error.textContent = '登录失败：' + loginError.message;
+        error.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '登录';
+        return;
+    }
+
+    // 检查是否为审核员
+    var { data: checker } = await supabase.from('checkers').select('*').eq('user_id', data.user.id).maybeSingle();
+
+    if (!checker) {
+        error.textContent = '您没有被授权为审核员，请联系管理员。';
+        error.style.display = 'block';
+        await supabase.auth.signOut();
+        btn.disabled = false;
+        btn.textContent = '登录';
+        return;
+    }
+
+    location.href = 'checker-pending.html';
+}
 
         document.getElementById('loginBtn').addEventListener('click', doLogin);
         document.addEventListener('keydown', function(e) {
