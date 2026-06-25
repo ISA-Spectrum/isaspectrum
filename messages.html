@@ -349,7 +349,6 @@ Licensed under the MIT License.
             max-width: 500px;
             border-radius: 12px;
             max-height: 80vh;
-            overflow-y: auto;
         }
         .modal-header {
             padding: 16px;
@@ -358,11 +357,10 @@ Licensed under the MIT License.
             justify-content: space-between;
             align-items: center;
         }
-        .modal-header h3 {
-            margin: 0;
-        }
         .modal-body {
             padding: 16px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
         .notification-item {
             padding: 12px;
@@ -511,7 +509,7 @@ Licensed under the MIT License.
 
     <!-- 加载全局公共JS（汉堡、导航高亮已移入，删掉页面原有汉堡JS） -->
     <script src="./common.js"></script>
-    <!-- 页面独有业务JS全部保留 -->
+    <!-- 页面独有业务JS全部保留（通知逻辑已完整改造） -->
     <script>
 let currentPage = 0;
 const PAGE_SIZE = 20;
@@ -519,6 +517,12 @@ let hasMore = true;
 let isLoadingMore = false;
 let scrollTimeout = null;
 let abortController = null; // 取消上一次请求，防止多余请求
+
+// ========== 新增通知分页全局变量 ==========
+let notifyPage = 0;
+const NOTIFY_PAGE_SIZE = 10;
+let notifyHasMore = true;
+let notifyLoading = false;
 
 const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
@@ -558,7 +562,7 @@ async function sendNotificationToAllAuditors(title, content, relatedId = null) {
     await supabase.from("notifications").insert(notices);
 }
 
-// 刷新通知红点
+// 刷新通知红点（页面加载仅查1条id，不阻塞）
 async function refreshNotificationDot() {
     if (!userId) return;
     const { data } = await supabase
@@ -572,32 +576,85 @@ async function refreshNotificationDot() {
     dropdownDot.style.display = hasUnread ? "inline-block" : "none";
 }
 
-// 打开通知中心
-async function openNotifications() {
+// ========== 改造后：支持滚动懒加载、无上限通知加载函数 ==========
+async function openNotifications(append = false) {
     const modal = document.getElementById("notificationModal");
     modal.style.display = "flex";
-    const { data: notes } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-    await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
-    refreshNotificationDot();
-
     const listEl = document.getElementById("notificationList");
-    if (!notes || notes.length === 0) {
-        listEl.innerHTML = `<div style='text-align:center;padding:30px;color:#999;'>暂无通知</div>`;
-        return;
+
+    // 加载锁，防止并发重复请求
+    if (notifyLoading) return;
+    notifyLoading = true;
+
+    // 首次打开弹窗：重置分页、清空列表
+    if (!append) {
+        notifyPage = 0;
+        notifyHasMore = true;
+        listEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:#999;">加载通知中...</div>';
     }
 
-    listEl.innerHTML = notes.map(n => `
-    <div class="notification-item ${n.type === 'rejected' ? 'rejected' : ''}">
-      <h4>${n.title}</h4>
-      <p>${n.content}</p>
-      <p style='font-size:12px;color:#999;margin:5px 0 0 0;'>${new Date(n.created_at).toLocaleString()}</p>
-    </div>`).join("");
+    const from = notifyPage * NOTIFY_PAGE_SIZE;
+    const to = from + NOTIFY_PAGE_SIZE - 1;
+
+    try {
+        // 只查询必要字段，不select(*)，节省流量
+        const { data: notes, error } = await supabase
+            .from("notifications")
+            .select("id, title, content, created_at, type, read")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+        if (error) throw error;
+
+        // 移除加载提示
+        const loadingTip = listEl.querySelector('div[style*="text-align:center;padding:20px 0"]');
+        if (loadingTip && !append) loadingTip.remove();
+
+        // 无通知数据
+        if (!notes || notes.length === 0) {
+            notifyHasMore = false;
+            if (!append) {
+                listEl.innerHTML = `<div style='text-align:center;padding:30px;color:#999;'>暂无通知</div>`;
+            } else {
+                listEl.insertAdjacentHTML('beforeend', `<div style="text-align:center;padding:15px 0;color:#aaa;font-size:13px;">没有更多通知了</div>`);
+            }
+            notifyLoading = false;
+            return;
+        }
+
+        // 使用文档碎片批量渲染DOM，减少重绘卡顿
+        const htmlFragment = document.createDocumentFragment();
+        notes.forEach(n => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = `notification-item ${n.type === 'rejected' ? 'rejected' : ''}`;
+            itemDiv.innerHTML = `
+              <h4>${escapeHtml(n.title)}</h4>
+              <p>${escapeHtml(n.content)}</p>
+              <p style='font-size:12px;color:#999;margin:5px 0 0 0;'>${new Date(n.created_at).toLocaleString()}</p>
+            `;
+            htmlFragment.appendChild(itemDiv);
+        });
+
+        // 首次打开清空，滚动加载追加
+        if (!append) listEl.innerHTML = "";
+        listEl.appendChild(htmlFragment);
+
+        // 当前页不足分页条数 = 无更多历史通知
+        if (notes.length < NOTIFY_PAGE_SIZE) notifyHasMore = false;
+
+        // 仅第一次打开弹窗批量标记全部未读为已读，滚动加载不再重复更新
+        if (!append) {
+            await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+            refreshNotificationDot();
+        }
+
+        notifyPage++;
+    } catch (err) {
+        listEl.innerHTML = `<div style="color:red;text-align:center;padding:20px;">加载失败：${err.message}</div>`;
+    } finally {
+        notifyLoading = false;
+    }
 }
 
 // 初始化头像
@@ -945,7 +1002,7 @@ function showNoMoreTip() {
     }
 }
 
-// HTML转义
+// HTML转义防XSS
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
@@ -991,11 +1048,13 @@ window.onload = async function () {
         if (e.target.files[0]) await uploadAvatar(e.target.files[0]);
     };
 
-    // 打开通知
+    // 打开通知中心（传入false重置分页）
     document.getElementById('openNotifications').onclick = async () => {
-        await openNotifications();
+        await openNotifications(false);
         avatarDropdown.style.display = "none";
     };
+
+    // 关闭弹窗
     document.getElementById('closeModal').onclick = () => {
         document.getElementById('notificationModal').style.display = "none";
     };
@@ -1005,7 +1064,20 @@ window.onload = async function () {
         }
     };
 
-    // 滚动懒加载（最终优化版）
+    // ========== 弹窗内部滚动懒加载监听 ==========
+    const notifyModalBody = document.getElementById("notificationList");
+    notifyModalBody.addEventListener("scroll", async () => {
+        if (!notifyHasMore || notifyLoading) return;
+        const scrollTop = notifyModalBody.scrollTop;
+        const viewHeight = notifyModalBody.clientHeight;
+        const totalHeight = notifyModalBody.scrollHeight;
+        // 距离底部80px提前加载下一页通知
+        if (scrollTop + viewHeight >= totalHeight - 80) {
+            await openNotifications(true);
+        }
+    });
+
+    // 留言列表页面滚动懒加载
     window.addEventListener('scroll', () => {
         if (isLoadingMore || !hasMore) return;
         clearTimeout(scrollTimeout);
