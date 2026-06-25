@@ -79,11 +79,13 @@ async function doLogin() {
     btn.disabled = true;
     btn.textContent = '登录中...';
 
-    // ✅ 修正为官方正确参数格式
-    var { data, error: loginError } = await supabase.auth.signInWithPassword(
-        { email: email, password: password },
-        { captchaToken: captchaToken }
-    );
+    var { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+        options: {
+            captchaToken: captchaToken
+        }
+    });
 
     if (loginError) {
         error.textContent = '登录失败：' + loginError.message;
@@ -107,6 +109,7 @@ async function doLogin() {
 
     location.href = 'checker-pending.html';
 }
+
         document.getElementById('loginBtn').addEventListener('click', doLogin);
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') doLogin();
