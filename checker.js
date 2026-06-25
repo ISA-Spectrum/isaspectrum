@@ -18,8 +18,23 @@ const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ========== 初始化 Supabase + 权限校验（修复会话竞态） ==========
+const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 带重试的会话获取
+async function getSessionWithRetry(retries = 3, delayMs = 300) {
+    for (let i = 0; i < retries; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return data;
+        if (i < retries -1) await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    return { session: null };
+}
+
 (async function checkAuditAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getSessionWithRetry();
 
     // 1. 已登录
     if (session && session.user) {
