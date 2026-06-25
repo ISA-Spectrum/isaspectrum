@@ -1,6 +1,19 @@
 // Copyright (c) 2026 ISA Spectrum
 // Copyright (c) 2026 沧海四象
 // Licensed under the MIT License.
+// 加载审核导航 + 自动高亮当前页面菜单
+
+// ========== 全局错误捕获 开始 ==========
+window.onerror = function() {
+    location.href = "500.html";
+    return true;
+};
+window.addEventListener("unhandledrejection", function() {
+    location.href = "500.html";
+});
+// ========== 全局错误捕获 结束 ==========
+
+// ========== 初始化 Supabase + 权限校验（沿用你的逻辑） ==========
 const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
