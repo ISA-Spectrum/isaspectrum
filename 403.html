@@ -1,14 +1,9 @@
-<!--
-Copyright (c) 2026 ISA Spectrum
-Copyright (c) 2026 沧海四象
-Licensed under the MIT License.
--->
 <!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - 页面不存在 | ISA Spectrum</title>
+    <title>403 - 禁止访问 | ISA Spectrum</title>
     <style>
         :root {
             --theme-color: #1e50ae;
@@ -38,13 +33,8 @@ Licensed under the MIT License.
         .error-code {
             font-size: 8rem;
             font-weight: 900;
-            color: var(--theme-color);
+            color: #ffc107;
             line-height: 1;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
         }
         .title {
             font-size: 1.8rem;
@@ -79,10 +69,11 @@ Licensed under the MIT License.
 </head>
 <body>
     <div class="container">
-        <div class="error-code">404</div>
-        <h1 class="title">哎呀，页面走丢了</h1>
-        <p class="desc">你访问的页面不存在、已被删除或链接错误</p>
-        <a href="index.html" class="btn">返回首页</a>
+        <div class="error-code">403</div>
+        <h1 class="title">哎呀，你没有权限访问这个页面</h1>
+        <p class="desc">请使用审核账号登录后再访问</p>
+        <!-- 这里改成审核专属登录页 -->
+        <a href="login-messageschecker.html" class="btn">前往审核登录</a>
     </div>
 </body>
 </html>

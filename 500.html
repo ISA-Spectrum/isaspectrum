@@ -8,7 +8,7 @@ Licensed under the MIT License.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - 页面不存在 | ISA Spectrum</title>
+    <title>500 - 服务器出错了 | ISA Spectrum</title>
     <style>
         :root {
             --theme-color: #1e50ae;
@@ -38,13 +38,13 @@ Licensed under the MIT License.
         .error-code {
             font-size: 8rem;
             font-weight: 900;
-            color: var(--theme-color);
+            color: #dc3545;
             line-height: 1;
-            animation: float 3s ease-in-out infinite;
+            animation: pulse 2s ease-in-out infinite;
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         .title {
             font-size: 1.8rem;
@@ -79,9 +79,9 @@ Licensed under the MIT License.
 </head>
 <body>
     <div class="container">
-        <div class="error-code">404</div>
-        <h1 class="title">哎呀，页面走丢了</h1>
-        <p class="desc">你访问的页面不存在、已被删除或链接错误</p>
+        <div class="error-code">500</div>
+        <h1 class="title">哎呀，服务器爆炸啦</h1>
+        <p class="desc">我们的作者正在挠头思考对策，请稍后再试</p>
         <a href="index.html" class="btn">返回首页</a>
     </div>
 </body>
