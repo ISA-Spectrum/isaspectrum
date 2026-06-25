@@ -1,0 +1,142 @@
+<!--
+Copyright (c) 2026 ISA Spectrum
+Copyright (c) 2026 沧海四象
+Licensed under the MIT License.
+-->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISA Spectrum 社区公约</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- 全局公共样式（和全站共用导航、页脚样式） -->
+    <link rel="stylesheet" href="./common.css">
+    <style>
+        /* 本页面独有样式 */
+        :root {
+            --card-bg: #f9f9f9;
+        }
+        .main-content {
+            max-width: 900px;
+            margin: 80px auto 60px;
+            padding: 0 20px;
+        }
+        .page-title {
+            text-align: center;
+            font-size: 32px;
+            color: var(--theme-color);
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .page-title::after {
+            content: "";
+            display: block;
+            width: 60px;
+            height: 3px;
+            background-color: var(--theme-color);
+            margin: 15px auto 0;
+        }
+        .rules-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 35px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            line-height: 1.8;
+            color: #444;
+        }
+        .rules-section-title {
+            font-size: 20px;
+            color: var(--theme-color);
+            margin: 24px 0 12px;
+            font-weight: bold;
+        }
+        .rules-text {
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        .back-btn-wrap {
+            text-align: center;
+            margin-top: 40px;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 30px;
+            background-color: var(--theme-color);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            background-color: #15408f;
+        }
+        /* 移动端适配 */
+        @media (max-width:768px){
+            .page-title {
+                font-size: 24px;
+            }
+            .rules-card {
+                padding: 20px;
+            }
+        }
+    </style>
+    <!-- 网站图标统一配置 -->
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
+    <link rel="shortcut icon" href="./images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
+    <link rel="manifest" href="./images/site.webmanifest" />
+</head>
+<body>
+    <!-- 复用全站公共导航头部 -->
+    <div id="headerBox"></div>
+
+    <main class="main-content">
+        <h1 class="page-title">ISA Spectrum 社区公约</h1>
+        <div class="rules-card">
+            <div class="rules-section-title">一、平台宗旨</div>
+            <p class="rules-text">
+                ISA Spectrum官方致力于为ISA Wuhan School师生提供一个快捷、方便、有趣、安全的线上交流平台，有任何问题都欢迎通过顶部导航栏（手机端右上角汉堡按钮点开）中的“联系我们”页面反馈。
+            </p>
+
+            <div class="rules-section-title">二、发言规范</div>
+            <p class="rules-text">
+                1.发言须遵守国家法律法规，严禁散播违法内容。<br>2.严禁在留言中辱骂挑衅他人、侵害集体利益或损害他人合法权利。
+            </p>
+
+            <div class="rules-section-title">三、内容审核规则</div>
+            <p class="rules-text">
+                1.不符合上述发言规范的内容一律不予过审，多次违反发言规范则参照违规处罚说明处理。<br>2.审核员账号在操作时虽是匿名但会在后台留下实名操作日志。如遇审核误拒可向官方申请核实，作者在核实后若确认为误拒会对留言予以恢复，若发现审核员恶意审核也会采取撤销其审核权限等措施。
+            </p>
+
+            <div class="rules-section-title">四、用户行为约束</div>
+            <p class="rules-text">
+                1.除须遵守发言规范外，严禁在校墙上大量或频繁刷相同信息。<br>2.严禁在校墙上恶意引战、煽风点火。
+            </p>
+
+            <div class="rules-section-title">五、违规处罚说明</div>
+            <p class="rules-text">
+                1.若您的留言违反了以上规定，将会被删除并记入日志。<br>2.若您在知晓规则的情况下依然违规，官方会予以点对点邮件警告。<br>3.若您在接收警告邮件后依然多次、反复违规，官方将在后台对您的账号进行封禁，届时您的账号将无法登录校墙、发布信息或使用相关功能，且您的注册邮箱将不能再注册新账号。<br>4.封号时间依违规严重程度和频次而定，分为3日、5日、7日、30日和永久封号。
+            </p>
+
+            <div class="rules-section-title">六、补充说明</div>
+            <p class="rules-text">
+                1.本公约可能会不定期更新完善，一切以最新版公约为准。<br>2.本公约最终解释权归沧海四象所有。
+            </p>
+        </div>
+
+        <!-- 返回校墙页面按钮 -->
+        <div class="back-btn-wrap">
+            <a href="messages.html" class="back-btn">返回校墙发表留言</a>
+        </div>
+    </main>
+
+    <!-- 复用全站公共页脚 -->
+    <div id="footerBox"></div>
+
+    <!-- 加载全局公共JS（自动渲染导航栏、页脚） -->
+    <script src="./common.js"></script>
+</body>
+</html>
