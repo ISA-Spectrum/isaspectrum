@@ -1,17 +1,26 @@
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  // 只拦截test域名，主站直接放行
+  const path = url.pathname;
+
+  // 1. 主站直接放行
   if (!url.hostname.includes("test")) {
     return;
   }
 
-  // 环境变量兜底判断，不存在就直接放行，不崩溃
+  // 2. 静态资源直接跳过密码校验：图片、样式、脚本、字体、图标
+  const staticExt = [".png", ".jpg", ".jpeg", ".svg", ".webp", ".css", ".js", ".woff", ".woff2", ".ico"];
+  if (staticExt.some(ext => path.endsWith(ext))) {
+    return;
+  }
+
+  // 环境变量缺失兜底
   const realPassword = env.INNER_TEST_PASSWORD;
   if (!realPassword) return;
 
   const cookie = request.headers.get("cookie") || "";
   if (cookie.includes("inner_verify=ok")) return;
 
+  // 密码提交接口
   if (request.method === "POST" && url.pathname === "/_check_pass") {
     const form = await request.formData();
     const inputPwd = form.get("pwd");
@@ -30,6 +39,7 @@ export async function onRequest({ request, env }) {
     `, { status: 403, headers: { "Content-Type": "text/html;charset=utf-8" } });
   }
 
+  // 登录页
   return new Response(`
     <!DOCTYPE html>
     <html>
