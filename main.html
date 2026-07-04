@@ -28,13 +28,17 @@ Licensed under the MIT License.
             left: 0;
             width: 100%;
             height: 100%;
-            background-size: cover;
-            background-position: center;
             opacity: 0;
             transition: 0.6s;
         }
         .banner-slide.active {
             opacity: 1;
+        }
+        /* 适配img铺满，和原background效果完全一致 */
+        .banner-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .banner-dots {
             position: absolute;
@@ -100,10 +104,19 @@ Licensed under the MIT License.
 <!-- 公共头部容器（由common.js自动加载header.html） -->
 <div id="headerBox"></div>
 
-<!-- 页面独有正文：轮播+介绍 -->
 <section class="banner">
-    <div class="banner-slide active" style="background-image:url('./images/1.jpg')"></div>
-    <div class="banner-slide" style="background-image:url('./images/2.jpg')"></div>
+    <div class="banner-slide active">
+        <picture>
+            <source srcset="./images/1.webp" type="image/webp">
+            <img src="./images/1.jpg" alt="ISA校园全景" loading="lazy" fetchpriority="high">
+        </picture>
+    </div>
+    <div class="banner-slide">
+        <picture>
+            <source srcset="./images/2.webp" type="image/webp">
+            <img src="./images/2.jpg" alt="黄昏校园全景" loading="lazy">
+        </picture>
+    </div>
     <div class="banner-dots">
         <span class="banner-dot active"></span>
         <span class="banner-dot"></span>
@@ -111,7 +124,8 @@ Licensed under the MIT License.
 </section>
 
 <main class="main-content">
-    <img src="./images/logo.png" class="main-logo">
+    <!-- Logo使用压缩后的PNG，加懒加载，稳定无兼容问题 -->
+    <img src="./images/logo.png" class="main-logo" loading="lazy" alt="ISA Spectrum">
     <p class="intro-text">
         团队专注于校园趣事的无纸化展示、校墙和校园社区建设，为用户提供独特的阅读与留言体验。
     </p>
@@ -126,7 +140,7 @@ Licensed under the MIT License.
 
 <!-- 加载全局公共JS：载入头尾+汉堡+导航高亮 -->
 <script src="./common.js"></script>
-<!-- 仅页面专属JS：轮播代码 -->
+<!-- 仅页面专属JS：轮播代码（完全不变） -->
 <script>
 let slides = document.querySelectorAll('.banner-slide');
 let dots = document.querySelectorAll('.banner-dot');
