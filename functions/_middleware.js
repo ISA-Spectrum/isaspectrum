@@ -1,17 +1,17 @@
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  // 仅匹配测试/预览域名，正式站直接放行
-  if (!url.hostname.includes("test") && !url.hostname.includes("preview")) {
+  // 只拦截test域名，主站直接放行
+  if (!url.hostname.includes("test")) {
     return;
   }
 
-  // 读取后台Pages预览环境变量，前端浏览器拿不到
+  // 环境变量兜底判断，不存在就直接放行，不崩溃
   const realPassword = env.INNER_TEST_PASSWORD;
+  if (!realPassword) return;
+
   const cookie = request.headers.get("cookie") || "";
-  // 已有登录凭证，直接放行页面
   if (cookie.includes("inner_verify=ok")) return;
 
-  // 密码提交校验接口
   if (request.method === "POST" && url.pathname === "/_check_pass") {
     const form = await request.formData();
     const inputPwd = form.get("pwd");
@@ -26,11 +26,10 @@ export async function onRequest({ request, env }) {
     }
     return new Response(`
       <h2 style="text-align:center;margin-top:80px;">密码错误</h2>
-      <p style="text-align:center;"><a href="/_login">返回密码输入页</a></p>
+      <p style="text-align:center;"><a href="/">返回</a></p>
     `, { status: 403, headers: { "Content-Type": "text/html;charset=utf-8" } });
   }
 
-  // 渲染密码登录页面
   return new Response(`
     <!DOCTYPE html>
     <html>
