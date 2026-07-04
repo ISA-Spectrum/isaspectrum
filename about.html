@@ -53,15 +53,17 @@ Licensed under the MIT License.
             background-color: #15408f;
         }
 
-        /* Banner专属样式 */
+        /* Banner专属样式改造为img布局 */
         .about-banner {
             margin-top: 60px;
             width: 100%;
-            max-width: 100%;
             height: 350px;
-            background-size: cover;
-            background-position: center;
-            display: block;
+            overflow: hidden;
+        }
+        .about-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         @media (max-width: 768px) {
             .about-banner {
@@ -80,7 +82,12 @@ Licensed under the MIT License.
     <!-- 公共头部挂载容器 -->
     <div id="headerBox"></div>
 
-    <div class="about-banner" style="background-image: url('./images/about-banner.png');"></div>
+    <div class="about-banner">
+        <picture>
+            <source srcset="./images/about-banner.webp" type="image/webp">
+            <img src="./images/about-banner.png" alt="关于页头图" loading="lazy" fetchpriority="high">
+        </picture>
+    </div>
 
     <main class="main-content">
         <div class="content-section">
