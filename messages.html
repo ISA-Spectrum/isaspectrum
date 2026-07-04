@@ -512,6 +512,57 @@ Licensed under the MIT License.
     <script src="./common.js"></script>
     <!-- 页面独有业务JS全部保留（通知逻辑已完整改造） -->
     <script>
+// ===================== 新增：通用图片压缩核心函数 =====================
+function compressImage(file, options = {}) {
+    return new Promise((resolve, reject) => {
+        // 非图片文件直接返回原文件
+        if (!file.type.startsWith('image/')) {
+            return resolve(file);
+        }
+        // 默认配置
+        const defaultOpts = {
+            maxWidth: 1920,
+            maxHeight: 1080,
+            quality: 0.6,
+            mimeType: "image/webp"
+        };
+        const opts = { ...defaultOpts, ...options };
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = e => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                // 等比缩放
+                const scaleRatio = Math.min(opts.maxWidth / width, opts.maxHeight / height);
+                if (scaleRatio < 1) {
+                    width = width * scaleRatio;
+                    height = height * scaleRatio;
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(blob => {
+                    if (!blob) return reject("图片压缩失败");
+                    // 重命名后缀
+                    const suffix = opts.mimeType === "image/webp" ? ".webp" : ".jpg";
+                    const newFileName = file.name.replace(/(\.\w+)$/, suffix);
+                    const compressedFile = new File([blob], newFileName, { type: opts.mimeType });
+                    resolve(compressedFile);
+                }, opts.mimeType, opts.quality);
+            };
+            img.onerror = () => reject("图片加载失败");
+        };
+        reader.onerror = () => reject("文件读取失败");
+    });
+}
+
 let currentPage = 0;
 const PAGE_SIZE = 20;
 let hasMore = true;
@@ -676,16 +727,27 @@ async function initUserExtra() {
     refreshNotificationDot();
 }
 
-// 上传头像
+// ===================== 改造：上传头像，先压缩再上传 =====================
 async function uploadAvatar(file) {
-    const { error } = await supabase.storage.from("avatars").upload(userId, file, { upsert: true });
-    if (error) { alert(error.message); return; }
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(userId);
-    await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", userId);
-    avatarImg.src = getFreshAvatar(publicUrl);
-    avatarImg.style.display = "block";
-    avatarPlaceholder.style.display = "none";
-    alert("头像更新成功");
+    try {
+        // 头像压缩配置：200×200，画质0.5，jpg极致压缩
+        const compressedFile = await compressImage(file, {
+            maxWidth: 200,
+            maxHeight: 200,
+            quality: 0.5,
+            mimeType: "image/jpeg"
+        });
+        const { error } = await supabase.storage.from("avatars").upload(userId, compressedFile, { upsert: true });
+        if (error) { alert(error.message); return; }
+        const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(userId);
+        await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", userId);
+        avatarImg.src = getFreshAvatar(publicUrl);
+        avatarImg.style.display = "block";
+        avatarPlaceholder.style.display = "none";
+        alert("头像更新成功");
+    } catch (err) {
+        alert("头像压缩/上传失败：" + err.message);
+    }
 }
 
 // 批量渲染留言头像
@@ -762,7 +824,7 @@ function initNicknameSelect() {
     select.value = currentUserRealName;
 }
 
-// 图片预览
+// 图片预览（仅预览原图，上传时使用压缩后文件）
 function previewImages(input) {
     const container = document.getElementById('previewContainer');
     container.innerHTML = '';
@@ -773,11 +835,10 @@ function previewImages(input) {
         return;
     }
     for (let file of files) {
-        if (!file.type.startsWith('image/') || file.size > MAX_SIZE) {
-            alert(`图片格式/大小不符合要求！`);
+        if (!file.type.startsWith('image/')) {
+            alert(`仅支持图片文件！`);
             input.value = '';
             container.innerHTML = '';
-            input.value = '';
             return;
         }
         const reader = new FileReader();
@@ -791,7 +852,7 @@ function previewImages(input) {
     }
 }
 
-// 上传图片
+// ===================== 改造：批量压缩留言图片再上传 =====================
 async function uploadImages(files) {
     if (!files || files.length === 0) return null;
     const urlList = [];
@@ -800,13 +861,31 @@ async function uploadImages(files) {
     uploadProgress.style.display = 'block';
     progressBar.style.width = '0%';
     try {
-        for (let i = 0; i < files.length; i++) {
-            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${files[i].name}`;
-            const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(fileName, files[i]);
+        // 循环压缩每一张图片
+        const compressedFiles = [];
+        for (const file of files) {
+            // 小于100KB原图跳过压缩，避免画质损耗
+            if (file.size < 100 * 1024) {
+                compressedFiles.push(file);
+            } else {
+                const compressFile = await compressImage(file, {
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    quality: 0.6,
+                    mimeType: "image/webp"
+                });
+                compressedFiles.push(compressFile);
+            }
+        }
+        // 上传压缩后的文件
+        for (let i = 0; i < compressedFiles.length; i++) {
+            const file = compressedFiles[i];
+            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
+            const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(fileName, file);
             if (error) throw new Error(`图片上传失败: ${error.message}`);
             const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
             urlList.push(urlData.publicUrl);
-            progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
+            progressBar.style.width = `${((i + 1) / compressedFiles.length) * 100}%`;
         }
         return urlList;
     } catch (error) {
@@ -1046,7 +1125,8 @@ window.onload = async function () {
         avatarDropdown.style.display = "none";
     };
     document.getElementById('avatarInput').onchange = async (e) => {
-        if (e.target.files[0]) await uploadAvatar(e.target.files[0]);
+        const file = e.target.files[0];
+        if (file) await uploadAvatar(file);
     };
 
     // 打开通知中心（传入false重置分页）
