@@ -735,7 +735,7 @@ async function uploadAvatar(file) {
             maxWidth: 200,
             maxHeight: 200,
             quality: 0.5,
-            mimeType: "image/jpeg"
+            mimeType: "image/webp"
         });
         const { error } = await supabase.storage.from("avatars").upload(userId, compressedFile, { upsert: true });
         if (error) { alert(error.message); return; }
