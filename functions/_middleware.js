@@ -2,12 +2,7 @@ export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // 主站直接放行（不是测试域名就正常回源）
-  if (!url.hostname.includes("test")) {
-    return fetch(request);
-  }
-
-  // 静态资源直接放行（含 favicon.ico）
+  // 静态资源直接放行（含 favicon.ico），使用 ASSETS 获取静态文件
   const staticSuffix = [
     ".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif",
     ".css", ".js", ".mjs", ".ts",
@@ -16,19 +11,24 @@ export async function onRequest({ request, env }) {
   ];
   const isStatic = staticSuffix.some(suffix => path.endsWith(suffix));
   if (isStatic || path === "/favicon.ico") {
-    return fetch(request);
+    return env.ASSETS.fetch(request);
   }
 
-  // 无密码变量时返回明确错误，避免 Worker 无响应
+  // 非 test 域名直接放行（也通过 ASSETS 返回 Pages 内容）
+  if (!url.hostname.includes("test")) {
+    return env.ASSETS.fetch(request);
+  }
+
+  // 以下为 test 域名的密码保护逻辑
   const realPassword = env.INNER_TEST_PASSWORD;
   if (!realPassword) {
     return new Response("Missing INNER_TEST_PASSWORD environment variable", { status: 500 });
   }
 
-  // 已通过验证则放行
   const cookie = request.headers.get("cookie") || "";
   if (cookie.includes("inner_verify=ok")) {
-    return fetch(request);
+    // 验证通过，返回真实的页面内容
+    return env.ASSETS.fetch(request);
   }
 
   // 密码提交接口
@@ -58,7 +58,7 @@ export async function onRequest({ request, env }) {
     }
   }
 
-  // 密码登录页
+  // 显示密码登录页
   return new Response(
     `<!DOCTYPE html>
     <html>
