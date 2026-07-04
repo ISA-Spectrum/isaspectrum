@@ -2,18 +2,25 @@ export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // 1. 主站直接放行
+  // 主站直接放行
   if (!url.hostname.includes("test")) {
     return;
   }
 
-  // 2. 静态资源直接跳过密码校验：图片、样式、脚本、字体、图标
-  const staticExt = [".png", ".jpg", ".jpeg", ".svg", ".webp", ".css", ".js", ".woff", ".woff2", ".ico"];
-  if (staticExt.some(ext => path.endsWith(ext))) {
+  // 所有静态资源直接跳过密码校验，包含 favicon.ico
+  const staticSuffix = [
+    ".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif",
+    ".css", ".js", ".mjs", ".ts",
+    ".woff", ".woff2", ".ttf", ".otf",
+    ".ico", ".map"
+  ];
+  const isStatic = staticSuffix.some(suffix => path.endsWith(suffix));
+  // 根目录 favicon.ico 单独兜底放行
+  if (isStatic || path === "/favicon.ico") {
     return;
   }
 
-  // 环境变量缺失兜底
+  // 无密码变量直接放行，防止500
   const realPassword = env.INNER_TEST_PASSWORD;
   if (!realPassword) return;
 
@@ -21,7 +28,7 @@ export async function onRequest({ request, env }) {
   if (cookie.includes("inner_verify=ok")) return;
 
   // 密码提交接口
-  if (request.method === "POST" && url.pathname === "/_check_pass") {
+  if (request.method === "POST" && path === "/_check_pass") {
     const form = await request.formData();
     const inputPwd = form.get("pwd");
     if (inputPwd === realPassword) {
@@ -39,7 +46,7 @@ export async function onRequest({ request, env }) {
     `, { status: 403, headers: { "Content-Type": "text/html;charset=utf-8" } });
   }
 
-  // 登录页
+  // 密码登录页
   return new Response(`
     <!DOCTYPE html>
     <html>
