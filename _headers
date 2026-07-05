@@ -1,0 +1,22 @@
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/images/*
+  Cache-Control: public, max-age=604800, s-maxage=604800, immutable
+
+/favicon*
+/site.webmanifest
+  Cache-Control: public, max-age=604800, s-maxage=604800
+
+*.js
+  Cache-Control: public, max-age=259200, s-maxage=259200
+
+*.css
+  Cache-Control: public, max-age=259200, s-maxage=259200
+
+*.woff2
+*.woff
+*.ttf
+  Cache-Control: public, max-age=604800, s-maxage=604800
