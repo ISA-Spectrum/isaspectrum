@@ -1036,11 +1036,7 @@ async function loadMainMessages(isLoadMore = false) {
             container.innerHTML = html;
             currentPage++;
         }
-
-        // 底部按钮 / 到底提示
-        if (hasMore) {
-            bindLoadMoreBtn();
-        } else {
+        if (!hasMore) {
             showNoMoreTip();
         }
 
@@ -1055,20 +1051,6 @@ async function loadMainMessages(isLoadMore = false) {
     }
 }
 
-// 绑定加载更多按钮（只绑定一次）
-function bindLoadMoreBtn() {
-    let wrap = document.getElementById('loadMoreWrapper');
-    if (wrap) return;
-
-    const container = document.getElementById('messageContainer');
-    container.insertAdjacentHTML('afterend', `
-        <div id="loadMoreWrapper" style="text-align:center;margin:20px 0;">
-            <button id="loadMoreBtn" class="submit-btn" style="width:auto;padding:10px 30px;">加载更多</button>
-        </div>
-    `);
-    document.getElementById('loadMoreBtn').addEventListener('click', () => loadMainMessages(true));
-}
-
 // 显示「没有更多了」
 function showNoMoreTip() {
     const wrap = document.getElementById('loadMoreWrapper');
@@ -1081,8 +1063,6 @@ function showNoMoreTip() {
         `);
     }
 }
-
-// HTML转义防XSS
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
