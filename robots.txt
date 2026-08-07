@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://celestivast.com/sitemap.xml
+Sitemap: https://isaspectrum.celestivast.com/sitemap.xml
