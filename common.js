@@ -35,15 +35,3 @@ fetch('./footer.html')
 })
 .then(html=>document.getElementById('footerBox').innerHTML=html)
 .catch(e=>console.error('底部加载失败',e))
-// 注册Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-        console.log('✅ Service Worker 注册成功:', reg);
-      })
-      .catch(err => {
-        console.log('❌ Service Worker 注册失败:', err);
-      });
-  });
-}
