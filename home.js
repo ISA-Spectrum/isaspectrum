@@ -3,11 +3,21 @@
   const relativeTime=value=>{const seconds=Math.max(1,Math.floor((Date.now()-new Date(value).getTime())/1000)),f=new Intl.RelativeTimeFormat('zh-CN',{numeric:'auto'});if(seconds<60)return f.format(-seconds,'second');const minutes=Math.floor(seconds/60);if(minutes<60)return f.format(-minutes,'minute');const hours=Math.floor(minutes/60);if(hours<24)return f.format(-hours,'hour');const days=Math.floor(hours/24);return days<30?f.format(-days,'day'):new Date(value).toLocaleDateString('zh-CN',{month:'short',day:'numeric'})};
   function initGreeting(){const node=document.getElementById('dayGreeting');if(!node)return;const hour=new Date().getHours(),part=hour<6?'夜深了':hour<11?'早上好':hour<14?'中午好':hour<18?'下午好':'晚上好';node.textContent=`${part} · 校园社区在线`}
   function initCarousel(){const slides=[...document.querySelectorAll('.hero-slide')],host=document.getElementById('heroDots');if(!slides.length||!host)return;let current=0,timer;const dots=slides.map((slide,index)=>{const button=document.createElement('button');button.type='button';button.className=`hero-dot${index===0?' active':''}`;button.setAttribute('aria-label',`显示第 ${index+1} 张：${slide.dataset.label}`);host.appendChild(button);return button});const show=(next,restart=false)=>{current=(next+slides.length)%slides.length;slides.forEach((slide,index)=>slide.classList.toggle('active',index===current));dots.forEach((dot,index)=>dot.classList.toggle('active',index===current));if(restart)schedule()};const schedule=()=>{clearInterval(timer);if(!matchMedia('(prefers-reduced-motion: reduce)').matches)timer=setInterval(()=>show(current+1),6000)};dots.forEach((dot,index)=>dot.addEventListener('click',()=>show(index,true)));document.getElementById('prevSlide')?.addEventListener('click',()=>show(current-1,true));document.getElementById('nextSlide')?.addEventListener('click',()=>show(current+1,true));document.querySelector('.hero')?.addEventListener('mouseenter',()=>clearInterval(timer));document.querySelector('.hero')?.addEventListener('mouseleave',schedule);document.addEventListener('visibilitychange',()=>document.hidden?clearInterval(timer):schedule());schedule()}
+
   async function loadFeed(){
     const host=document.getElementById('latestFeed');
-    if(!host||!window.supabase)return;
+    if(!host)return;
+    // 循环等待 window.supabase 以及 from 方法就绪
+    let retry=0;
+    while(!(window.supabase?.from) && retry<20){
+      await new Promise(r=>setTimeout(r,100));
+      retry++;
+    }
+    if(!window.supabase?.from){
+      host.innerHTML='<div class="feed-card"><p class="feed-content">暂时无法同步最新动态，你仍可以进入校墙查看或发布内容。</p><a class="text-link" href="messages.html">前往校墙 →</a></div>';
+      return;
+    }
     try{
-      // 直接复用全局supabase实例，不再单独createClient
       const {data,error}=await window.supabase
         .from('messages')
         .select('id,username,content,created_at')
@@ -27,6 +37,13 @@
       host.innerHTML='<div class="feed-card"><p class="feed-content">暂时无法同步最新动态，你仍可以进入校墙查看或发布内容。</p><a class="text-link" href="messages.html">前往校墙 →</a></div>';
     }
   }
+
   async function loadNotices(){const host=document.getElementById('latestNotices');if(!host)return;try{const response=await fetch('./notice.html');if(!response.ok)throw new Error();const doc=new DOMParser().parseFromString(await response.text(),'text/html'),notices=[...doc.querySelectorAll('.notice-item')].slice(0,3);host.innerHTML=notices.map(item=>{const title=item.querySelector('h3')?.textContent.trim()||'站内公告',match=item.textContent.match(/20\d{2}年\d{1,2}月\d{1,2}日/);return`<a class="notice-row" href="notice.html"><span class="notice-date">${escapeHtml(match?.[0]||'最新')}</span><span class="notice-title">${escapeHtml(title)}</span><span aria-hidden="true">→</span></a>`}).join('')}catch(error){host.innerHTML='<a class="notice-row" href="notice.html"><span class="notice-date">最新</span><span class="notice-title">前往公告页查看更新</span><span>→</span></a>'}}
-  document.addEventListener('DOMContentLoaded',()=>{initGreeting();initCarousel();loadNotices();loadFeed()});
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    initGreeting();
+    initCarousel();
+    loadNotices();
+    loadFeed();
+  });
 })();
