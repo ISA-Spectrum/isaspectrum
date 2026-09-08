@@ -400,15 +400,50 @@ Licensed under the MIT License.
         .no-more-tip {
             color: #999;
         }
+        /* 2026 experience refresh */
+        .main-content { max-width: 1180px; margin: 0 auto 70px; padding: 112px 20px 0; }
+        .community-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:24px; }
+        .community-heading .page-title { margin:0; color:var(--ink); text-align:left; font-size:clamp(36px,6vw,62px); line-height:1; letter-spacing:-.05em; }
+        .community-heading .page-title::after { display:none; }
+        .community-heading p { max-width:440px; margin:10px 0 0; color:var(--muted); }
+        .logout-bar { margin:0; }
+        .logout-btn { color:#6b2130 !important; border:1px solid #ffd4dc !important; border-radius:12px !important; background:#fff1f3 !important; font-weight:700; }
+        .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:start; }
+        .message-form-section,.message-list-section { margin:0; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:var(--shadow-sm); }
+        .message-form-section { position:sticky; top:92px; padding:26px; }
+        .message-list-section { padding:26px; }
+        .form-title { margin:0; color:var(--ink); text-align:left; font-size:20px; }
+        .section-copy { margin:4px 0 22px; color:var(--muted); font-size:14px; }
+        .form-control { min-height:46px; padding:11px 13px; border-color:var(--line); border-radius:12px; background:#fbfcff; font-size:15px; }
+        .form-control:focus { border-color:var(--theme-color); box-shadow:0 0 0 4px rgba(33,70,243,.1); }
+        .form-group { margin-bottom:16px; }.form-group label { color:#333a4d; font-weight:700; }
+        .form-note { color:var(--muted); text-align:left; font-size:12px; }
+        .textarea-meta { display:flex; justify-content:flex-end; margin-top:5px; color:var(--muted); font-size:12px; }
+        .file-upload { border-color:#c9d1e5; border-radius:14px; background:#f8faff; }.file-upload:hover { background:var(--theme-soft); }
+        .submit-btn { width:100%; height:48px; line-height:normal; border-radius:13px; background:var(--theme-color); box-shadow:0 10px 22px rgba(33,70,243,.22); }
+        .submit-btn:hover { background:#1838d3; transform:translateY(-1px); }
+        .form-status { min-height:24px; margin:10px 0 0; color:var(--muted); text-align:center; font-size:13px; }
+        .form-status.success { color:#08783f; }.form-status.error { color:#b42318; }
+        .feed-toolbar { display:grid; grid-template-columns:1fr 150px; gap:10px; margin:18px 0; }
+        .feed-toolbar input,.feed-toolbar select { width:100%; min-height:44px; padding:9px 12px; border:1px solid var(--line); border-radius:12px; color:var(--ink); background:#f8faff; }
+        .message-item { margin:0 0 12px; padding:20px; border:1px solid var(--line); border-radius:17px; background:#fff; transition:transform .2s,box-shadow .2s,border-color .2s; }
+        .message-item:hover { transform:translateY(-2px); border-color:#c4cdf7; box-shadow:0 12px 28px rgba(16,35,126,.08); }
+        .message-content { color:#333a4d; }.detail-btn { padding:7px 12px; border-radius:10px; background:var(--theme-soft); font-weight:700; }
+        .modal-box { overflow:hidden; border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow-lg); }
+        .notification-modal { backdrop-filter:blur(6px); }
+        .avatar-btn { border:1px solid var(--line); background:#fff; }
         /* 页面专属移动端适配 */
         @media (max-width: 768px) {
             .page-title {
                 font-size: 24px;
             }
             .main-content {
-                margin: 80px auto 40px;
-                padding: 0 15px;
+                margin: 0 auto 40px;
+                padding: 92px 15px 0;
             }
+            .community-heading { display:block; }.logout-bar { margin-top:18px; justify-content:flex-start; }
+            .community-layout { grid-template-columns:1fr; }.message-form-section { position:static; }
+            .feed-toolbar { grid-template-columns:1fr; }
             .message-form-section,
             .message-list-section {
                 padding: 20px;
@@ -438,11 +473,10 @@ Licensed under the MIT License.
     <div id="headerBox"></div>
 
     <main class="main-content">
-        <h1 class="page-title">校墙</h1>
-        <div class="logout-bar">
+        <div class="community-heading"><div><h1 class="page-title">校园广场</h1><p>分享此刻，也认真听见每一种声音。所有内容将在审核后公开。</p></div><div class="logout-bar">
             <div class="user-menu">
-                <button class="avatar-btn" id="avatarBtn">
-                    <img id="avatarImg" class="avatar-img" />
+                <button class="avatar-btn" id="avatarBtn" aria-label="打开个人菜单" aria-expanded="false">
+                    <img id="avatarImg" class="avatar-img" alt="我的头像" />
                     <div class="avatar-placeholder" id="avatarPlaceholder">+</div>
                     <div class="notification-dot" id="notificationDot"></div>
                 </button>
@@ -453,10 +487,11 @@ Licensed under the MIT License.
                 <input type="file" id="avatarInput" accept="image/*" hidden>
             </div>
             <button id="logoutBtn" class="logout-btn" style="background: #dc3545; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer;">退出登录</button>
-        </div>
+        </div></div>
 
+        <div class="community-layout">
         <section class="message-form-section">
-            <h2 class="form-title">📝 发表你的留言</h2>
+            <h2 class="form-title">发表新动态</h2><p class="section-copy">写下此刻想和校园分享的内容。</p>
             <div class="form-group">
                 <label for="nicknameSelect">显示昵称</label>
                 <select id="nicknameSelect" class="form-control">
@@ -471,35 +506,38 @@ Licensed under the MIT License.
             </div>
             <div class="form-group">
                 <label for="messageContent">留言内容 <span style="color: red;">*</span></label>
-                <textarea id="messageContent" class="form-control" placeholder="分享你的校园趣事、心情、疑问……"></textarea>
+                <textarea id="messageContent" class="form-control" maxlength="1000" placeholder="分享校园趣事、心情或疑问……"></textarea><div class="textarea-meta"><span id="contentCount">0 / 1000</span></div>
             </div>
             <div class="form-group">
                 <label>上传图片（可选）</label>
-                <div class="file-upload" id="fileUploadContainer" onclick="document.getElementById('messagePicFile').click()">
+                <label class="file-upload" id="fileUploadContainer" for="messagePicFile">
                     <span>点击选择图片</span>
                     <input type="file" id="messagePicFile" accept="image/*" multiple onchange="previewImages(this)">
-                </div>
+                </label>
                 <div class="preview-container" id="previewContainer"></div>
                 <div class="upload-progress" id="uploadProgress">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
             </div>
             <button class="submit-btn" onclick="postMessage()" id="submitBtn">发布留言</button>
+            <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
             <p class="form-note" style="margin:10px 0 0 0;">发布留言时请遵守<a href="community-rules.html" style="color:var(--theme-color);text-decoration:underline;font-weight:500;">《ISA Spectrum社区公约》</a></p>
             <p class="form-note">留言审核结果将通过站内通知告知您</p>
         </section>
 
         <section class="message-list-section">
-            <h2 class="form-title">💬 大家的留言</h2>
+            <h2 class="form-title">最新动态</h2><p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
+            <div class="feed-toolbar"><input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容"><select id="messageSort" aria-label="留言排序"><option value="newest">最新发布</option><option value="oldest">最早发布</option></select></div>
             <div id="messageContainer" class="loading">加载留言中...</div>
         </section>
+        </div>
     </main>
 
-    <div class="notification-modal" id="notificationModal">
+    <div class="notification-modal" id="notificationModal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
         <div class="modal-box">
             <div class="modal-header">
-                <h3>通知中心</h3>
-                <button id="closeModal">×</button>
+                <h3 id="notificationTitle">通知中心</h3>
+                <button id="closeModal" aria-label="关闭通知中心">×</button>
             </div>
             <div class="modal-body" id="notificationList"></div>
         </div>
@@ -569,6 +607,9 @@ let hasMore = true;
 let isLoadingMore = false;
 let scrollTimeout = null;
 let abortController = null; // 取消上一次请求，防止多余请求
+let activeSearch = '';
+let activeSort = 'newest';
+let searchTimer = null;
 
 // ========== 新增通知分页全局变量 ==========
 let notifyPage = 0;
@@ -841,6 +882,12 @@ function previewImages(input) {
             container.innerHTML = '';
             return;
         }
+        if (file.size > MAX_SIZE) {
+            showFormStatus(`“${file.name}”超过 5MB，请压缩后重试。`, 'error');
+            input.value = '';
+            container.innerHTML = '';
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function (e) {
             const img = document.createElement('img');
@@ -854,7 +901,7 @@ function previewImages(input) {
 
 // ===================== 改造：批量压缩留言图片再上传 =====================
 async function uploadImages(files) {
-    if (!files || files.length === 0) return null;
+    if (!files || files.length === 0) return [];
     const urlList = [];
     const progressBar = document.getElementById('progressBar');
     const uploadProgress = document.getElementById('uploadProgress');
@@ -889,8 +936,7 @@ async function uploadImages(files) {
         }
         return urlList;
     } catch (error) {
-        alert(error.message);
-        return null;
+        throw error;
     } finally {
         uploadProgress.style.display = 'none';
     }
@@ -904,7 +950,8 @@ async function postMessage() {
     const submitBtn = document.getElementById('submitBtn');
 
     if (!content) {
-        alert('留言内容不能为空！');
+        showFormStatus('请先写下留言内容。', 'error');
+        document.getElementById('messageContent').focus();
         return;
     }
     submitBtn.disabled = true;
@@ -919,20 +966,30 @@ async function postMessage() {
             flag: 0, reply_to: null,
             created_at: new Date().toISOString()
         };
-        const { data: newMsg } = await supabase.from('messages').insert([insertData]).select().single();
+        showFormStatus('正在上传并提交…');
+        const { data: newMsg, error: insertError } = await supabase.from('messages').insert([insertData]).select().single();
+        if (insertError) throw insertError;
         await sendNotificationToAllAuditors("🔔 新留言待审核", `用户：${username}\n内容：${content.slice(0, 50)}...`, newMsg.id);
 
-        alert('留言发布成功！审核结果将通过站内通知告知您');
+        showFormStatus('发布成功，审核结果会通过站内通知告知你。', 'success');
         document.getElementById('messageContent').value = '';
+        document.getElementById('contentCount').textContent = '0 / 1000';
         document.getElementById('messagePicFile').value = '';
         document.getElementById('previewContainer').innerHTML = '';
         loadMainMessages(false);
     } catch (error) {
-        alert('发布失败：' + (error.message || error));
+        showFormStatus('发布失败：' + (error.message || error), 'error');
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '发布留言';
     }
+}
+
+function showFormStatus(message, type = '') {
+    const node = document.getElementById('formStatus');
+    if (!node) return;
+    node.textContent = message;
+    node.className = `form-status${type ? ` ${type}` : ''}`;
 }
 
 // 跳转详情
@@ -959,6 +1016,7 @@ async function loadMainMessages(isLoadMore = false) {
         currentPage = 0;
         hasMore = true;
         if (loadMoreWrap) loadMoreWrap.remove();
+        document.querySelector('.no-more-tip')?.remove();
     } else {
         // 滚动加载时显示加载状态
         if (!document.querySelector('.list-loading-tip')) {
@@ -970,13 +1028,14 @@ async function loadMainMessages(isLoadMore = false) {
     const to = from + PAGE_SIZE - 1;
 
     try {
-        const { data, error, count } = await supabase
+        let query = supabase
             .from('messages')
             .select('*', { count: 'exact' })
             .eq('flag', 1)
             .is('reply_to', null)
-            .order('created_at', { ascending: false })
-            .range(from, to);
+            .order('created_at', { ascending: activeSort === 'oldest' });
+        if (activeSearch) query = query.ilike('content', `%${activeSearch}%`);
+        const { data, error, count } = await query.range(from, to);
 
         if (signal.aborted) return;
         if (error) throw error;
@@ -993,7 +1052,7 @@ async function loadMainMessages(isLoadMore = false) {
 
         if (!data || data.length === 0) {
             if (!isLoadMore) {
-                container.innerHTML = '<div class="empty-message">暂无留言，快来发布第一条留言吧！</div>';
+                container.innerHTML = `<div class="empty-message">${activeSearch ? '没有找到相关留言，试试其他关键词。' : '暂无留言，快来发布第一条留言吧！'}</div>`;
             }
             hasMore = false;
             showNoMoreTip();
@@ -1010,7 +1069,7 @@ async function loadMainMessages(isLoadMore = false) {
             if (msg.pic_url && msg.pic_url.length > 0) {
                 imageHtml = '<div class="message-images">';
                 for (let url of msg.pic_url) {
-                    imageHtml += `<img src="${escapeHtml(url)}" class="message-image" onclick="window.open(this.src)">`;
+                    imageHtml += `<img src="${escapeHtml(url)}" class="message-image" alt="${escapeHtml(msg.username)} 发布的图片" loading="lazy" onclick="window.open(this.src)">`;
                 }
                 imageHtml += '</div>';
             }
@@ -1076,6 +1135,19 @@ window.onload = async function () {
 
     document.getElementById('contactEmail').value = currentUserEmail;
     initNicknameSelect();
+    const contentInput = document.getElementById('messageContent');
+    contentInput.addEventListener('input', () => {
+        document.getElementById('contentCount').textContent = `${contentInput.value.length} / 1000`;
+        if (document.getElementById('formStatus').classList.contains('error')) showFormStatus('');
+    });
+    document.getElementById('messageSearch').addEventListener('input', (event) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { activeSearch = event.target.value.trim(); loadMainMessages(false); }, 280);
+    });
+    document.getElementById('messageSort').addEventListener('change', (event) => {
+        activeSort = event.target.value;
+        loadMainMessages(false);
+    });
     await loadMainMessages(false);
     await initUserExtra();
 
@@ -1091,11 +1163,14 @@ window.onload = async function () {
     const avatarDropdown = document.getElementById('avatarDropdown');
     avatarBtn.onclick = (e) => {
         e.stopPropagation();
-        avatarDropdown.style.display = avatarDropdown.style.display === "block" ? "none" : "block";
+        const open = avatarDropdown.style.display !== "block";
+        avatarDropdown.style.display = open ? "block" : "none";
+        avatarBtn.setAttribute('aria-expanded', String(open));
     };
     document.addEventListener('click', (e) => {
         if (!avatarBtn.contains(e.target) && !avatarDropdown.contains(e.target)) {
             avatarDropdown.style.display = "none";
+            avatarBtn.setAttribute('aria-expanded', 'false');
         }
     });
 
@@ -1124,6 +1199,9 @@ window.onload = async function () {
             document.getElementById('notificationModal').style.display = "none";
         }
     };
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') document.getElementById('notificationModal').style.display = 'none';
+    });
 
     // ========== 弹窗内部滚动懒加载监听 ==========
     const notifyModalBody = document.getElementById("notificationList");

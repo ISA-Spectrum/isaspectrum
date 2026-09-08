@@ -55,6 +55,7 @@ Licensed under the MIT License.
             line-height: 1.6;
             font-size: 1rem;
         }
+        .notice-container{width:min(920px,calc(100% - 32px));margin:0 auto;padding:112px 0 0}.notice-title{margin:0;color:var(--ink);border:0;font-size:clamp(38px,7vw,64px);line-height:1;letter-spacing:-.05em}.notice-lead{margin:14px 0 28px;color:var(--muted);font-size:16px}.notice-search{width:100%;min-height:50px;margin-bottom:18px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow-sm)}.notice-search:focus{border-color:var(--theme-color);outline:3px solid rgba(33,70,243,.13)}.notice-list{display:grid;gap:12px;margin:0;padding:0}.notice-item{margin:0;padding:0;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);transform:none!important}.notice-toggle{display:flex;width:100%;align-items:center;justify-content:space-between;gap:20px;padding:20px 22px;border:0;color:var(--ink);background:transparent;text-align:left;font-weight:750;cursor:pointer}.notice-toggle span:last-child{display:grid;flex:0 0 30px;width:30px;height:30px;place-items:center;border-radius:50%;background:var(--theme-soft);color:var(--theme-color);transition:transform .2s}.notice-toggle[aria-expanded="true"] span:last-child{transform:rotate(45deg)}.notice-item p{display:none;margin:0;padding:0 22px 22px;color:#4c5468;line-height:1.8}.notice-item.open p{display:block}.notice-empty{padding:40px;text-align:center;color:var(--muted)}
     </style>
     <!-- favicon图标固定保留不动 -->
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
@@ -70,7 +71,7 @@ Licensed under the MIT License.
 
     <!-- 公告核心区域（页面独有正文原样保留） -->
     <div class="notice-container">
-        <h2 class="notice-title">站内公告</h2>
+        <h1 class="notice-title">站内公告</h1><p class="notice-lead">版本变化、使用说明与社区规则，都在这里。</p><input class="notice-search" id="noticeSearch" type="search" placeholder="搜索公告" aria-label="搜索公告">
         <ul class="notice-list" id="noticeList">
             <li class="notice-item">
                 <h3>更新公告 - 更换网址</h3>
@@ -123,7 +124,7 @@ Licensed under the MIT License.
     <div id="footerBox"></div>
 
     <!-- 全局JS：自动加载头尾+汉堡+导航高亮，本页汉堡JS删掉 -->
-    <script src="./common.js"></script>
+    <script src="./common.js"></script><script src="./notice.js"></script>
     <!-- 本页面无独有JS，script空着就行，有公告动态再写 -->
 </body>
 </html>

@@ -18,7 +18,7 @@ Licensed under the MIT License.
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
 body{background:#fff;display:grid;place-items:center;height:100vh}
-.splash{text-align:center;animation:fadeIn 1s,out 2.4s 1.6s forwards}
+.splash{text-align:center;animation:fadeIn .35s,out .3s .55s forwards}
 .logo{width:160px;margin-bottom:20px;animation:float 2s infinite}
 .title{font-size:30px;font-weight:600;color:#222;margin-bottom:8px}
 .domain{color:#666;font-size:16px}
@@ -26,12 +26,13 @@ body{background:#fff;display:grid;place-items:center;height:100vh}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes out{to{opacity:0;visibility:hidden}}
 </style>
+<meta name="description" content="ISAS校墙项目站，用于ISA学生交流讨论" />
 </head>
 <body>
 <div class="splash">
 <img src="images/logo.png" class="logo" alt="LOGO">
 <div class="title">ISA Spectrum</div>
 </div>
-<script>setTimeout(()=>location.href='main.html',2200)</script>
+<script>setTimeout(()=>location.replace('main.html'),700)</script>
 </body>
 </html>
