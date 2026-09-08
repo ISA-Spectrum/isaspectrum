@@ -1,8 +1,112 @@
 <footer class="footer">
   <div class="footer-container">
-    <div class="footer-brand"><img src="./images/logo.png" alt="" width="48" height="48"><div><strong>ISA Spectrum</strong><p>属于每一位 ISAer 的校园社区</p></div></div>
-    <div class="footer-links" aria-label="页脚导航"><a href="community-rules.html">社区公约</a><a href="contact.html">联系我们</a><a href="download.html">下载客户端</a></div>
+    <div class="footer-brand">
+      <img src="./images/logo.png" alt="" width="48" height="48">
+      <div>
+        <strong>ISA Spectrum</strong>
+        <p>属于每一位 ISAer 的校园社区</p>
+      </div>
+    </div>
+    <div class="footer-links" aria-label="页脚导航">
+      <a href="community-rules.html">社区公约</a>
+      <a href="contact.html">联系我们</a>
+      <a href="download.html">下载客户端</a>
+    </div>
     <a class="footer-email" href="mailto:contact@celestivast.com">contact@celestivast.com</a>
   </div>
-  <div class="footer-bottom"><p>© 2026 ISA Spectrum · 沧海四象开发 · MIT License</p></div>
+  <div class="footer-bottom">
+    <p>© 2026 ISA Spectrum · 沧海四象开发 · MIT License</p>
+  </div>
 </footer>
+
+<style>
+:root {
+  --footer-bg:#101425;
+  --footer-text:#c9d0e2;
+  --accent:#c9ff47;
+}
+.footer{
+  margin-top:80px;
+  padding:42px 20px 20px;
+  color:var(--footer-text);
+  background:var(--footer-bg);
+}
+.footer-container{
+  width:min(1180px,100%);
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: minmax(0,1.3fr) 1fr auto;
+  gap:32px;
+  align-items:center;
+}
+.footer-brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex:none;
+  min-width:0;
+}
+.footer-brand img{
+  width:48px;
+  height:48px;
+  min-width:48px;
+  min-height:48px;
+  flex-shrink:0;
+  object-fit:contain;
+  opacity:.95;
+}
+.footer-brand strong{
+  color:#fff;
+  font-size:18px;
+  white-space:nowrap;
+}
+.footer-brand p{
+  margin:3px 0 0;
+  color:#929bb2;
+  font-size:13px;
+  white-space:nowrap;
+}
+.footer-links{
+  display:flex;
+  justify-content:flex-start;
+  gap:20px;
+}
+.footer-links a,.footer-email{
+  color:#c9d0e2;
+  font-size:14px;
+  text-decoration:none;
+  transition:color .2s;
+}
+.footer-links a:hover,.footer-email:hover{
+  color:var(--accent);
+}
+.footer-email{
+  padding:9px 13px;
+  border:1px solid #353c53;
+  border-radius:999px;
+}
+.footer-bottom{
+  width:min(1180px,100%);
+  margin:30px auto 0;
+  padding-top:18px;
+  border-top:1px solid #272e42;
+  text-align:center;
+  color:#727c94;
+  font-size:12px;
+}
+.footer-bottom p{margin:0}
+
+@media(max-width:860px){
+  .footer{margin-top:56px;}
+  .footer-container{
+    grid-template-columns:1fr;
+    justify-items:start;
+    align-items:flex-start;
+    gap:24px;
+  }
+  .footer-links{
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+}
+</style>
