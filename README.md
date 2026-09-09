@@ -29,6 +29,17 @@ The project adopts a lightweight, cloud-native architecture built with pure fron
 3. Open the project using a local server (recommended)
 4. Access the project via `index.html` to start
 
+## Database Feature Setup
+
+Run `supabase/community_features.sql` in the Supabase SQL Editor. It adds and migrates the real campus-wall `zone` column, creates the email-safe public homepage feed, and enables account-bound daily meal ratings with RLS.
+
+## MFA Setup
+1. Enable TOTP under Authentication → Multi-Factor Authentication in Supabase
+2. Run `supabase/mfa_security.sql` in the Supabase SQL Editor
+3. Add both `has_aal2()` and `is_checker()` to the existing RLS policies for moderation data, contact emails, and administrative mutations
+
+Users can manage authenticators from `security.html`. Reviewers must enroll and complete MFA before entering the moderation area. Additional MFA methods can be registered through `registerProvider()` in `auth-mfa.js`.
+
 ## Project Structure
 - `index.html` – Splash/Loading page
 - `main.html` – Main community homepage
@@ -39,6 +50,9 @@ The project adopts a lightweight, cloud-native architecture built with pure fron
 - `contact.html` – Contact information
 - `download.html` – Client download service
 - `login.html` – Campus Wall login page
+- `security.html` – Two-factor authentication settings
+- `mfa-setup.html` – Authenticator enrollment
+- `mfa-challenge.html` – One-time-code challenge
 - `register.html` – Campus Wall registration page
 - `forgot-password.html` – Password recovery page
 - `header.html` – Shared navigation bar

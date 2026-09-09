@@ -640,13 +640,13 @@ const MESSAGE_ZONES = [
     { label: '失物招领', keywords: ['失物', '招领', '丢了', '捡到', '寻找', '遗失', '找到'] }
 ];
 
-function parseMessageContent(content = '') {
+function parseMessageContent(content = '', storedZone = '') {
     const marker = content.match(/^【([^】]+)】\s*/);
     const validZones = ['校园生活', ...MESSAGE_ZONES.map(zone => zone.label)];
     const explicitZone = validZones.includes(marker?.[1]) ? marker[1] : '';
     const text = explicitZone ? content.replace(/^【[^】]+】\s*/, '') : content;
     const inferredZone = MESSAGE_ZONES.find(zone => zone.keywords.some(word => text.includes(word)))?.label;
-    return { zone: explicitZone || inferredZone || '校园生活', text };
+    return { zone: validZones.includes(storedZone) ? storedZone : (explicitZone || inferredZone || '校园生活'), text };
 }
 
 // ========== 新增通知分页全局变量 ==========
@@ -1000,7 +1000,7 @@ async function postMessage() {
         const picUrls = await uploadImages(Array.from(files));
         const insertData = {
             user_id: currentUser.id,
-            username, content: `【${zone}】${content}`, pic_url: picUrls,
+            username, content, zone, pic_url: picUrls,
             contact_email: currentUserEmail,
             flag: 0, reply_to: null,
             created_at: new Date().toISOString()
@@ -1063,17 +1063,18 @@ async function loadMainMessages(isLoadMore = false) {
         }
     }
 
-    const from = activeZone === 'all' ? currentPage * PAGE_SIZE : 0;
-    const to = activeZone === 'all' ? from + PAGE_SIZE - 1 : 199;
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
     try {
         let query = supabase
             .from('messages')
-            .select('id,user_id,username,content,pic_url,created_at', { count: 'exact' })
+            .select('id,user_id,username,content,zone,pic_url,created_at', { count: 'exact' })
             .eq('flag', 1)
             .is('reply_to', null)
             .order('created_at', { ascending: activeSort === 'oldest' });
         if (activeSearch) query = query.ilike('content', `%${activeSearch}%`);
+        if (activeZone !== 'all') query = query.eq('zone', activeZone);
         const { data, error, count } = await query.range(from, to);
 
         if (signal.aborted) return;
@@ -1081,7 +1082,7 @@ async function loadMainMessages(isLoadMore = false) {
 
         // 判断是否还有数据
         const totalLoaded = (currentPage + 1) * PAGE_SIZE;
-        if (activeZone !== 'all' || !count || totalLoaded >= count) {
+        if (!count || totalLoaded >= count) {
             hasMore = false;
         }
 
@@ -1103,8 +1104,7 @@ async function loadMainMessages(isLoadMore = false) {
 
         let html = '';
         for (let msg of data) {
-            const parsedContent = parseMessageContent(msg.content);
-            if (activeZone !== 'all' && parsedContent.zone !== activeZone) continue;
+            const parsedContent = parseMessageContent(msg.content, msg.zone);
             const time = new Date(msg.created_at).toLocaleString('zh-CN');
             let imageHtml = '';
             if (msg.pic_url && msg.pic_url.length > 0) {

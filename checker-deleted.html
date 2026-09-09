@@ -11,6 +11,7 @@ Licensed under the MIT License.
     <title>已删除 - ISA Spectrum</title>
     <link rel="stylesheet" href="./common.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-mfa.js"></script>
     <style>
         body {
             padding-top:60px;
@@ -63,6 +64,8 @@ Licensed under the MIT License.
         let currentChecker = null;
 
         async function checkAuth() {
+            const mfaAuth = await ISAMFA.requireSession(supabase, { returnTo: 'checker-deleted.html', checker: true, requireAal2: true });
+            if (!mfaAuth) return;
             const { data: { session } } = await supabase.auth.getSession();
             if (!session || !session.user) { location.href = 'login-messageschecker.html'; return; }
             const { data: checker } = await supabase.from('checkers').select('*').eq('user_id', session.user.id).maybeSingle();

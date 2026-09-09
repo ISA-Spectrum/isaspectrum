@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="管理 ISA Spectrum 账号的两步验证。"><title>账号安全 · ISA Spectrum</title>
+  <link rel="stylesheet" href="./mfa.css"><link rel="icon" type="image/svg+xml" href="./images/favicon.svg"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script><script src="./auth-mfa.js"></script>
+</head>
+<body><main class="auth-card">
+  <a class="brand" href="main.html"><img src="./images/logo.png" alt=""><span><strong>ISA Spectrum</strong><small>Account security</small></span></a>
+  <p class="eyebrow">Security</p><h1>两步验证</h1><p>绑定身份验证器后，每次重新登录都需要输入动态验证码。</p>
+  <div class="notice"><strong>建议至少保留两个验证器。</strong> 当前系统不提供恢复码；丢失所有设备时需要联系管理员恢复账号。</div>
+  <div class="factor-list" id="factorList"><div class="empty">正在读取验证方式…</div></div>
+  <a class="button" href="mfa-setup.html?returnTo=security.html">添加身份验证器</a><a class="button secondary" href="main.html">返回首页</a>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</main><script>
+  const client=window.supabase.createClient('https://bbcnrsktqarvceekrswb.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiYmNyc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54');
+  const list=document.getElementById('factorList');const statusEl=document.getElementById('status');const show=(message,type='')=>{statusEl.textContent=message;statusEl.className='status '+type};
+  async function render(){try{const auth=await ISAMFA.requireSession(client,{returnTo:'security.html'});if(!auth)return;const factors=await ISAMFA.verifiedTotpFactors(client);if(!factors.length){list.innerHTML='<div class="empty">尚未绑定身份验证器</div>';return}list.innerHTML='';factors.forEach((factor,index)=>{const row=document.createElement('div');row.className='factor';const copy=document.createElement('div');const name=document.createElement('strong');name.textContent=factor.friendly_name||`身份验证器 ${index+1}`;const meta=document.createElement('small');meta.textContent='TOTP · 已验证';copy.append(name,meta);const button=document.createElement('button');button.className='button danger compact';button.type='button';button.textContent='移除';button.addEventListener('click',()=>removeFactor(factor.id,button));row.append(copy,button);list.append(row)})}catch(error){list.innerHTML='<div class="empty">读取失败</div>';show(error.message,'error')}}
+  async function removeFactor(id,button){const factors=await ISAMFA.verifiedTotpFactors(client);if(factors.length===1&&!confirm('这是账号最后一个验证器。移除后，两步验证将关闭。确定继续吗？'))return;if(factors.length>1&&!confirm('确定移除这个验证器吗？'))return;button.disabled=true;try{await ISAMFA.getProvider().unenroll(client,id);show('验证器已移除。','success');await render()}catch(error){show('移除失败：'+error.message,'error');button.disabled=false}}
+  render();
+</script></body></html>

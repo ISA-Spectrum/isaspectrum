@@ -11,6 +11,7 @@ Licensed under the MIT License.
     <title>待审核 - ISA Spectrum</title>
     <link rel="stylesheet" href="./common.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-mfa.js"></script>
     <style>
         /* 只留本页面独有样式 */
         body {
@@ -87,6 +88,8 @@ Licensed under the MIT License.
         let pendingRejectId = null;
 
         async function checkAuth() {
+            const mfaAuth = await ISAMFA.requireSession(supabase, { returnTo: 'checker-pending.html', checker: true, requireAal2: true });
+            if (!mfaAuth) return;
             const { data: { session } } = await supabase.auth.getSession();
             if (!session || !session.user) { location.href = 'login-messageschecker.html'; return; }
             const { data: checker } = await supabase.from('checkers').select('*').eq('user_id', session.user.id).maybeSingle();

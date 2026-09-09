@@ -16,6 +16,7 @@ Licensed under the MIT License.
 <meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
 <link rel="manifest" href="/images/site.webmanifest" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+<script src="./auth-mfa.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
 body{background:#fff;display:grid;place-items:center;height:100vh}
@@ -40,6 +41,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 (async function() {
+    const mfaAuth = await ISAMFA.requireSession(supabase, { returnTo: 'checker-pending.html', checker: true, requireAal2: true });
+    if (!mfaAuth) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (session && session.user) {
         // 检查是否为审核员

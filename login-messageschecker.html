@@ -10,6 +10,7 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>审核员登录 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-mfa.js"></script>
     <!-- 引入Cloudflare Turnstile验证码脚本，和正常登录页保持一致 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
@@ -112,7 +113,12 @@ Licensed under the MIT License.
                 return;
             }
 
-            location.href = 'checker-pending.html';
+            const requested = new URLSearchParams(location.search).get('returnTo');
+            await ISAMFA.continueAfterPassword(supabase, {
+                returnTo: ISAMFA.safeReturnTo(requested, 'checker-pending.html'),
+                checker: true,
+                requireMfa: true
+            });
         }
 
         document.getElementById('loginBtn').addEventListener('click', doLogin);

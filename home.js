@@ -1,6 +1,6 @@
 (function () {
   const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiYmNucnNrdHFhcnZjZWVrcnN3YiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc5NTI1MTg2LCJleHAiOjIwOTUxMDExODZ9.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
+  const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
   const client = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const zones = [
     { key: 'life', label: '校园生活', icon: '日', description: '日常、食堂与校园见闻', keywords: ['校园', '食堂', '宿舍', '老师', '同学', '日常', '生活', '周末'] },
@@ -32,6 +32,8 @@
   };
   const classify = (item) => {
     const parsed = parseContent(item.content);
+    const stored = zones.find((zone) => zone.label === item.zone);
+    if (stored) return stored.key;
     const marked = zones.find((zone) => zone.label === parsed.marker);
     if (marked) return marked.key;
     return zones.find((zone) => zone.key !== 'life' && zone.keywords.some((word) => parsed.text.includes(word)))?.key || 'life';
@@ -110,19 +112,13 @@
     const host = document.getElementById('latestFeed');
     if (!host || !client) return;
     try {
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
-        renderZones(host, [], true);
-        return;
-      }
-      const { data, error } = await client.from('messages')
-        .select('id,username,content,created_at')
-        .eq('flag', 1).is('reply_to', null)
+      const { data, error } = await client.from('approved_messages_public')
+        .select('id,username,content,created_at,zone')
         .order('created_at', { ascending: false }).limit(40);
       if (error) throw error;
       renderZones(host, data || []);
     } catch (error) {
-      host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请确认已登录或稍后重试。</div><a class="text-link" href="login.html">前往登录 →</a></div>';
+      host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请稍后重试。</div><a class="text-link" href="messages.html">前往校墙 →</a></div>';
     }
   }
   async function loadNotices() {

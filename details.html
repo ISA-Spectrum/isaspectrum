@@ -437,7 +437,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function parseMessageContent(content = '') {
+function parseMessageContent(content = '', storedZone = '') {
     const marker = content.match(/^【([^】]+)】\s*/);
     const groups = [
         { label: '学习互助', keywords: ['学习', '作业', '考试', '课程', '笔记', '竞赛', '选课', '大学'] },
@@ -448,7 +448,7 @@ function parseMessageContent(content = '') {
     const explicitZone = validZones.includes(marker?.[1]) ? marker[1] : '';
     const text = explicitZone ? content.replace(/^【[^】]+】\s*/, '') : content;
     const inferred = groups.find(group => group.keywords.some(word => text.includes(word)))?.label;
-    return { zone: explicitZone || inferred || '校园生活', text };
+    return { zone: validZones.includes(storedZone) ? storedZone : (explicitZone || inferred || '校园生活'), text };
 }
 
 function getFreshAvatar(src) {
@@ -578,12 +578,12 @@ async function renderMessageAvatars() {
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
     if (!mainMsgId) return;
-    const { data } = await supabase.from('messages').select('id,user_id,username,content,pic_url,created_at,reply_to').eq('id', mainMsgId).single();
+    const { data } = await supabase.from('messages').select('id,user_id,username,content,zone,pic_url,created_at,reply_to').eq('id', mainMsgId).single();
     if (data) { renderMainMessage(data); loadAllComments(); }
 }
 
 function renderMainMessage(msg) {
-    const parsedContent = parseMessageContent(msg.content);
+    const parsedContent = parseMessageContent(msg.content, msg.zone);
     const t = new Date(msg.created_at).toLocaleString();
     const imgs = msg.pic_url ? msg.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : '';
     document.getElementById('mainMessageCard').innerHTML = `

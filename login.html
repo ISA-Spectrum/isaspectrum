@@ -10,6 +10,7 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - ISA Spectrum</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-mfa.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
@@ -89,10 +90,8 @@ Licensed under the MIT License.
                 
                 const username = data.user.user_metadata.username || data.user.email.split('@')[0];
                 localStorage.setItem('sb_username', username);
-                alert('登录成功！');
                 const requested = new URLSearchParams(location.search).get('returnTo');
-                const allowedReturns = new Set(['main.html', 'messages.html', 'meal-rating.html']);
-                location.href = allowedReturns.has(requested) ? requested : 'messages.html';
+                await ISAMFA.continueAfterPassword(supabase, { returnTo: requested });
             } catch (err) {
                 let errorText = '';
                 if (err.message.includes('Invalid login credentials')) errorText = '邮箱或密码错误';

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>两步验证 · ISA Spectrum</title>
+  <link rel="stylesheet" href="./mfa.css"><link rel="icon" type="image/svg+xml" href="./images/favicon.svg">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+  <script src="./auth-mfa.js"></script>
+</head>
+<body><main class="auth-card">
+  <a class="brand" href="main.html"><img src="./images/logo.png" alt=""><span><strong>ISA Spectrum</strong><small>Account security</small></span></a>
+  <p class="eyebrow">Second step</p><h1>输入验证器代码</h1><p>打开你绑定的身份验证器，输入当前显示的 6 位数字。</p>
+  <div class="notice">这一步用于确认是你本人在登录。验证码只用于本次验证。</div>
+  <form id="verifyForm" novalidate><label class="field" for="code"><span>6 位验证码</span><input class="code-input" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" aria-describedby="status" required></label><button class="button" id="verifyButton" type="submit">验证并继续</button></form>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+  <div class="links"><a href="login.html">换一个账号</a><a href="security.html">管理验证方式</a></div>
+</main><script>
+  const client = window.supabase.createClient('https://bbcnrsktqarvceekrswb.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiYmNyc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54');
+  const params = new URLSearchParams(location.search);
+  const fallback = params.get('checker') === '1' ? 'checker-pending.html' : 'messages.html';
+  const returnTo = ISAMFA.safeReturnTo(params.get('returnTo'), fallback);
+  let factor = null;
+  const statusEl = document.getElementById('status');
+  function show(message, type=''){statusEl.textContent=message;statusEl.className='status '+type}
+  (async()=>{try{const auth=await ISAMFA.requireSession(client,{returnTo,checker:params.get('checker')==='1'});if(!auth)return;if(auth.level.currentLevel==='aal2'){location.replace(returnTo);return}const factors=await ISAMFA.verifiedTotpFactors(client);factor=factors[0];if(!factor){location.replace(ISAMFA.pageUrl('mfa-setup.html',{returnTo,required:params.get('checker')==='1'?'1':'',checker:params.get('checker')}));return}document.getElementById('code').focus()}catch(error){show('无法读取验证状态：'+error.message,'error')}})();
+  document.getElementById('verifyForm').addEventListener('submit',async event=>{event.preventDefault();const code=document.getElementById('code').value.replace(/\D/g,'');if(code.length!==6){show('请输入完整的 6 位验证码。','error');return}const button=document.getElementById('verifyButton');button.disabled=true;button.textContent='正在验证…';try{await ISAMFA.challengeAndVerify(client,factor.id,code);show('验证成功，正在继续…','success');location.replace(returnTo)}catch(error){show('验证码无效或已过期，请重新输入。','error');document.getElementById('code').select()}finally{button.disabled=false;button.textContent='验证并继续'}});
+</script></body></html>
