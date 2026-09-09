@@ -38,7 +38,7 @@ Run `supabase/community_features.sql` in the Supabase SQL Editor. It adds and mi
 2. Run `supabase/mfa_security.sql` in the Supabase SQL Editor
 3. Add both `has_aal2()` and `is_checker()` to the existing RLS policies for moderation data, contact emails, and administrative mutations
 
-Users can manage authenticators from `security.html`. Reviewers must enroll and complete MFA before entering the moderation area. Additional MFA methods can be registered through `registerProvider()` in `auth-mfa.js`.
+Reviewers must enroll and complete MFA before entering the moderation area. Additional MFA methods can be registered through `registerProvider()` in `auth-mfa.js`.
 
 ## Project Structure
 - `index.html` – Splash/Loading page
@@ -50,7 +50,6 @@ Users can manage authenticators from `security.html`. Reviewers must enroll and 
 - `contact.html` – Contact information
 - `download.html` – Client download service
 - `login.html` – Campus Wall login page
-- `security.html` – Two-factor authentication settings
 - `mfa-setup.html` – Authenticator enrollment
 - `mfa-challenge.html` – One-time-code challenge
 - `register.html` – Campus Wall registration page

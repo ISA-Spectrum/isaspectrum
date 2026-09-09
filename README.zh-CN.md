@@ -42,7 +42,7 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 2. 在 SQL Editor 中执行 `supabase/mfa_security.sql`
 3. 将其中的 `has_aal2()` 与 `is_checker()` 同时加入审核数据、联系邮箱和管理操作的现有 RLS 策略
 
-普通账号可以在 `security.html` 自助绑定验证器；审核员登录时必须完成绑定和动态验证码验证。`auth-mfa.js` 提供 `registerProvider()`，后续可用相同接口注册其他 MFA 验证方式。
+审核员登录时必须完成身份验证器绑定和动态验证码验证。`auth-mfa.js` 提供 `registerProvider()`，后续可用相同接口注册其他 MFA 验证方式。
 
 ## 项目结构
 - index.html            项目屏闪页
@@ -54,7 +54,6 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 - contact.html          联系方式
 - download.html         客户端下载服务
 - login.html            校墙登录页
-- security.html         两步验证管理页
 - mfa-setup.html        身份验证器绑定页
 - mfa-challenge.html    动态验证码验证页
 - register.html         校墙注册页

@@ -3,7 +3,7 @@
   'use strict';
 
   const SAFE_RETURNS = new Set([
-    'main.html', 'messages.html', 'meal-rating.html', 'security.html',
+    'main.html', 'messages.html', 'meal-rating.html',
     'checker-pending.html', 'checker-approved.html', 'checker-deleted.html'
   ]);
   const providers = new Map();
