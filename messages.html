@@ -223,6 +223,18 @@ Licensed under the MIT License.
             text-align: left !important;
         }
 
+        .message-zone {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 0 10px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            color: var(--theme-color);
+            background: var(--theme-soft);
+            font-size: 12px;
+            font-weight: 750;
+        }
+
         .message-images {
             display: flex;
             gap: 10px;
@@ -410,7 +422,7 @@ Licensed under the MIT License.
         .logout-btn { color:#6b2130 !important; border:1px solid #ffd4dc !important; border-radius:12px !important; background:#fff1f3 !important; font-weight:700; }
         .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:start; }
         .message-form-section,.message-list-section { margin:0; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:var(--shadow-sm); }
-        .message-form-section { position:sticky; top:92px; padding:26px; }
+        .message-form-section { position:sticky; top:92px; max-height:calc(100vh - 112px); padding:26px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
         .message-list-section { padding:26px; }
         .form-title { margin:0; color:var(--ink); text-align:left; font-size:20px; }
         .section-copy { margin:4px 0 22px; color:var(--muted); font-size:14px; }
@@ -424,7 +436,7 @@ Licensed under the MIT License.
         .submit-btn:hover { background:#1838d3; transform:translateY(-1px); }
         .form-status { min-height:24px; margin:10px 0 0; color:var(--muted); text-align:center; font-size:13px; }
         .form-status.success { color:#08783f; }.form-status.error { color:#b42318; }
-        .feed-toolbar { display:grid; grid-template-columns:1fr 150px; gap:10px; margin:18px 0; }
+        .feed-toolbar { display:grid; grid-template-columns:1fr 140px 140px; gap:10px; margin:18px 0; }
         .feed-toolbar input,.feed-toolbar select { width:100%; min-height:44px; padding:9px 12px; border:1px solid var(--line); border-radius:12px; color:var(--ink); background:#f8faff; }
         .message-item { margin:0 0 12px; padding:20px; border:1px solid var(--line); border-radius:17px; background:#fff; transition:transform .2s,box-shadow .2s,border-color .2s; }
         .message-item:hover { transform:translateY(-2px); border-color:#c4cdf7; box-shadow:0 12px 28px rgba(16,35,126,.08); }
@@ -442,7 +454,7 @@ Licensed under the MIT License.
                 padding: 92px 15px 0;
             }
             .community-heading { display:block; }.logout-bar { margin-top:18px; justify-content:flex-start; }
-            .community-layout { grid-template-columns:1fr; }.message-form-section { position:static; }
+            .community-layout { grid-template-columns:1fr; }.message-form-section { position:static; max-height:none; overflow:visible; }
             .feed-toolbar { grid-template-columns:1fr; }
             .message-form-section,
             .message-list-section {
@@ -500,6 +512,16 @@ Licensed under the MIT License.
                 <p class="form-note" style="margin-top: 5px;">选择“匿名用户”将不显示您的真实昵称。</p>
             </div>
             <div class="form-group">
+                <label for="zoneSelect">发布到分区</label>
+                <select id="zoneSelect" class="form-control">
+                    <option value="校园生活">校园生活</option>
+                    <option value="学习互助">学习互助</option>
+                    <option value="活动社团">活动社团</option>
+                    <option value="失物招领">失物招领</option>
+                </select>
+                <p class="form-note" style="margin-top: 5px;">选对分区，大家能更快找到这条留言。</p>
+            </div>
+            <div class="form-group">
                 <label for="contactEmail">联系邮箱</label>
                 <input type="email" id="contactEmail" class="form-control" readonly disabled style="background-color: #f5f5f5; cursor: not-allowed;">
                 <p class="form-note" style="margin-top: 5px;">站内通知将直接发送到您的账号</p>
@@ -527,7 +549,7 @@ Licensed under the MIT License.
 
         <section class="message-list-section">
             <h2 class="form-title">最新动态</h2><p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
-            <div class="feed-toolbar"><input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容"><select id="messageSort" aria-label="留言排序"><option value="newest">最新发布</option><option value="oldest">最早发布</option></select></div>
+            <div class="feed-toolbar"><input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容"><select id="messageZoneFilter" aria-label="按分区筛选"><option value="all">全部分区</option><option value="校园生活">校园生活</option><option value="学习互助">学习互助</option><option value="活动社团">活动社团</option><option value="失物招领">失物招领</option></select><select id="messageSort" aria-label="留言排序"><option value="newest">最新发布</option><option value="oldest">最早发布</option></select></div>
             <div id="messageContainer" class="loading">加载留言中...</div>
         </section>
         </div>
@@ -609,7 +631,23 @@ let scrollTimeout = null;
 let abortController = null; // 取消上一次请求，防止多余请求
 let activeSearch = '';
 let activeSort = 'newest';
+let activeZone = 'all';
 let searchTimer = null;
+
+const MESSAGE_ZONES = [
+    { label: '学习互助', keywords: ['学习', '作业', '考试', '课程', '笔记', '竞赛', '选课', '大学'] },
+    { label: '活动社团', keywords: ['活动', '社团', '比赛', '演出', '运动', '招新', '音乐', '篮球', '足球'] },
+    { label: '失物招领', keywords: ['失物', '招领', '丢了', '捡到', '寻找', '遗失', '找到'] }
+];
+
+function parseMessageContent(content = '') {
+    const marker = content.match(/^【([^】]+)】\s*/);
+    const validZones = ['校园生活', ...MESSAGE_ZONES.map(zone => zone.label)];
+    const explicitZone = validZones.includes(marker?.[1]) ? marker[1] : '';
+    const text = explicitZone ? content.replace(/^【[^】]+】\s*/, '') : content;
+    const inferredZone = MESSAGE_ZONES.find(zone => zone.keywords.some(word => text.includes(word)))?.label;
+    return { zone: explicitZone || inferredZone || '校园生活', text };
+}
 
 // ========== 新增通知分页全局变量 ==========
 let notifyPage = 0;
@@ -618,7 +656,7 @@ let notifyHasMore = true;
 let notifyLoading = false;
 
 const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const STORAGE_BUCKET = 'message-pics';
 const MAX_IMAGES = 5;
@@ -946,6 +984,7 @@ async function uploadImages(files) {
 async function postMessage() {
     const username = document.getElementById('nicknameSelect').value;
     const content = document.getElementById('messageContent').value.trim();
+    const zone = document.getElementById('zoneSelect').value;
     const files = document.getElementById('messagePicFile').files;
     const submitBtn = document.getElementById('submitBtn');
 
@@ -961,13 +1000,13 @@ async function postMessage() {
         const picUrls = await uploadImages(Array.from(files));
         const insertData = {
             user_id: currentUser.id,
-            username, content, pic_url: picUrls,
+            username, content: `【${zone}】${content}`, pic_url: picUrls,
             contact_email: currentUserEmail,
             flag: 0, reply_to: null,
             created_at: new Date().toISOString()
         };
         showFormStatus('正在上传并提交…');
-        const { data: newMsg, error: insertError } = await supabase.from('messages').insert([insertData]).select().single();
+        const { data: newMsg, error: insertError } = await supabase.from('messages').insert([insertData]).select('id').single();
         if (insertError) throw insertError;
         await sendNotificationToAllAuditors("🔔 新留言待审核", `用户：${username}\n内容：${content.slice(0, 50)}...`, newMsg.id);
 
@@ -1024,13 +1063,13 @@ async function loadMainMessages(isLoadMore = false) {
         }
     }
 
-    const from = currentPage * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+    const from = activeZone === 'all' ? currentPage * PAGE_SIZE : 0;
+    const to = activeZone === 'all' ? from + PAGE_SIZE - 1 : 199;
 
     try {
         let query = supabase
             .from('messages')
-            .select('*', { count: 'exact' })
+            .select('id,user_id,username,content,pic_url,created_at', { count: 'exact' })
             .eq('flag', 1)
             .is('reply_to', null)
             .order('created_at', { ascending: activeSort === 'oldest' });
@@ -1042,7 +1081,7 @@ async function loadMainMessages(isLoadMore = false) {
 
         // 判断是否还有数据
         const totalLoaded = (currentPage + 1) * PAGE_SIZE;
-        if (!count || totalLoaded >= count) {
+        if (activeZone !== 'all' || !count || totalLoaded >= count) {
             hasMore = false;
         }
 
@@ -1064,6 +1103,8 @@ async function loadMainMessages(isLoadMore = false) {
 
         let html = '';
         for (let msg of data) {
+            const parsedContent = parseMessageContent(msg.content);
+            if (activeZone !== 'all' && parsedContent.zone !== activeZone) continue;
             const time = new Date(msg.created_at).toLocaleString('zh-CN');
             let imageHtml = '';
             if (msg.pic_url && msg.pic_url.length > 0) {
@@ -1081,11 +1122,18 @@ async function loadMainMessages(isLoadMore = false) {
                         <span class="message-author">${escapeHtml(msg.username)}</span>
                         <span class="message-time">${time}</span>
                     </div>
-                    <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+                    <span class="message-zone">${escapeHtml(parsedContent.zone)}</span>
+                    <div class="message-content">${escapeHtml(parsedContent.text).replace(/\n/g, '<br>')}</div>
                     ${imageHtml}
                     <button class="detail-btn" onclick="goToDetails('${msg.id}')">🔍 查看详情</button>
                 </div>
             </div>`;
+        }
+
+        if (!html && !isLoadMore) {
+            container.innerHTML = '<div class="empty-message">这个分区暂时没有留言，来发布第一条吧！</div>';
+            showNoMoreTip();
+            return;
         }
 
         if (isLoadMore) {
@@ -1146,6 +1194,19 @@ window.onload = async function () {
     });
     document.getElementById('messageSort').addEventListener('change', (event) => {
         activeSort = event.target.value;
+        loadMainMessages(false);
+    });
+    const zoneFilter = document.getElementById('messageZoneFilter');
+    const requestedZone = new URLSearchParams(location.search).get('zone');
+    if ([...zoneFilter.options].some(option => option.value === requestedZone)) {
+        activeZone = requestedZone;
+        zoneFilter.value = requestedZone;
+    }
+    zoneFilter.addEventListener('change', (event) => {
+        activeZone = event.target.value;
+        const url = new URL(location.href);
+        if (activeZone === 'all') url.searchParams.delete('zone'); else url.searchParams.set('zone', activeZone);
+        history.replaceState(null, '', url);
         loadMainMessages(false);
     });
     await loadMainMessages(false);

@@ -131,6 +131,18 @@ Licensed under the MIT License.
             text-align: left;
         }
 
+        .message-zone {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 0 10px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            color: var(--theme-color);
+            background: var(--theme-soft);
+            font-size: 12px;
+            font-weight: 750;
+        }
+
         .message-images {
             display: flex;
             gap: 10px;
@@ -403,7 +415,7 @@ function compressImage(file, options = {}) {
 }
 
 const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let mainMsgId = null;
@@ -423,6 +435,20 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
+}
+
+function parseMessageContent(content = '') {
+    const marker = content.match(/^【([^】]+)】\s*/);
+    const groups = [
+        { label: '学习互助', keywords: ['学习', '作业', '考试', '课程', '笔记', '竞赛', '选课', '大学'] },
+        { label: '活动社团', keywords: ['活动', '社团', '比赛', '演出', '运动', '招新', '音乐', '篮球', '足球'] },
+        { label: '失物招领', keywords: ['失物', '招领', '丢了', '捡到', '寻找', '遗失', '找到'] }
+    ];
+    const validZones = ['校园生活', ...groups.map(group => group.label)];
+    const explicitZone = validZones.includes(marker?.[1]) ? marker[1] : '';
+    const text = explicitZone ? content.replace(/^【[^】]+】\s*/, '') : content;
+    const inferred = groups.find(group => group.keywords.some(word => text.includes(word)))?.label;
+    return { zone: explicitZone || inferred || '校园生活', text };
 }
 
 function getFreshAvatar(src) {
@@ -552,11 +578,12 @@ async function renderMessageAvatars() {
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
     if (!mainMsgId) return;
-    const { data } = await supabase.from('messages').select('*').eq('id', mainMsgId).single();
+    const { data } = await supabase.from('messages').select('id,user_id,username,content,pic_url,created_at,reply_to').eq('id', mainMsgId).single();
     if (data) { renderMainMessage(data); loadAllComments(); }
 }
 
 function renderMainMessage(msg) {
+    const parsedContent = parseMessageContent(msg.content);
     const t = new Date(msg.created_at).toLocaleString();
     const imgs = msg.pic_url ? msg.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : '';
     document.getElementById('mainMessageCard').innerHTML = `
@@ -567,7 +594,8 @@ function renderMainMessage(msg) {
                 <span class="message-author">${escapeHtml(msg.username)}</span>
                 <span class="message-time">${t}</span>
             </div>
-            <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+            <span class="message-zone">${escapeHtml(parsedContent.zone)}</span>
+            <div class="message-content">${escapeHtml(parsedContent.text).replace(/\n/g, '<br>')}</div>
             <div class="message-images">${imgs}</div>
             <button class="comment-btn" onclick="showMainCommentBox('${msg.id}')">💬 评论</button>
             <div id="reply-box-${msg.id}" class="comment-input-container"></div>
@@ -577,7 +605,7 @@ function renderMainMessage(msg) {
 }
 
 async function loadAllComments() {
-    const { data } = await supabase.from('messages').select('*').eq('flag', 1).order('created_at', { ascending: true });
+    const { data } = await supabase.from('messages').select('id,user_id,username,content,pic_url,created_at,reply_to').eq('flag', 1).order('created_at', { ascending: true });
     allMessages = data || [];
     allMessages.forEach(m => userMap[m.id] = m.username);
     renderCommentTree();
@@ -701,7 +729,7 @@ async function submitComment(rid, type) {
         contact_email: currentUserEmail,
         flag: 0,
         reply_to: rid
-    }]).select().single();
+    }]).select('id').single();
 
     if (error) {
         alert('发布失败：' + error.message);
