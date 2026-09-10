@@ -10,6 +10,7 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>留言详情 - ISA Spectrum</title>
     <script src="./auth-client.js"></script>
+    <script src="./public-data.js"></script>
     <!-- 引入全局公共样式 -->
     <link rel="stylesheet" href="./common.css">
     <style>
@@ -535,12 +536,13 @@ async function renderMessageAvatars() {
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
     if (!/^\d+$/.test(mainMsgId || '')) return location.replace('/messages.html');
-    const response = await fetch(`/api/messages?thread=${encodeURIComponent(mainMsgId)}`, { credentials: 'same-origin', cache: 'no-store' });
-    if (!response.ok) {
+    try {
+        if (!window.ISAPublicData) throw new Error('public_data_unavailable');
+        allMessages = await ISAPublicData.getThread(mainMsgId);
+    } catch {
         document.getElementById('mainMessageCard').innerHTML = '<div class="loading">留言不存在或暂不可用</div>';
         return;
     }
-    allMessages = (await response.json()).messages || [];
     const main = allMessages.find(message => String(message.id) === String(mainMsgId));
     if (main) { renderMainMessage(main); loadAllComments(); }
 }

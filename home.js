@@ -110,9 +110,9 @@
     const host = document.getElementById('latestFeed');
     if (!host) return;
     try {
-      const response = await fetch('/api/messages?limit=40&sort=newest', { cache: 'no-store' });
-      if (!response.ok) throw new Error('feed_unavailable');
-      renderZones(host, (await response.json()).messages || []);
+      if (!window.ISAPublicData) throw new Error('feed_unavailable');
+      const result = await ISAPublicData.listMessages({ limit: 40, sort: 'newest' });
+      renderZones(host, result.messages || []);
     } catch (error) {
       host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请稍后重试。</div><a class="text-link" href="messages.html">前往校墙 →</a></div>';
     }

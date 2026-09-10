@@ -10,6 +10,7 @@ Licensed under the MIT License.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>校墙 - ISA Spectrum</title>
     <script src="./auth-client.js"></script>
+    <script src="./public-data.js"></script>
     <!-- 引入全局公共样式 -->
     <link rel="stylesheet" href="./common.css">
     <style>
@@ -1000,12 +1001,15 @@ async function loadMainMessages(isLoadMore = false) {
     }
 
     try {
-        const params = new URLSearchParams({ page: String(currentPage), limit: String(PAGE_SIZE), sort: activeSort });
-        if (activeSearch) params.set('search', activeSearch);
-        if (activeZone !== 'all') params.set('zone', activeZone);
-        const response = await fetch(`/api/messages?${params}`, { signal, credentials: 'same-origin', cache: 'no-store' });
-        if (!response.ok) throw new Error('留言服务暂时不可用');
-        const result = await response.json();
+        if (!window.ISAPublicData) throw new Error('留言服务暂时不可用');
+        const result = await ISAPublicData.listMessages({
+            page: currentPage,
+            limit: PAGE_SIZE,
+            sort: activeSort,
+            search: activeSearch,
+            zone: activeZone,
+            signal
+        });
         const data = result.messages || [];
 
         if (signal.aborted) return;

@@ -55,7 +55,7 @@ with (security_barrier = true)
 as
 select id, username, content, zone, pic_url, created_at, reply_to
 from public.messages
-where flag = 1 and reply_to is null;
+where flag = 1;
 
 revoke all on table public.approved_messages_public from public;
 grant select on table public.approved_messages_public to anon, authenticated;
