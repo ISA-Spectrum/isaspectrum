@@ -9,7 +9,7 @@ Licensed under the MIT License.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>校墙 - ISA Spectrum</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-client.js"></script>
     <!-- 引入全局公共样式 -->
     <link rel="stylesheet" href="./common.css">
     <style>
@@ -655,10 +655,6 @@ const NOTIFY_PAGE_SIZE = 10;
 let notifyHasMore = true;
 let notifyLoading = false;
 
-const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const STORAGE_BUCKET = 'message-pics';
 const MAX_IMAGES = 5;
 const MAX_SIZE = 5 * 1024 * 1024;
 const SCROLL_THRESHOLD = 350; // 触底提前距离
@@ -676,33 +672,12 @@ function getFreshAvatar(src) {
     return src + sp + Date.now();
 }
 
-// 发送通知
-async function sendNotificationToUser(targetUserId, title, content, type, relatedId = null) {
-    await supabase.from("notifications").insert([
-        { user_id: targetUserId, title, content, type, related_id: relatedId, read: false }
-    ]);
-}
-
-async function sendNotificationToAllAuditors(title, content, relatedId = null) {
-    const { data: checkers } = await supabase.from("checkers").select("user_id");
-    if (!checkers) return;
-    const notices = checkers.map(c => ({
-        user_id: c.user_id, title, content, type: "audit", related_id: relatedId, read: false
-    }));
-    if (notices.length === 0) return;
-    await supabase.from("notifications").insert(notices);
-}
-
 // 刷新通知红点（页面加载仅查1条id，不阻塞）
 async function refreshNotificationDot() {
     if (!userId) return;
-    const { data } = await supabase
-        .from("notifications")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("read", false)
-        .limit(1);
-    const hasUnread = data?.length > 0;
+    const response = await fetch('/api/notifications?unread=1&limit=1', { credentials: 'same-origin', cache: 'no-store' });
+    const data = response.ok ? await response.json() : { notifications: [] };
+    const hasUnread = data.notifications?.length > 0;
     notificationDot.style.display = hasUnread ? "block" : "none";
     dropdownDot.style.display = hasUnread ? "inline-block" : "none";
 }
@@ -724,19 +699,11 @@ async function openNotifications(append = false) {
         listEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:#999;">加载通知中...</div>';
     }
 
-    const from = notifyPage * NOTIFY_PAGE_SIZE;
-    const to = from + NOTIFY_PAGE_SIZE - 1;
-
     try {
-        // 只查询必要字段，不select(*)，节省流量
-        const { data: notes, error } = await supabase
-            .from("notifications")
-            .select("id, title, content, created_at, type, read")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false })
-            .range(from, to);
-
-        if (error) throw error;
+        const response = await fetch(`/api/notifications?page=${notifyPage}&limit=${NOTIFY_PAGE_SIZE}`, { credentials: 'same-origin', cache: 'no-store' });
+        if (!response.ok) throw new Error('通知服务暂时不可用');
+        const result = await response.json();
+        const notes = result.notifications || [];
 
         // 移除加载提示
         const loadingTip = listEl.querySelector('div[style*="text-align:center;padding:20px 0"]');
@@ -772,11 +739,11 @@ async function openNotifications(append = false) {
         listEl.appendChild(htmlFragment);
 
         // 当前页不足分页条数 = 无更多历史通知
-        if (notes.length < NOTIFY_PAGE_SIZE) notifyHasMore = false;
+        notifyHasMore = result.hasMore === true;
 
         // 仅第一次打开弹窗批量标记全部未读为已读，滚动加载不再重复更新
         if (!append) {
-            await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+            await fetch('/api/notifications', { method: 'PATCH', credentials: 'same-origin' });
             refreshNotificationDot();
         }
 
@@ -790,11 +757,9 @@ async function openNotifications(append = false) {
 
 // 初始化头像
 async function initUserExtra() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    userId = user.id;
-    const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", userId).single();
-    const url = data?.avatar_url;
+    const response = await fetch('/api/profile', { credentials: 'same-origin', cache: 'no-store' });
+    const data = response.ok ? await response.json() : {};
+    const url = data.avatarUrl;
     if (url) {
         document.getElementById("avatarImg").src = getFreshAvatar(url);
         document.getElementById("avatarImg").style.display = "block";
@@ -816,10 +781,14 @@ async function uploadAvatar(file) {
             quality: 0.5,
             mimeType: "image/webp"
         });
-        const { error } = await supabase.storage.from("avatars").upload(userId, compressedFile, { upsert: true });
-        if (error) { alert(error.message); return; }
-        const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(userId);
-        await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", userId);
+        const form = new FormData();
+        form.append('kind', 'avatar');
+        form.append('files', compressedFile, 'avatar.webp');
+        const upload = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+        if (!upload.ok) throw new Error('上传失败');
+        const publicUrl = (await upload.json()).urls[0];
+        const saved = await fetch('/api/profile', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
+        if (!saved.ok) throw new Error('头像保存失败');
         avatarImg.src = getFreshAvatar(publicUrl);
         avatarImg.style.display = "block";
         avatarPlaceholder.style.display = "none";
@@ -832,23 +801,8 @@ async function uploadAvatar(file) {
 // 批量渲染留言头像
 async function renderMessageAvatars() {
     const items = document.querySelectorAll(".message-item");
-    const userIds = [];
     items.forEach(el => {
-        const uid = el.dataset.userId;
-        if (uid && uid !== "undefined" && uid !== "null") userIds.push(uid);
-    });
-    if (userIds.length === 0) return;
-
-    const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, avatar_url")
-        .in("user_id", [...new Set(userIds)]); // 去重
-
-    const avatarMap = {};
-    if (profiles) profiles.forEach(p => { avatarMap[p.user_id] = p.avatar_url; });
-
-    items.forEach(el => {
-        const uid = el.dataset.userId;
+        const avatarUrl = el.dataset.avatarUrl;
         const anonymous = el.dataset.anonymous === "true";
         const box = el.querySelector(".message-avatar-box");
         const username = el.querySelector(".message-author")?.textContent || "";
@@ -858,33 +812,22 @@ async function renderMessageAvatars() {
             box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
             return;
         }
-        if (uid && avatarMap[uid]) {
-            box.innerHTML = `<img src="${getFreshAvatar(avatarMap[uid])}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+        if (avatarUrl) {
+            box.innerHTML = `<img src="${getFreshAvatar(avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
         } else {
-            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${firstChar}</div>`;
+            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${escapeHtml(firstChar)}</div>`;
         }
     });
 }
 
 // 登录校验
 async function initAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        alert('请先登录后再访问校墙！');
-        location.href = 'login.html';
-        return false;
-    }
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) {
-        alert('登录超时，请重新登录');
-        await supabase.auth.signOut();
-        location.href = 'login.html';
-        return false;
-    }
-    currentUser = user;
-    userId = user.id;
-    currentUserEmail = user.email;
-    currentUserRealName = user.user_metadata?.username || user.email.split('@')[0] || '用户';
+    const session = await ISAAuth.requireSession('/messages.html' + location.search);
+    if (!session) return false;
+    currentUser = session.user;
+    userId = session.user.id;
+    currentUserEmail = session.user.email || '';
+    currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
     return true;
 }
 
@@ -940,7 +883,6 @@ function previewImages(input) {
 // ===================== 改造：批量压缩留言图片再上传 =====================
 async function uploadImages(files) {
     if (!files || files.length === 0) return [];
-    const urlList = [];
     const progressBar = document.getElementById('progressBar');
     const uploadProgress = document.getElementById('uploadProgress');
     uploadProgress.style.display = 'block';
@@ -962,17 +904,14 @@ async function uploadImages(files) {
                 compressedFiles.push(compressFile);
             }
         }
-        // 上传压缩后的文件
-        for (let i = 0; i < compressedFiles.length; i++) {
-            const file = compressedFiles[i];
-            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
-            const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(fileName, file);
-            if (error) throw new Error(`图片上传失败: ${error.message}`);
-            const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
-            urlList.push(urlData.publicUrl);
-            progressBar.style.width = `${((i + 1) / compressedFiles.length) * 100}%`;
-        }
-        return urlList;
+        const form = new FormData();
+        form.append('kind', 'message');
+        compressedFiles.forEach(file => form.append('files', file, file.name));
+        progressBar.style.width = '45%';
+        const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+        if (!response.ok) throw new Error('图片上传失败');
+        progressBar.style.width = '100%';
+        return (await response.json()).urls || [];
     } catch (error) {
         throw error;
     } finally {
@@ -982,7 +921,7 @@ async function uploadImages(files) {
 
 // 发布留言
 async function postMessage() {
-    const username = document.getElementById('nicknameSelect').value;
+    const anonymous = document.getElementById('nicknameSelect').value === '匿名用户';
     const content = document.getElementById('messageContent').value.trim();
     const zone = document.getElementById('zoneSelect').value;
     const files = document.getElementById('messagePicFile').files;
@@ -998,17 +937,14 @@ async function postMessage() {
 
     try {
         const picUrls = await uploadImages(Array.from(files));
-        const insertData = {
-            user_id: currentUser.id,
-            username, content, zone, pic_url: picUrls,
-            contact_email: currentUserEmail,
-            flag: 0, reply_to: null,
-            created_at: new Date().toISOString()
-        };
         showFormStatus('正在上传并提交…');
-        const { data: newMsg, error: insertError } = await supabase.from('messages').insert([insertData]).select('id').single();
-        if (insertError) throw insertError;
-        await sendNotificationToAllAuditors("🔔 新留言待审核", `用户：${username}\n内容：${content.slice(0, 50)}...`, newMsg.id);
+        const response = await fetch('/api/messages', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, zone, anonymous, imageUrls: picUrls })
+        });
+        if (response.status === 401) return location.replace(ISAAuth.loginUrl('/messages.html'));
+        if (!response.ok) throw new Error('留言服务暂时不可用');
 
         showFormStatus('发布成功，审核结果会通过站内通知告知你。', 'success');
         document.getElementById('messageContent').value = '';
@@ -1063,28 +999,17 @@ async function loadMainMessages(isLoadMore = false) {
         }
     }
 
-    const from = currentPage * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
     try {
-        let query = supabase
-            .from('messages')
-            .select('id,user_id,username,content,zone,pic_url,created_at', { count: 'exact' })
-            .eq('flag', 1)
-            .is('reply_to', null)
-            .order('created_at', { ascending: activeSort === 'oldest' });
-        if (activeSearch) query = query.ilike('content', `%${activeSearch}%`);
-        if (activeZone !== 'all') query = query.eq('zone', activeZone);
-        const { data, error, count } = await query.range(from, to);
+        const params = new URLSearchParams({ page: String(currentPage), limit: String(PAGE_SIZE), sort: activeSort });
+        if (activeSearch) params.set('search', activeSearch);
+        if (activeZone !== 'all') params.set('zone', activeZone);
+        const response = await fetch(`/api/messages?${params}`, { signal, credentials: 'same-origin', cache: 'no-store' });
+        if (!response.ok) throw new Error('留言服务暂时不可用');
+        const result = await response.json();
+        const data = result.messages || [];
 
         if (signal.aborted) return;
-        if (error) throw error;
-
-        // 判断是否还有数据
-        const totalLoaded = (currentPage + 1) * PAGE_SIZE;
-        if (!count || totalLoaded >= count) {
-            hasMore = false;
-        }
+        hasMore = result.hasMore === true;
 
         // 移除加载提示
         const loadingTip = document.querySelector('.list-loading-tip');
@@ -1115,7 +1040,7 @@ async function loadMainMessages(isLoadMore = false) {
                 imageHtml += '</div>';
             }
             html += `
-            <div class="message-item" id="message-${msg.id}" data-user-id="${msg.user_id || ''}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
+            <div class="message-item" id="message-${msg.id}" data-avatar-url="${escapeHtml(msg.avatar_url || '')}" data-anonymous="${msg.username === '匿名用户' ? 'true' : 'false'}">
                 <div class="message-avatar-box"></div>
                 <div style="flex:1">
                     <div class="message-header">
@@ -1214,9 +1139,7 @@ window.onload = async function () {
 
     // 退出登录
     document.getElementById('logoutBtn').onclick = async () => {
-        await supabase.auth.signOut();
-        alert('已退出登录');
-        location.href = 'login.html';
+        await ISAAuth.logout('/main.html');
     };
 
     // 头像下拉菜单

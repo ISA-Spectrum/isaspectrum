@@ -9,7 +9,7 @@ The ISA Wuhan Campus Community Platform
 
 ## About The Project
 ISA Spectrum is a campus community website designed exclusively for **ISA Wuhan**. It serves as an online platform for information exchange and community interaction, connecting students, teachers, and all members of the ISA community.
-The project adopts a lightweight, cloud-native architecture built with pure frontend technologies and **Supabase** as the backend service.
+The project uses a static frontend, Cloudflare Pages Functions, and a business Supabase database. Authentication is delegated to an independent OpenID Provider; this site owns only business identity mappings and business sessions.
 
 ## Key Features
 - Browse and display campus community content
@@ -20,25 +20,25 @@ The project adopts a lightweight, cloud-native architecture built with pure fron
 
 ## Built With
 - Frontend: HTML, CSS, JavaScript
-- Backend / Database: Supabase
+- Backend: Cloudflare Pages Functions
+- Database: Supabase for business data
+- Authentication: OAuth 2.0 Authorization Code + PKCE / OpenID Connect
 - Deployment: Cloudflare Pages
 
 ## Getting Started Locally
 1. Clone the repository to your local machine
-2. Configure your Supabase environment settings
-3. Open the project using a local server (recommended)
-4. Access the project via `index.html` to start
+2. Copy `.dev.vars.example` to `.dev.vars` and configure OIDC plus the business database
+3. Run `supabase/oidc_client.sql` in the business Supabase project
+4. Start with a Cloudflare Pages Functions local runtime; a static-only server cannot run authentication
+5. Run `npm test` and `npm run check`
 
 ## Database Feature Setup
 
-Run `supabase/community_features.sql` in the Supabase SQL Editor. It adds and migrates the real campus-wall `zone` column, creates the email-safe public homepage feed, and enables account-bound daily meal ratings with RLS.
+Run `supabase/community_features.sql` in the Supabase SQL Editor. It adds and migrates the real campus-wall `zone` column and its safe projection, and prepares daily meal ratings. The OIDC cutover migration removes browser roles from these business records and routes access through Pages Functions.
 
-## MFA Setup
-1. Enable TOTP under Authentication → Multi-Factor Authentication in Supabase
-2. Run `supabase/mfa_security.sql` in the Supabase SQL Editor
-3. Add both `has_aal2()` and `is_checker()` to the existing RLS policies for moderation data, contact emails, and administrative mutations
+## OAuth / OIDC
 
-Reviewers must enroll and complete MFA before entering the moderation area. Additional MFA methods can be registered through `registerProvider()` in `auth-mfa.js`.
+The business site is an OAuth/OIDC Client. Passwords, Passkeys, OTP, recovery codes, and MFA remain entirely inside the Authorization Server. The business site never treats the provider access token as its session. See the [business-side OIDC implementation guide](./docs/OIDC_CLIENT.zh-CN.md).
 
 ## Project Structure
 - `index.html` – Splash/Loading page
@@ -50,8 +50,9 @@ Reviewers must enroll and complete MFA before entering the moderation area. Addi
 - `contact.html` – Contact information
 - `download.html` – Client download service
 - `login.html` – Campus Wall login page
-- `mfa-setup.html` – Authenticator enrollment
-- `mfa-challenge.html` – One-time-code challenge
+- `functions/auth/` – OAuth/OIDC and business-session routes
+- `functions/api/` – business-session protected APIs
+- `auth-client.js` – token-free browser session helper
 - `register.html` – Campus Wall registration page
 - `forgot-password.html` – Password recovery page
 - `header.html` – Shared navigation bar

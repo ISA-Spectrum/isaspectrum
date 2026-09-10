@@ -1,114 +1,26 @@
-<!--
-Copyright (c) 2026 ISA Spectrum
-Copyright (c) 2026 沧海四象
-Licensed under the MIT License.
--->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - ISA Spectrum</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <script src="./auth-mfa.js"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
-        body { background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .login-box { background: #fff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 400px; }
-        .login-box h2 { text-align: center; margin-bottom: 8px; color: #1e50ae; font-size: 24px; }
-        .login-box .sub { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }
-        .login-box input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; transition: border-color 0.2s; }
-        .login-box input:focus { outline: none; border-color: #1e50ae; }
-        .login-btn { width: 100%; padding: 14px; background: #1e50ae; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .login-btn:hover { background: #15408f; }
-        .login-btn:disabled { background: #999; cursor: not-allowed; }
-        .back-link { display: block; text-align: center; margin-top: 10px; color: #1e50ae; text-decoration: none; font-size: 14px; }
-        .error-msg { color: #dc3545; text-align: center; font-size: 13px; margin-top: 8px; display: none; }
-        .input-error { border-color: #dc3545 !important; }
-        .cf-turnstile { margin: 10px 0 16px 0; }
-    </style>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="通过统一认证中心安全登录 ISA Spectrum。">
+  <title>登录 · ISA Spectrum</title>
+  <link rel="icon" type="image/svg+xml" href="./images/favicon.svg">
+  <style>
+    *{box-sizing:border-box}body{display:grid;min-height:100vh;margin:0;padding:24px;place-items:center;color:#151b31;background:radial-gradient(circle at 20% 0,#e8edff,transparent 42%),#f5f7fc;font:16px/1.6 system-ui,-apple-system,sans-serif}.card{width:min(430px,100%);padding:38px;border:1px solid #dfe4f0;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(25,43,100,.12)}.brand{display:flex;align-items:center;gap:12px;margin-bottom:30px;color:inherit;text-decoration:none}.brand img{width:46px;height:46px;object-fit:contain}.brand strong,.brand small{display:block}.brand small{color:#737c91;font-size:12px}h1{margin:0 0 10px;font-size:32px;letter-spacing:-.04em}p{margin:0;color:#68728a}.notice{margin:24px 0;padding:14px 16px;border-radius:14px;color:#344263;background:#eef2ff;font-size:14px}.button{display:flex;min-height:50px;align-items:center;justify-content:center;border-radius:14px;color:#fff;background:#2146f3;text-decoration:none;font-weight:800;transition:transform .2s,box-shadow .2s}.button:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(33,70,243,.22)}.back{display:block;margin-top:18px;color:#2146f3;text-align:center;text-decoration:none;font-size:14px}.error{margin-top:20px;padding:12px 14px;border:1px solid #ffd3dc;border-radius:12px;color:#a51d3c;background:#fff1f4;font-size:14px}[hidden]{display:none}
+  </style>
 </head>
-<body>
-    <div class="login-box">
-        <h2>登录</h2>
-        <p class="sub">欢迎登录 ISA Spectrum 账号</p>
-        <input id="email" type="email" placeholder="邮箱">
-        <input id="password" type="password" placeholder="密码">
-
-        <!-- Turnstile 验证组件（无回调纯前端模式） -->
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAADiuoBfqizSwVz3U"></div>
-
-        <button class="login-btn" id="loginBtn">登录</button>
-        <p class="error-msg" id="errorMsg"></p>
-        <a href="forgot-password.html" class="back-link">找回密码</a>
-        <a href="register.html" class="back-link">注册账号</a>
-        <a href="main.html" class="back-link">返回首页</a>
-    </div>
-
-    <script>
-        const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        async function doLogin() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('loginBtn');
-            const errorMsg = document.getElementById('errorMsg');
-            
-            errorMsg.style.display = 'none';
-
-            if (!email || !password) {
-                errorMsg.textContent = '请填写邮箱和密码';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
-            // 手动获取 Turnstile 验证 Token
-            const tokenInput = document.querySelector('input[name="cf-turnstile-response"]');
-            if (!tokenInput || !tokenInput.value) {
-                errorMsg.textContent = '请先完成人机验证';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            const captchaToken = tokenInput.value;
-
-            btn.disabled = true;
-            btn.textContent = '登录中...';
-
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password,
-    options: {
-        captchaToken: captchaToken
-    }
-});
-
-                if (error) throw error;
-                
-                const username = data.user.user_metadata.username || data.user.email.split('@')[0];
-                localStorage.setItem('sb_username', username);
-                const requested = new URLSearchParams(location.search).get('returnTo');
-                await ISAMFA.continueAfterPassword(supabase, { returnTo: requested });
-            } catch (err) {
-                let errorText = '';
-                if (err.message.includes('Invalid login credentials')) errorText = '邮箱或密码错误';
-                else if (err.message.includes('Email not confirmed')) errorText = '邮箱未验证，请先激活';
-                else if (err.message.includes('captcha_token')) errorText = '人机验证失败，请刷新重试';
-                else errorText = err.message;
-                
-                errorMsg.textContent = '登录失败：' + errorText;
-                errorMsg.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '登录';
-            }
-        }
-
-        document.getElementById('loginBtn').addEventListener('click', doLogin);
-        document.addEventListener('keydown', e => e.key === 'Enter' && doLogin());
-    </script>
-</body>
-</html>
+<body><main class="card">
+  <a class="brand" href="main.html"><img src="./images/logo.png" alt=""><span><strong>ISA Spectrum</strong><small>统一认证登录</small></span></a>
+  <h1>登录校园社区</h1>
+  <p>登录将在独立认证中心完成。密码、Passkey、验证码和恢复方式不会交给本站处理。</p>
+  <div class="notice">认证成功后，本站只保存自己的安全会话，不会把认证中心令牌写入浏览器存储。</div>
+  <a class="button" id="loginButton" href="/auth/login">前往统一认证中心</a>
+  <p class="error" id="errorMessage" role="alert" hidden></p>
+  <a class="back" href="main.html">返回首页</a>
+</main><script src="./auth-client.js"></script><script>
+  const params=new URLSearchParams(location.search);
+  const returnTo=ISAAuth.safeReturnTo(params.get('returnTo')||params.get('return_to'),'/messages.html');
+  document.getElementById('loginButton').href=ISAAuth.loginUrl(returnTo);
+  const errors={access_denied:'你已取消登录。',invalid_request:'认证请求无效，请重新开始。',invalid_grant:'登录凭据已过期或已使用，请重新登录。',login_required:'认证中心要求重新登录。',interaction_required:'认证中心需要你完成额外验证。',state_mismatch:'登录请求已失效，请重新开始。',nonce_mismatch:'身份校验未通过，请重新登录。',pkce_mismatch:'登录请求校验失败，请重新开始。',expired_code:'登录凭据已过期，请重新登录。',used_code:'登录凭据已被使用，请重新登录。',token_endpoint_failure:'认证中心暂时无法完成登录。',authorization_server_unavailable:'认证中心暂时不可用，请稍后重试。',invalid_id_token:'身份令牌验证失败，请重新登录。',configuration_error:'登录服务尚未完成配置。',authentication_failed:'登录失败，请重新尝试。'};
+  const error=errors[params.get('error')];if(error){const box=document.getElementById('errorMessage');box.textContent=error;box.hidden=false}
+</script></body></html>

@@ -9,7 +9,7 @@ ISA Wuhan 校园社区平台
 
 ## 项目介绍
 ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生与社群成员提供信息交流、社区互动的线上平台。
-项目采用纯前端 + Supabase 后端架构，实现轻量化、云端化的校园社区服务。
+项目采用静态前端、Cloudflare Pages Functions 与业务 Supabase 数据库。用户认证由独立 OIDC 认证中心负责，本站只维护业务身份与业务 Session。
 
 ## 核心功能
 - 校园社区内容浏览与展示
@@ -20,29 +20,29 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 
 ## 技术栈
 - 前端：HTML、CSS、JavaScript
-- 后端 / 数据库：Supabase
+- 后端：Cloudflare Pages Functions
+- 数据库：Supabase（业务数据，不作为本站浏览器登录态）
+- 登录：OAuth 2.0 Authorization Code + PKCE / OpenID Connect
 - 部署方式：Cloudflare Pages
 
 ## 本地运行指南
 1. 克隆本仓库到本地
-2. 配置 Supabase 相关环境信息
-3. 使用本地服务器打开项目（推荐）
-4. 直接访问 index.html 即可启动
+2. 将 `.dev.vars.example` 复制为 `.dev.vars` 并填写本地 OIDC/业务数据库配置
+3. 在业务 Supabase 执行 `supabase/oidc_client.sql`
+4. 使用 Cloudflare Pages Functions 本地运行器启动；认证路由不能只靠静态文件服务器运行
+5. 执行 `npm test` 和 `npm run check`
 
 ## 数据库功能初始化
 
 在 Supabase SQL Editor 中执行 `supabase/community_features.sql`。该脚本会：
 
 - 为校墙增加真实 `zone` 字段并迁移旧留言
-- 创建不暴露联系邮箱的首页公开同步视图
+- 创建不包含联系邮箱与业务身份字段的安全投影视图（OIDC 切换后浏览器无读取权限）
 - 创建每日餐食评分表及仅限本人读写的 RLS 策略
 
-## MFA 配置
-1. 在 Supabase 控制台的 Authentication → Multi-Factor Authentication 中启用 TOTP
-2. 在 SQL Editor 中执行 `supabase/mfa_security.sql`
-3. 将其中的 `has_aal2()` 与 `is_checker()` 同时加入审核数据、联系邮箱和管理操作的现有 RLS 策略
+## OAuth / OIDC 登录
 
-审核员登录时必须完成身份验证器绑定和动态验证码验证。`auth-mfa.js` 提供 `registerProvider()`，后续可用相同接口注册其他 MFA 验证方式。
+业务站是 OAuth/OIDC Client，认证中心负责密码、Passkey、OTP、恢复码和 MFA。业务站不会复制 MFA，也不会把认证中心 access token 当作业务 Session。完整架构、配置、数据库迁移和联调清单见 [业务端 OIDC 文档](./docs/OIDC_CLIENT.zh-CN.md)。
 
 ## 项目结构
 - index.html            项目屏闪页
@@ -54,8 +54,9 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 - contact.html          联系方式
 - download.html         客户端下载服务
 - login.html            校墙登录页
-- mfa-setup.html        身份验证器绑定页
-- mfa-challenge.html    动态验证码验证页
+- functions/auth/       OAuth/OIDC 与业务 Session 路由
+- functions/api/        受业务 Session 保护的业务 API
+- auth-client.js        无 token 的浏览器 Session 辅助代码
 - register.html         校墙注册页
 - forgot-password.html  找回密码页
 - header.html           通用导航栏
@@ -63,7 +64,7 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 - common.css            通用样式
 - common.js             公共工具函数
 - images/               图片资源文件夹
-- Supabase              提供后端数据支持
+- supabase/             业务数据库迁移
 （管理端部分省略，用户使用时不会用到）
 
 ## 贡献指南

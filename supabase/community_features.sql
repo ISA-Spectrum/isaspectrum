@@ -51,7 +51,7 @@ create index if not exists messages_zone_flag_created_at_idx
 create or replace view public.approved_messages_public
 with (security_barrier = true)
 as
-select id, user_id, username, content, zone, pic_url, created_at, reply_to
+select id, username, content, zone, pic_url, created_at, reply_to
 from public.messages
 where flag = 1 and reply_to is null;
 

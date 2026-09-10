@@ -1,7 +1,4 @@
 (function () {
-  const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
-  const client = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const zones = [
     { key: 'life', label: '校园生活', icon: '日', description: '日常、食堂与校园见闻', keywords: ['校园', '食堂', '宿舍', '老师', '同学', '日常', '生活', '周末'] },
     { key: 'study', label: '学习互助', icon: '学', description: '课程、考试与经验分享', keywords: ['学习', '作业', '考试', '课程', '笔记', '竞赛', '选课', '大学'] },
@@ -99,24 +96,23 @@
   async function initMealEntry() {
     const link = document.getElementById('mealEntryLink');
     const note = document.getElementById('mealEntryNote');
-    if (!link || !note || !client) return;
-    const { data: { session } } = await client.auth.getSession();
-    if (session?.user) {
+    if (!link || !note || !window.ISAAuth) return;
+    try {
+      const session = await ISAAuth.getSession();
+      if (!session?.authenticated) return;
       link.href = 'meal-rating.html';
       link.textContent = '进入今日评分 →';
       note.textContent = '反馈会与当前登录账号绑定';
-    }
+    } catch {}
   }
 
   async function loadFeed() {
     const host = document.getElementById('latestFeed');
-    if (!host || !client) return;
+    if (!host) return;
     try {
-      const { data, error } = await client.from('approved_messages_public')
-        .select('id,username,content,created_at,zone')
-        .order('created_at', { ascending: false }).limit(40);
-      if (error) throw error;
-      renderZones(host, data || []);
+      const response = await fetch('/api/messages?limit=40&sort=newest', { cache: 'no-store' });
+      if (!response.ok) throw new Error('feed_unavailable');
+      renderZones(host, (await response.json()).messages || []);
     } catch (error) {
       host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请稍后重试。</div><a class="text-link" href="messages.html">前往校墙 →</a></div>';
     }

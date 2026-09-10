@@ -1,59 +1,25 @@
-<!--
-Copyright (c) 2026 ISA Spectrum
-Copyright (c) 2026 沧海四象
-Licensed under the MIT License.
--->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ISA Spectrum 审核端</title>
-<link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-<link rel="shortcut icon" href="/images/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="ISA Spectrum" />
-<link rel="manifest" href="/images/site.webmanifest" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-<script src="./auth-mfa.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#fff;display:grid;place-items:center;height:100vh}
-.splash{text-align:center;animation:fadeIn 1s,out 2.4s 1.6s forwards}
-.logo{width:160px;margin-bottom:20px;animation:float 2s infinite}
-.title{font-size:30px;font-weight:600;color:#1e50ae;margin-bottom:8px}
-.domain{color:#666;font-size:16px}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes out{to{opacity:0;visibility:hidden}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ISA Spectrum 审核端</title>
+  <link rel="icon" type="image/svg+xml" href="./images/favicon.svg">
+  <script src="./auth-client.js"></script>
+  <style>*{box-sizing:border-box}body{display:grid;min-height:100vh;margin:0;place-items:center;background:#fff;font-family:system-ui}.splash{text-align:center}.logo{width:150px}.title{margin-top:18px;color:#1e50ae;font-size:30px;font-weight:700}.domain{margin-top:8px;color:#666}</style>
 </head>
-<body>
-<div class="splash">
-<img src="images/logo.png" class="logo" alt="LOGO">
-<div class="title">ISA Spectrum 审核端</div>
-<div class="domain">正在验证身份...</div>
-</div>
-<script>
-const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-(async function() {
-    const mfaAuth = await ISAMFA.requireSession(supabase, { returnTo: 'checker-pending.html', checker: true, requireAal2: true });
-    if (!mfaAuth) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session && session.user) {
-        // 检查是否为审核员
-        const { data: checker } = await supabase.from('checkers').select('*').eq('user_id', session.user.id).maybeSingle();
-        if (checker) {
-            setTimeout(function() { location.href = 'checker-pending.html'; }, 2200);
-            return;
-        }
+<body><main class="splash">
+  <img src="./images/logo.png" class="logo" alt="ISA Spectrum">
+  <div class="title">ISA Spectrum 审核端</div>
+  <div class="domain">正在验证登录状态和审核员权限…</div>
+</main><script>
+  (async()=>{
+    const session=await ISAAuth.getSession().catch(()=>null);
+    if(session?.authenticated){
+      location.replace(session.user?.checker?'/checker-pending.html':'/login-messageschecker.html?error=forbidden');
+      return;
     }
-    setTimeout(function() { location.href = 'login-messageschecker.html'; }, 2200);
-})();
-</script>
-</body>
+    location.replace('/auth/login?return_to=%2Fchecker-pending.html');
+  })();
+</script></body>
 </html>

@@ -9,7 +9,7 @@ Licensed under the MIT License.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>留言详情 - ISA Spectrum</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="./auth-client.js"></script>
     <!-- 引入全局公共样式 -->
     <link rel="stylesheet" href="./common.css">
     <style>
@@ -414,9 +414,7 @@ function compressImage(file, options = {}) {
     });
 }
 
-const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiY25yc2t0cWFydmNlZWtyc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjUxODYsImV4cCI6MjA5NTEwMTE4Nn0.Mu6GW91z1HW2iX-tbQgH5qXrvpG2SPc9QoqCxGvV-54';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Identity and data writes are handled by the business backend.
 
 let mainMsgId = null;
 let currentUser = null;
@@ -458,47 +456,18 @@ function getFreshAvatar(src) {
 
 // ==================== 登录验证 ====================
 async function initAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { alert('请先登录'); location.href = 'login.html'; return false; }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { alert('登录已过期'); location.href = 'login.html'; return false; }
-    currentUser = user;
-    userId = user.id;
-    currentUserEmail = user.email || '';
-    currentUserRealName = user.user_metadata?.username || user.email?.split('@')[0] || '用户';
+    const session = await ISAAuth.requireSession('/details.html' + location.search);
+    if (!session) return false;
+    currentUser = session.user;
+    userId = session.user.id;
+    currentUserEmail = session.user.email || '';
+    currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
     return true;
-}
-
-// ==================== 通知系统 ====================
-async function sendNotificationToAllAuditors(title, content, relatedId) {
-    const { data: auditors } = await supabase.from('checkers').select('user_id');
-    if (!auditors || auditors.length === 0) return;
-    const notices = auditors.map(a => ({
-        user_id: a.user_id,
-        title,
-        content,
-        related_id: relatedId,
-        type: 'audit',
-        read: false
-    }));
-    await supabase.from('notifications').insert(notices);
-}
-
-async function sendNotificationToUser(uid, title, c, t, rid) {
-    await supabase.from('notifications').insert([{
-        user_id: uid,
-        title,
-        content: c,
-        related_id: rid,
-        type: t,
-        read: false
-    }]);
 }
 
 // ==================== 图片上传【改造：先压缩再上传】 ====================
 async function uploadImages(files, targetId) {
     if (!files || files.length === 0) return [];
-    const urls = [];
     // 批量压缩图片
     const compressedFiles = [];
     for (const file of files) {
@@ -515,16 +484,12 @@ async function uploadImages(files, targetId) {
             compressedFiles.push(compressFile);
         }
     }
-    // 上传压缩后的文件
-    for (let f of compressedFiles) {
-        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
-        const { error } = await supabase.storage.from('message-pics').upload(`comments/${targetId}/${name}`, f);
-        if (!error) {
-            const { data: urlData } = supabase.storage.from('message-pics').getPublicUrl(`comments/${targetId}/${name}`);
-            urls.push(urlData.publicUrl);
-        }
-    }
-    return urls;
+    const form = new FormData();
+    form.append('kind', 'message');
+    compressedFiles.forEach(file => form.append('files', file, file.name));
+    const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+    if (!response.ok) throw new Error('图片上传失败');
+    return (await response.json()).urls || [];
 }
 
 function previewImages(targetId) {
@@ -548,16 +513,8 @@ function previewImages(targetId) {
 // ==================== 头像渲染 ====================
 async function renderMessageAvatars() {
     const items = document.querySelectorAll('.message-item');
-    const uids = [];
     items.forEach(el => {
-        const uid = el.getAttribute('data-user-id');
-        if (uid && uid !== 'undefined' && uid !== 'null') uids.push(uid);
-    });
-    const { data: ps } = await supabase.from('profiles').select('user_id, avatar_url').in('user_id', uids);
-    const map = {};
-    if (ps) ps.forEach(p => { map[p.user_id] = p.avatar_url; });
-    items.forEach(el => {
-        const uid = el.getAttribute('data-user-id');
+        const avatarUrl = el.dataset.avatarUrl;
         const box = el.querySelector('.message-avatar-box');
         if (!box) return;
         const name = el.querySelector('.message-author')?.textContent || '';
@@ -566,10 +523,10 @@ async function renderMessageAvatars() {
             box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
             return;
         }
-        if (uid && map[uid]) {
-            box.innerHTML = `<img src="${getFreshAvatar(map[uid])}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+        if (avatarUrl) {
+            box.innerHTML = `<img src="${getFreshAvatar(avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
         } else {
-            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${c}</div>`;
+            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${escapeHtml(c)}</div>`;
         }
     });
 }
@@ -577,9 +534,15 @@ async function renderMessageAvatars() {
 // ==================== 加载内容 ====================
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
-    if (!mainMsgId) return;
-    const { data } = await supabase.from('messages').select('id,user_id,username,content,zone,pic_url,created_at,reply_to').eq('id', mainMsgId).single();
-    if (data) { renderMainMessage(data); loadAllComments(); }
+    if (!/^\d+$/.test(mainMsgId || '')) return location.replace('/messages.html');
+    const response = await fetch(`/api/messages?thread=${encodeURIComponent(mainMsgId)}`, { credentials: 'same-origin', cache: 'no-store' });
+    if (!response.ok) {
+        document.getElementById('mainMessageCard').innerHTML = '<div class="loading">留言不存在或暂不可用</div>';
+        return;
+    }
+    allMessages = (await response.json()).messages || [];
+    const main = allMessages.find(message => String(message.id) === String(mainMsgId));
+    if (main) { renderMainMessage(main); loadAllComments(); }
 }
 
 function renderMainMessage(msg) {
@@ -587,7 +550,7 @@ function renderMainMessage(msg) {
     const t = new Date(msg.created_at).toLocaleString();
     const imgs = msg.pic_url ? msg.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : '';
     document.getElementById('mainMessageCard').innerHTML = `
-    <div class="message-item" id="msg-${msg.id}" data-user-id="${msg.user_id || ''}">
+    <div class="message-item" id="msg-${msg.id}" data-avatar-url="${escapeHtml(msg.avatar_url || '')}">
         <div class="message-avatar-box"></div>
         <div style="flex:1">
             <div class="message-header">
@@ -605,21 +568,19 @@ function renderMainMessage(msg) {
 }
 
 async function loadAllComments() {
-    const { data } = await supabase.from('messages').select('id,user_id,username,content,pic_url,created_at,reply_to').eq('flag', 1).order('created_at', { ascending: true });
-    allMessages = data || [];
     allMessages.forEach(m => userMap[m.id] = m.username);
     renderCommentTree();
 }
 
 function renderCommentTree() {
     const c = document.getElementById('commentContainer');
-    const roots = allMessages.filter(m => m.reply_to === mainMsgId);
+    const roots = allMessages.filter(m => String(m.reply_to) === String(mainMsgId));
     if (!roots.length) { c.innerHTML = '<div class="empty-comment">暂无评论</div>'; return; }
     let html = '';
     function renderChildren(pid, d) {
-        allMessages.filter(m => m.reply_to === pid).forEach(x => {
+        allMessages.filter(m => String(m.reply_to) === String(pid)).forEach(x => {
             html += `
-            <div class="message-item ${d === 1 ? 'level-1' : 'level-2'}" id="msg-${x.id}" data-user-id="${x.user_id || ''}">
+            <div class="message-item ${d === 1 ? 'level-1' : 'level-2'}" id="msg-${x.id}" data-avatar-url="${escapeHtml(x.avatar_url || '')}">
                 <div class="message-avatar-box"></div>
                 <div style="flex:1">
                     <div class="message-header">
@@ -629,7 +590,7 @@ function renderCommentTree() {
                     ${d >= 2 ? `<div class="reply-info" onclick="jumpToComment('${x.reply_to}')">↳ 回复 @${escapeHtml(userMap[x.reply_to] || '用户')}</div>` : ''}
                     <div class="message-content">${escapeHtml(x.content).replace(/\n/g, '<br>')}</div>
                     <div class="message-images">${x.pic_url ? x.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
-                    <button class="reply-btn" onclick="showReplyBox('${x.id}','${escapeHtml(x.username)}')">💬 回复</button>
+                    <button class="reply-btn" onclick="showReplyBox('${x.id}')">💬 回复</button>
                     <div id="reply-box-${x.id}" class="comment-input-container"></div>
                 </div>
             </div>`;
@@ -638,7 +599,7 @@ function renderCommentTree() {
     }
     roots.forEach(r => {
         html += `
-        <div class="message-item level-1" id="msg-${r.id}" data-user-id="${r.user_id || ''}">
+        <div class="message-item level-1" id="msg-${r.id}" data-avatar-url="${escapeHtml(r.avatar_url || '')}">
             <div class="message-avatar-box"></div>
             <div style="flex:1">
                 <div class="message-header">
@@ -647,7 +608,7 @@ function renderCommentTree() {
                 </div>
                 <div class="message-content">${escapeHtml(r.content).replace(/\n/g, '<br>')}</div>
                 <div class="message-images">${r.pic_url ? r.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
-                <button class="reply-btn" onclick="showReplyBox('${r.id}','${escapeHtml(r.username)}')">💬 回复</button>
+                <button class="reply-btn" onclick="showReplyBox('${r.id}')">💬 回复</button>
                 <div id="reply-box-${r.id}" class="comment-input-container"></div>
             </div>
         </div>`;
@@ -684,13 +645,14 @@ function showMainCommentBox(tid) {
     </div>`;
 }
 
-function showReplyBox(tid, name) {
+function showReplyBox(tid) {
     closeAllCommentBoxes();
     const b = document.getElementById(`reply-box-${tid}`);
     if (!b) return;
+    const name = userMap[tid] || '用户';
     b.style.display = 'block';
     b.innerHTML = `
-    <textarea class="comment-input" id="replyInput-${tid}" placeholder="回复 @${name}"></textarea>
+    <textarea class="comment-input" id="replyInput-${tid}" placeholder="回复 @${escapeHtml(name)}"></textarea>
     <div class="image-upload-container" onclick="document.getElementById('imageUpload-${tid}').click()">
         <div class="image-upload-text">🖼️ 点击选择图片（可选）</div>
         <input type="file" id="imageUpload-${tid}" class="image-upload-input" accept="image/*" multiple onchange="previewImages('${tid}')">
@@ -708,7 +670,7 @@ function showReplyBox(tid, name) {
 
 // ==================== 提交评论 ====================
 async function submitComment(rid, type) {
-    if (!currentUser || !currentUser.id) { alert('请重新登录'); location.href = 'login.html'; return; }
+    if (!currentUser || !currentUser.id) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
 
     const el = type === 'main'
         ? document.getElementById('mainCommentInput')
@@ -721,39 +683,15 @@ async function submitComment(rid, type) {
     const files = filesInput?.files;
     const urls = files && files.length > 0 ? await uploadImages(files, rid) : [];
 
-    const { data: newMsg, error } = await supabase.from('messages').insert([{
-        user_id: currentUser.id,
-        username: ano ? '匿名用户' : currentUserRealName,
-        content: content,
-        pic_url: urls.length > 0 ? urls : null,
-        contact_email: currentUserEmail,
-        flag: 0,
-        reply_to: rid
-    }]).select('id').single();
-
-    if (error) {
-        alert('发布失败：' + error.message);
+    const response = await fetch('/api/messages', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, anonymous: ano, imageUrls: urls, replyTo: rid })
+    });
+    if (response.status === 401) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
+    if (!response.ok) {
+        alert('发布失败，请稍后重试');
         return;
-    }
-
-    await sendNotificationToAllAuditors(
-        '🔔 新留言待审核',
-        `用户：${ano ? '匿名用户' : currentUserRealName}\n内容：${content.slice(0, 50)}...`,
-        newMsg.id
-    );
-
-    const { data: targetMsg } = await supabase.from('messages').select('user_id, username').eq('id', rid).single();
-
-    if (targetMsg && targetMsg.user_id && targetMsg.user_id !== currentUser.id) {
-        const jumpLink = `<a href="details.html?id=${mainMsgId}&replyId=${newMsg.id}" style="color:#1e50ae; text-decoration:none;">点击查看>></a>`;
-        const noticeContent = `${content.slice(0, 80)}...<br>${jumpLink}`;
-        await sendNotificationToUser(
-            targetMsg.user_id,
-            `💬 ${ano ? '匿名用户' : currentUserRealName} 回复了你`,
-            noticeContent,
-            'reply',
-            rid
-        );
     }
 
     alert('发布成功！等待审核');

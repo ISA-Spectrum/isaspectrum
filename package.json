@@ -1,0 +1,9 @@
+{
+  "name": "isa-spectrum-business-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check auth-client.js && node --check checker-ui.js && node --check home.js && node --check meal-rating.js && node --check functions/_middleware.js && node --check functions/_lib/api.js && node --check functions/_lib/crypto.js && node --check functions/_lib/config.js && node --check functions/_lib/http.js && node --check functions/_lib/oidc.js && node --check functions/_lib/store.js && node --check functions/_lib/session.js && node --check functions/auth/login.js && node --check functions/auth/callback.js && node --check functions/auth/logout.js && node --check functions/auth/session.js && node --check functions/api/messages.js && node --check functions/api/uploads.js && node --check functions/api/profile.js && node --check functions/api/notifications.js && node --check functions/api/meal-ratings.js && node --check functions/api/checker/messages.js"
+  }
+}
