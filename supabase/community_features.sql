@@ -47,8 +47,10 @@ create index if not exists messages_zone_flag_created_at_idx
   on public.messages (zone, flag, created_at desc)
   where reply_to is null;
 
--- Safe homepage feed: deliberately excludes contact_email and moderation fields.
-create or replace view public.approved_messages_public
+-- Recreate instead of CREATE OR REPLACE because the legacy view may contain
+-- user_id/contact fields; PostgreSQL cannot remove view columns in place.
+drop view if exists public.approved_messages_public;
+create view public.approved_messages_public
 with (security_barrier = true)
 as
 select id, username, content, zone, pic_url, created_at, reply_to
@@ -58,8 +60,8 @@ where flag = 1 and reply_to is null;
 revoke all on table public.approved_messages_public from public;
 grant select on table public.approved_messages_public to anon, authenticated;
 
--- Anonymous users read only the safe view, never the messages base table.
-revoke all on table public.messages from anon;
+-- Browser roles read only the safe projection, never the messages base table.
+revoke all on table public.messages from anon, authenticated;
 
 -- 2. Open daily meal feedback for signed-in users.
 create table if not exists public.meal_ratings (

@@ -301,7 +301,10 @@ grant all on table public.messages to service_role;
 revoke all on table public.approved_messages_public from public, anon, authenticated;
 
 -- Never expose either the legacy auth.users id or the business user id publicly.
-create or replace view public.approved_messages_public
+-- The legacy view may contain extra columns, which cannot be removed with
+-- CREATE OR REPLACE VIEW, so recreate it atomically inside this transaction.
+drop view if exists public.approved_messages_public;
+create view public.approved_messages_public
 with (security_barrier = true)
 as
 select id, username, content, zone, pic_url, created_at, reply_to

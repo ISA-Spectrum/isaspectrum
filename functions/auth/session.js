@@ -1,8 +1,10 @@
 import { getConfig } from '../_lib/config.js';
-import { json, methodNotAllowed } from '../_lib/http.js';
+import { cookieNames, json, methodNotAllowed, parseCookies } from '../_lib/http.js';
 import { getBusinessSession } from '../_lib/session.js';
 
 export async function onRequestGet({ request, env }) {
+  const names = cookieNames(request);
+  if (!parseCookies(request)[names.session]) return json({ authenticated: false }, 401);
   let config;
   try { config = getConfig(env); } catch { return json({ authenticated: false, error: 'configuration_error' }, 503); }
   try {
