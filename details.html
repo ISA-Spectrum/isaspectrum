@@ -535,7 +535,7 @@ async function renderMessageAvatars() {
 // ==================== 加载内容 ====================
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
-    if (!/^\d+$/.test(mainMsgId || '')) return location.replace('/messages.html');
+    if (!/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(mainMsgId || '')) return location.replace('/messages.html');
     try {
         if (!window.ISAPublicData) throw new Error('public_data_unavailable');
         allMessages = await ISAPublicData.getThread(mainMsgId);

@@ -15,6 +15,21 @@
     return response.json();
   }
 
+  function wasAborted(error, signal) {
+    return signal?.aborted || error?.name === 'AbortError';
+  }
+
+  async function requestMessagesApi(params, signal) {
+    const response = await fetch(`/api/messages?${params}`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal
+    });
+    if (!response.ok) throw new Error('public_data_unavailable');
+    return response.json();
+  }
+
   async function listMessages({ page = 0, limit = 20, sort = 'newest', search = '', zone = 'all', signal } = {}) {
     const safePage = Math.max(0, Number(page) || 0);
     const safeLimit = Math.min(50, Math.max(1, Number(limit) || 20));
@@ -28,8 +43,20 @@
     if (ZONES.has(zone)) params.set('zone', `eq.${zone}`);
     const safeSearch = String(search || '').trim().slice(0, 100).replace(/[,*()]/g, ' ');
     if (safeSearch) params.set('content', `ilike.*${safeSearch}*`);
-    const rows = await select('approved_messages_public', params, signal);
-    return { messages: rows.slice(0, safeLimit), hasMore: rows.length > safeLimit, page: safePage };
+    try {
+      const rows = await select('approved_messages_public', params, signal);
+      return { messages: rows.slice(0, safeLimit), hasMore: rows.length > safeLimit, page: safePage };
+    } catch (error) {
+      if (wasAborted(error, signal)) throw error;
+      const fallback = new URLSearchParams({
+        page: String(safePage),
+        limit: String(safeLimit),
+        sort: sort === 'oldest' ? 'oldest' : 'newest'
+      });
+      if (ZONES.has(zone)) fallback.set('zone', zone);
+      if (safeSearch) fallback.set('search', safeSearch);
+      return requestMessagesApi(fallback, signal);
+    }
   }
 
   async function getThread(id, signal) {
@@ -42,7 +69,14 @@
       order: 'created_at.asc',
       limit: '1000'
     });
-    const rows = await select('approved_messages_public', params, signal);
+    let rows;
+    try {
+      rows = await select('approved_messages_public', params, signal);
+    } catch (error) {
+      if (wasAborted(error, signal)) throw error;
+      const result = await requestMessagesApi(new URLSearchParams({ thread: value }), signal);
+      return result.messages || [];
+    }
     const byParent = new Map();
     rows.forEach(message => {
       const key = message.reply_to == null ? null : String(message.reply_to);

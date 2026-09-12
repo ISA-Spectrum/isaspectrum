@@ -3,6 +3,7 @@ import { json, methodNotAllowed } from '../_lib/http.js';
 import { requestBusinessData, requestPublicData } from '../_lib/supabase.js';
 
 const ZONES = new Set(['校园生活', '学习互助', '活动社团', '失物招领']);
+const MESSAGE_ID = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 
 async function listMessages(request, env) {
   const url = new URL(request.url);
@@ -11,7 +12,7 @@ async function listMessages(request, env) {
     select: 'id,username,content,zone,pic_url,created_at,reply_to'
   });
   if (thread) {
-    if (!/^\d+$/.test(thread)) return json({ error: 'invalid_request' }, 400);
+    if (!MESSAGE_ID.test(thread)) return json({ error: 'invalid_request' }, 400);
     params.set('order', 'created_at.asc');
     params.set('limit', '1000');
     const all = await requestPublicData(env, `approved_messages_public?${params}`);
@@ -72,7 +73,7 @@ async function createMessage(request, env) {
   const zone = ZONES.has(body.zone) ? body.zone : '校园生活';
   const replyTo = body.replyTo == null ? null : String(body.replyTo);
   const imageUrls = validateImageUrls(env, body.imageUrls || [], auth.session.user_id);
-  if (!content || (replyTo !== null && !/^\d+$/.test(replyTo)) || imageUrls === null) {
+  if (!content || (replyTo !== null && !MESSAGE_ID.test(replyTo)) || imageUrls === null) {
     return json({ error: 'invalid_request' }, 400, auth.headers);
   }
   const displayName = cleanText(auth.session.display_name || auth.session.email?.split('@')[0] || '校园用户', 80);
@@ -92,7 +93,7 @@ async function createMessage(request, env) {
         pic_url: imageUrls.length ? imageUrls : null,
         contact_email: auth.session.email || null,
         flag: 0,
-        reply_to: replyTo ? Number(replyTo) : null
+        reply_to: replyTo || null
       })
     });
     const messageId = rows[0].id;
