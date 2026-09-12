@@ -68,6 +68,6 @@ export function getConfig(env) {
     maxIatAge: integer(env, 'OIDC_MAX_IAT_AGE_SECONDS', 600, 60, 3600),
     allowedAlgorithms,
     businessSupabaseUrl,
-    businessSupabaseServiceKey: required(env, 'BUSINESS_SUPABASE_SERVICE_ROLE_KEY')
+    businessSupabasePublishableKey: required(env, 'BUSINESS_SUPABASE_PUBLISHABLE_KEY')
   };
 }

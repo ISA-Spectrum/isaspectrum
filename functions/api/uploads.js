@@ -1,6 +1,7 @@
 import { authenticateApi } from '../_lib/api.js';
 import { randomBase64Url } from '../_lib/crypto.js';
 import { json, methodNotAllowed } from '../_lib/http.js';
+import { uploadBusinessObject } from '../_lib/supabase.js';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -19,9 +20,6 @@ export async function onRequestPost({ request, env }) {
   if (!files.length || files.length > maxFiles || files.some(file => !ALLOWED_TYPES.has(file.type) || file.size > 5 * 1024 * 1024)) {
     return json({ error: 'invalid_upload' }, 400, auth.headers);
   }
-  const base = String(env.BUSINESS_SUPABASE_URL || '').replace(/\/$/, '');
-  const key = String(env.BUSINESS_SUPABASE_SERVICE_ROLE_KEY || '');
-  if (!base || !key) return json({ error: 'configuration_error' }, 503, auth.headers);
   const bucket = kind === 'avatar' ? 'avatars' : 'message-pics';
   const urls = [];
   try {
@@ -29,18 +27,7 @@ export async function onRequestPost({ request, env }) {
       const path = kind === 'avatar'
         ? `business/${auth.session.user_id}.${extensionFor(file.type)}`
         : `business/${auth.session.user_id}/${randomBase64Url(24)}.${extensionFor(file.type)}`;
-      const response = await fetch(`${base}/storage/v1/object/${bucket}/${path}`, {
-        method: 'POST',
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-          'Content-Type': file.type,
-          'x-upsert': kind === 'avatar' ? 'true' : 'false'
-        },
-        body: file
-      });
-      if (!response.ok) throw new Error('upload_failed');
-      urls.push(`${base}/storage/v1/object/public/${bucket}/${path}`);
+      urls.push(await uploadBusinessObject(env, auth.session, bucket, path, file, kind === 'avatar'));
     }
     return json({ urls }, 201, auth.headers);
   } catch {

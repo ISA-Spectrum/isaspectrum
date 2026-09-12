@@ -3,7 +3,8 @@ import { sha256Base64Url } from '../_lib/crypto.js';
 import { clearCookie, cookieNames, methodNotAllowed, oauthErrorRedirect, parseCookies } from '../_lib/http.js';
 import { discover, exchangeCode, fetchUserInfo, verifyIdToken } from '../_lib/oidc.js';
 import { destroyBusinessSession, issueBusinessSession } from '../_lib/session.js';
-import { consumeTransaction, resolveIdentity } from '../_lib/store.js';
+import { consumeTransaction } from '../_lib/store.js';
+import { resolveIdentity } from '../_lib/supabase.js';
 
 function responseWithClearedTransaction(request, location, additionalCookie = null) {
   const names = cookieNames(request);

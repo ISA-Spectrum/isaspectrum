@@ -7,7 +7,7 @@
 ```text
 浏览器 -> GET /auth/login
 业务后端 -> 生成 state、nonce、PKCE verifier/challenge、浏览器绑定值
-业务后端 -> 在 oauth_transactions 保存哈希 state、verifier、nonce、回跳路径和过期时间
+业务后端 -> 在 Cloudflare D1 保存哈希 state、verifier、nonce、回跳路径和过期时间
 业务后端 -> 302 到 IdP /oauth/authorize（只发送 challenge）
 IdP -> 自行完成密码、2FA、Passkey 等认证
 IdP -> GET /auth/callback?code=...&state=...
@@ -15,8 +15,8 @@ IdP -> GET /auth/callback?code=...&state=...
 业务后端 -> POST IdP /oauth/token（code + verifier）
 业务后端 -> discovery/JWKS 验证 ID Token 的签名、iss、aud/azp、nonce、exp、iat、sub
 业务后端 -> 可选调用 /oauth/userinfo，并校验返回 sub 一致
-业务后端 -> 以 issuer + sub 查找或创建业务用户
-业务后端 -> 创建随机业务 Session，仅把 HttpOnly Cookie 发给浏览器
+业务后端 -> 由 issuer + sub 确定稳定业务 UUID，以短时 authenticated JWT 通过 RLS 查找或创建业务用户
+业务后端 -> 在 D1 创建随机业务 Session，仅把 HttpOnly Cookie 发给浏览器
 浏览器 -> 后续只携带 business_session Cookie
 ```
 
@@ -28,10 +28,12 @@ IdP -> GET /auth/callback?code=...&state=...
 - `functions/auth/callback.js`：一次性 callback、换码、OIDC 验证、身份映射及 Session 创建。
 - `functions/auth/session.js`、`functions/auth/logout.js`：读取/轮换及销毁业务 Session。
 - `functions/_lib/oidc.js`：discovery、token exchange 与 JWKS/JWT 验证。
-- `functions/_lib/crypto.js`、`config.js`、`http.js`、`store.js`、`session.js`：密码学、配置、Cookie、存储和 Session 基础设施。
+- `functions/_lib/crypto.js`、`config.js`、`http.js`、`store.js`、`session.js`：密码学、配置、Cookie、D1 存储和 Session 基础设施。
+- `functions/_lib/supabase.js`：只签发固定 `authenticated` 角色的 5 分钟数据库 JWT；所有用户数据继续经过 RLS。
 - `functions/api/*`：校墙、上传、头像、通知、餐食及审核业务 API；所有写操作校验同源 Origin。
 - `auth-client.js`：前端只读取业务 Session 状态及发起登录/退出，不接触任何 token。
-- `supabase/oidc_client.sql`：业务用户、外部身份、OAuth transaction、业务 Session、通知与审核日志。
+- `migrations/0001_auth_sessions.sql`：D1 中的一次性 OAuth transaction 和业务 Session。
+- `supabase/oidc_client.sql`：业务用户映射、用户数据 RLS、通知和审核日志。
 - `.dev.vars.example`：本地配置模板。
 - `test/auth.test.js`：PKCE、跳转、HTTPS、审核授权和 ID Token 验证测试。
 
@@ -40,15 +42,18 @@ IdP -> GET /auth/callback?code=...&state=...
 ## 3. OAuth Client 配置
 
 ```dotenv
-AUTH_ISSUER=https://auth.example.com
-AUTH_CLIENT_ID=由认证中心分配
-AUTH_CLIENT_SECRET=仅 confidential client 设置
-AUTH_REDIRECT_URI=https://www.example.com/auth/callback
+AUTH_ISSUER=https://maximus.tail39bd71.ts.net/realms/testrealm
+AUTH_CLIENT_ID=isaspectrum-web
+AUTH_CLIENT_SECRET=
+AUTH_REDIRECT_URI=https://test.isaspectrum.pages.dev/auth/callback
 AUTH_SCOPES=openid profile email
 OIDC_ALLOWED_ALGORITHMS=RS256
+BUSINESS_SUPABASE_URL=https://bbcnrsktqarvceekrswb.supabase.co
+BUSINESS_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+BUSINESS_SUPABASE_SIGNING_JWK={"kty":"EC","crv":"P-256","kid":"...","x":"...","y":"...","d":"...","alg":"ES256"}
 ```
 
-代码从 `${AUTH_ISSUER}/.well-known/openid-configuration` 获取 authorization、token、userinfo 和 JWKS endpoint，不在前端硬编码 endpoint。生产 issuer 和 redirect URI 必须为 HTTPS。
+`isaspectrum-web` 是 Client Authentication 关闭的 public client，因此没有、也不应创建 `AUTH_CLIENT_SECRET`。代码从 `${AUTH_ISSUER}/.well-known/openid-configuration` 获取 authorization、token、userinfo 和 JWKS endpoint，不在前端硬编码 endpoint。issuer 和 redirect URI 必须为 HTTPS。
 
 ## 4. `/auth/login`
 
@@ -66,7 +71,7 @@ OIDC_ALLOWED_ALGORITHMS=RS256
 
 ## 7. State transaction 存储
 
-`oauth_transactions` 位于业务数据库，保存 `state_hash`、`browser_binding_hash`、`code_verifier`、`nonce`、安全回跳路径、创建与过期时间。`consume_oauth_transaction()` 在 PostgreSQL 单条原子删除中完成匹配、未过期和未消费检查，成功返回 transaction 的同时立即删除，因此 callback 不能重放。默认有效期 10 分钟；开始新登录时会顺带清理过期 transaction 与 Session。
+`oauth_transactions` 位于 Cloudflare D1，保存 `state_hash`、`browser_binding_hash`、`code_verifier`、`nonce`、安全回跳路径、创建与过期时间。回调使用 SQLite 的单条 `DELETE ... RETURNING` 原子消费 transaction，成功返回的同时立即删除，因此 callback 不能重放。默认有效期 10 分钟；开始新登录时会顺带清理过期 transaction 与 Session。
 
 ## 8. ID Token 验证
 
@@ -74,22 +79,20 @@ OIDC_ALLOWED_ALGORITHMS=RS256
 
 ## 9. Identity mapping
 
-`external_identities` 对 `(issuer, subject)` 建唯一约束，并映射到 `business_users.user_id`。首次登录创建业务用户，后续仅更新 email/name 快照。绝不按 email 自动合并账户，也不接受 query/body 中的 email 决定业务用户。
+业务端以 `SHA-256(issuer || 0x00 || sub)` 的前 128 位生成稳定 UUIDv5 形式的 `business_users.user_id`，并对 `(identity_provider, identity_subject)` 建唯一约束。首次登录通过短时 `authenticated` JWT 和 RLS 创建业务用户，后续仅更新 email/name 快照。绝不按 email 自动合并账户，也不接受 query/body 中的 email 决定业务用户。
 
 审核员授权也必须按已验证的 issuer + sub 设置，而不是按邮箱：
 
 ```sql
 update public.business_users u
 set is_checker = true
-from public.external_identities i
-where i.user_id = u.user_id
-  and i.issuer = 'https://auth.example.com'
-  and i.subject = '认证中心提供的稳定 sub';
+where u.identity_provider = 'https://maximus.tail39bd71.ts.net/realms/testrealm'
+  and u.identity_subject = '认证中心提供的稳定 sub';
 ```
 
 ## 10. 业务 Session
 
-Session token 由 32 字节安全随机数生成，数据库只保存 SHA-256 哈希。Cookie 为 `HttpOnly; Secure; SameSite=Lax; Path=/`，HTTPS 下使用 `__Host-business_session`，默认空闲有效期 8 小时、每 30 分钟轮换、绝对有效期 7 天。轮换为旧哈希保留 60 秒并发宽限，避免并行请求误清新 Cookie。前端 `/auth/session` 只能得到必要的业务用户信息及认证中心返回的可选认证元数据，不能读取 Session token。`amr`、`acr`、`auth_time` 当前仅作审计信息，不参与审核端权限判断。
+Session token 由 32 字节安全随机数生成，D1 只保存 SHA-256 哈希。Cookie 为 `HttpOnly; Secure; SameSite=Lax; Path=/`，HTTPS 下使用 `__Host-business_session`，默认空闲有效期 8 小时、每 30 分钟轮换、绝对有效期 7 天。轮换为旧哈希保留 60 秒并发宽限，避免并行请求误清新 Cookie。前端 `/auth/session` 只能得到必要的业务用户信息及认证中心返回的可选认证元数据，不能读取 Session token。`amr`、`acr`、`auth_time` 当前仅作审计信息，不参与审核端权限判断。
 
 ## 11. Logout
 
@@ -108,31 +111,32 @@ Session token 由 32 字节安全随机数生成，数据库只保存 SHA-256 �
 - 身份唯一键为 issuer + sub，不是 email。
 - access token不作为业务 Session；业务 Cookie不与认证中心共享。
 - 无 iframe、无直接 MFA endpoint调用、无通配 redirect URI。
-- 写 API校验 Origin；业务表撤销 anon/authenticated 直写，service role仅在 Functions 环境。
+- 写 API校验 Origin；后端代码为当前业务用户签发固定 `authenticated` 角色、5 分钟有效的内部 JWT，Supabase 使用 publishable key 并执行 RLS。源码和运行环境均不使用 `service_role`。私钥本身仍属于高权限机密，必须只放在 Cloudflare Secret 中并限制访问。
 - 审核 API只要求有效的普通业务 Session 和数据库中的 `is_checker` 角色；不要求指定 acr、最近 auth_time、二次验证或身份验证器绑定。审核动作与日志原子写入。
-- 首页与校墙统一读取安全业务 API；匿名数据库角色不能读取留言基础表或公开视图。API 响应不包含联系邮箱、legacy user_id、business_user_id 或审核字段。
+- 首页与校墙直接读取现有 `approved_messages_public` 安全视图；匿名数据库角色不能读取留言基础表。公开响应不包含联系邮箱、legacy user_id、business_user_id 或审核字段。
 - 应在 Cloudflare 日志/分析设置中禁用 callback query string 采集，并确认反向代理不会记录授权码。
 
 ## 14. 本地开发
 
 1. 复制 `.dev.vars.example` 为未纳入 Git 的 `.dev.vars`。
 2. 在**业务 Supabase**执行 `supabase/oidc_client.sql`；全新旧版库需先完成 `supabase/community_features.sql` 的表/分区前置迁移。不要在认证中心数据库执行。
-3. 在认证中心登记精确回调 `http://127.0.0.1:8788/auth/callback`，仅本地允许 HTTP。
-4. 使用 Cloudflare Pages Functions 本地运行器在 `127.0.0.1:8788` 启动仓库。
-5. 执行 `npm test` 与 `npm run check`。
+3. 创建 Cloudflare D1 数据库，绑定名固定为 `AUTH_DB`，并应用 `migrations/0001_auth_sessions.sql`。
+4. 生成 ES256 JWK，将同一私钥导入业务 Supabase 的 JWT Signing Keys，并把完整私钥 JWK 仅保存为 Cloudflare Secret `BUSINESS_SUPABASE_SIGNING_JWK`。
+5. 若需要本地联调，需在 Keycloak 额外登记精确回调 `http://127.0.0.1:8788/auth/callback`；不要用通配符。测试环境使用 `https://test.isaspectrum.pages.dev/auth/callback`。
+6. 使用 Cloudflare Pages Functions 本地运行器在 `127.0.0.1:8788` 启动仓库，并执行 `npm test` 与 `npm run check`。
 
 本地配置需设置 `AUTH_ALLOW_INSECURE_LOCALHOST=1`。不要把 `.dev.vars`、service role key 或 client secret提交到 Git。
 
 ## 15. 生产配置与发布顺序
 
 1. 认证中心先完成 discovery/JWKS/authorize/token 实现并登记生产 Client。
-2. 在 Cloudflare Pages Secrets 配置所有敏感值；非敏感配置也应使用环境变量。
-3. 备份业务数据库，在维护窗口执行 `supabase/oidc_client.sql`。该迁移会撤销旧浏览器 Supabase 用户对业务表的直接权限，因此必须与新 Functions 同批切换。
+2. 在 Cloudflare Pages 配置 D1 `AUTH_DB`、公开配置和私钥 JWK Secret；不要设置 Supabase `service_role`。
+3. 备份业务数据库，在维护窗口执行 `supabase/oidc_client.sql`，将用户写入、餐食、通知与审核切换为 RLS。
 4. 部署业务 Functions 和页面，验证正常登录、取消、重复 callback、过期 transaction、退出，以及审核员可访问、普通用户被拒绝。
 5. 用真实 issuer + sub授予审核员角色；不要用 email匹配。
 6. 检查 Cookie Secure、TLS、缓存、日志脱敏、密钥轮换与告警。
 
-生产不得设置 `AUTH_ALLOW_INSECURE_LOCALHOST=1`。`AUTH_CLIENT_SECRET` 和 `BUSINESS_SUPABASE_SERVICE_ROLE_KEY` 必须是服务端 secret。
+生产不得设置 `AUTH_ALLOW_INSECURE_LOCALHOST=1`。当前 Keycloak Client 是 public client，所以 `AUTH_CLIENT_SECRET` 留空。`BUSINESS_SUPABASE_SIGNING_JWK` 必须是仅服务端可见的 Secret。
 
 ## 16. 与认证中心联调清单
 

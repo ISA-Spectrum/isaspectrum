@@ -14,7 +14,7 @@ function config(overrides = {}) {
     AUTH_CLIENT_ID: 'business-client',
     AUTH_REDIRECT_URI: 'https://www.example.com/auth/callback',
     BUSINESS_SUPABASE_URL: 'https://business.supabase.co',
-    BUSINESS_SUPABASE_SERVICE_ROLE_KEY: 'server-only',
+    BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'publishable-test',
     ...overrides
   });
 }
@@ -127,18 +127,23 @@ test('ID token verification checks signature, issuer, audience, time and nonce',
   await assert.rejects(() => verifyIdToken(jwt, { issuer, jwks_uri: `${issuer}/jwks` }, config({ AUTH_ISSUER: issuer }), 'expected-nonce', 'wrong-token'), /invalid_access_token_hash/);
 });
 
-test('authorization callback consumes the transaction and creates only a business session', async t => {
+test('authorization callback consumes D1 state and uses an RLS-scoped database token', async t => {
   const suffix = Date.now();
   const issuer = `https://provider-${suffix}.example.com`;
   const businessOrigin = `https://business-${suffix}.example.com`;
   const storeOrigin = `https://store-${suffix}.supabase.co`;
-  const pair = await crypto.subtle.generateKey(
+  const providerPair = await crypto.subtle.generateKey(
     { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
     true,
     ['sign', 'verify']
   );
-  const jwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
-  Object.assign(jwk, { kid: 'flow-key', alg: 'RS256', use: 'sig' });
+  const providerJwk = await crypto.subtle.exportKey('jwk', providerPair.publicKey);
+  Object.assign(providerJwk, { kid: 'flow-key', alg: 'RS256', use: 'sig' });
+  const databasePair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']
+  );
+  const databaseJwk = await crypto.subtle.exportKey('jwk', databasePair.privateKey);
+  Object.assign(databaseJwk, { kid: 'database-key', alg: 'ES256', use: 'sig' });
   const discovery = {
     issuer,
     authorization_endpoint: `${issuer}/oauth/authorize`,
@@ -148,39 +153,50 @@ test('authorization callback consumes the transaction and creates only a busines
     response_types_supported: ['code'],
     code_challenge_methods_supported: ['S256']
   };
+  let transaction;
+  let sessionRecord;
+  let state;
+  let consumed = false;
+  const d1 = {
+    prepare(sql) {
+      return {
+        args: [],
+        bind(...args) { this.args = args; return this; },
+        async run() {
+          if (sql.includes('insert into oauth_transactions')) {
+            transaction = {
+              state_hash: this.args[0], browser_binding_hash: this.args[1], code_verifier: this.args[2],
+              nonce: this.args[3], redirect_path: this.args[4], expires_at: this.args[6]
+            };
+          } else if (sql.includes('insert into business_sessions')) {
+            sessionRecord = { session_hash: this.args[0], user_id: this.args[1], amr: JSON.parse(this.args[12]) };
+          }
+          return { meta: { changes: 1 } };
+        },
+        async first() {
+          if (!sql.includes('delete from oauth_transactions') || consumed) return null;
+          assert.equal(this.args[0], await sha256Base64Url(state));
+          assert.equal(this.args[1], transaction.browser_binding_hash);
+          consumed = true;
+          return { code_verifier: transaction.code_verifier, nonce: transaction.nonce, redirect_path: transaction.redirect_path };
+        }
+      };
+    },
+    async batch(statements) { return Promise.all(statements.map(statement => statement.run())); }
+  };
   const env = {
     AUTH_ISSUER: issuer,
     AUTH_CLIENT_ID: 'business-client',
     AUTH_REDIRECT_URI: `${businessOrigin}/auth/callback`,
     BUSINESS_SUPABASE_URL: storeOrigin,
-    BUSINESS_SUPABASE_SERVICE_ROLE_KEY: 'service-role-test'
+    BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'publishable-test',
+    BUSINESS_SUPABASE_SIGNING_JWK: JSON.stringify(databaseJwk),
+    AUTH_DB: d1
   };
-  let transaction;
-  let sessionRecord;
-  let state;
-  let consumed = false;
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init = {}) => {
     const url = String(input);
-    if (url === `${issuer}/.well-known/openid-configuration`) {
-      return Response.json(discovery);
-    }
-    if (url === `${storeOrigin}/rest/v1/oauth_transactions`) {
-      transaction = JSON.parse(init.body);
-      return new Response(null, { status: 201 });
-    }
-    if (url === `${storeOrigin}/rest/v1/rpc/consume_oauth_transaction`) {
-      if (consumed) return Response.json([]);
-      consumed = true;
-      const request = JSON.parse(init.body);
-      assert.equal(request.p_state_hash, await sha256Base64Url(state));
-      assert.equal(request.p_binding_hash, transaction.browser_binding_hash);
-      return Response.json([{
-        code_verifier: transaction.code_verifier,
-        nonce: transaction.nonce,
-        redirect_path: transaction.redirect_path
-      }]);
-    }
+    if (url === `${issuer}/.well-known/openid-configuration`) return Response.json(discovery);
     if (url === discovery.token_endpoint) {
       const body = new URLSearchParams(String(init.body));
       assert.equal(body.get('code'), 'one-time-code');
@@ -190,22 +206,27 @@ test('authorization callback consumes the transaction and creates only a busines
       const header = encoded({ alg: 'RS256', kid: 'flow-key', typ: 'JWT' });
       const payload = encoded({ iss: issuer, sub: 'subject-123', aud: 'business-client', exp: now + 300, iat: now, nonce: transaction.nonce, amr: ['webauthn'] });
       const signingInput = `${header}.${payload}`;
-      const signature = Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', pair.privateKey, new TextEncoder().encode(signingInput))).toString('base64url');
+      const signature = Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', providerPair.privateKey, new TextEncoder().encode(signingInput))).toString('base64url');
       return Response.json({ id_token: `${signingInput}.${signature}`, access_token: 'ephemeral-provider-token', token_type: 'Bearer' });
     }
-    if (url === discovery.jwks_uri) return Response.json({ keys: [jwk] });
-    if (url === discovery.userinfo_endpoint) {
-      assert.equal(init.headers.Authorization, 'Bearer ephemeral-provider-token');
-      return Response.json({ sub: 'subject-123', email: 'student@example.com', name: 'Student' });
-    }
-    if (url === `${storeOrigin}/rest/v1/rpc/resolve_oidc_identity`) {
-      const identity = JSON.parse(init.body);
-      assert.deepEqual(identity, { p_issuer: issuer, p_subject: 'subject-123', p_email: 'student@example.com', p_display_name: 'Student' });
-      return Response.json([{ user_id: '00000000-0000-4000-8000-000000000001', identity_id: '00000000-0000-4000-8000-000000000002' }]);
-    }
-    if (url === `${storeOrigin}/rest/v1/business_sessions`) {
-      sessionRecord = JSON.parse(init.body);
-      return new Response(null, { status: 201 });
+    if (url === discovery.jwks_uri) return Response.json({ keys: [providerJwk] });
+    if (url === discovery.userinfo_endpoint) return Response.json({ sub: 'subject-123', email: 'student@example.com', name: 'Student' });
+    if (url.startsWith(`${storeOrigin}/rest/v1/business_users`)) {
+      assert.equal(init.headers.apikey, 'publishable-test');
+      const token = init.headers.Authorization.replace('Bearer ', '');
+      const parts = token.split('.');
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+      assert.equal(await crypto.subtle.verify(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        databasePair.publicKey,
+        Buffer.from(parts[2], 'base64url'),
+        new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
+      ), true);
+      assert.equal(payload.role, 'authenticated');
+      assert.equal(payload.provider_iss, issuer);
+      assert.equal(payload.provider_sub, 'subject-123');
+      assert.notEqual(payload.role, 'service_role');
+      return Response.json([{ user_id: payload.sub, is_checker: false }]);
     }
     throw new Error(`unexpected fetch: ${url}`);
   };
@@ -230,7 +251,7 @@ test('authorization callback consumes the transaction and creates only a busines
   assert.equal(completed.status, 303);
   assert.equal(completed.headers.get('location'), '/details.html?id=9');
   assert.match(completed.headers.get('set-cookie'), /__Host-business_session=/);
-  assert.equal(sessionRecord.user_id, '00000000-0000-4000-8000-000000000001');
+  assert.match(sessionRecord.user_id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(sessionRecord.amr, ['webauthn']);
   assert.equal('access_token' in sessionRecord, false);
   assert.equal('id_token' in sessionRecord, false);

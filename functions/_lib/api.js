@@ -1,6 +1,7 @@
 import { getConfig } from './config.js';
 import { json, sameOriginRequest } from './http.js';
 import { getBusinessSession } from './session.js';
+import { refreshChecker } from './supabase.js';
 
 export async function authenticateApi(request, env, options = {}) {
   if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && !sameOriginRequest(request)) {
@@ -14,8 +15,13 @@ export async function authenticateApi(request, env, options = {}) {
   }
   const headers = result.setCookie ? { 'Set-Cookie': result.setCookie } : {};
   if (!result.session) return { response: json({ error: 'authentication_required' }, 401, headers) };
-  if (options.checker && result.session.is_checker !== true) {
-    return { response: json({ error: 'forbidden' }, 403, headers) };
+  if (options.checker) {
+    try {
+      if (!await refreshChecker(env, result.session)) return { response: json({ error: 'forbidden' }, 403, headers) };
+      result.session.is_checker = true;
+    } catch {
+      return { response: json({ error: 'session_unavailable' }, 503, headers) };
+    }
   }
   return { session: result.session, config, headers };
 }

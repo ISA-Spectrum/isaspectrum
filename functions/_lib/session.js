@@ -10,7 +10,11 @@ export async function issueBusinessSession(request, env, config, identity, claim
   await createSession(env, {
     session_hash: sessionHash,
     user_id: identity.userId,
-    identity_id: identity.identityId,
+    identity_provider: identity.identity_provider,
+    identity_subject: identity.identity_subject,
+    email: identity.email,
+    display_name: identity.display_name,
+    is_checker: identity.is_checker,
     expires_at: expiresAt,
     absolute_expires_at: absoluteExpiresAt,
     auth_time: Number.isFinite(claims.auth_time) ? new Date(claims.auth_time * 1000).toISOString() : null,

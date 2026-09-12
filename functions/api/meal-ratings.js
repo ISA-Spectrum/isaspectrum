@@ -1,13 +1,13 @@
 import { authenticateApi, cleanText, shanghaiDate } from '../_lib/api.js';
 import { json, methodNotAllowed } from '../_lib/http.js';
-import { requestStore } from '../_lib/store.js';
+import { requestBusinessData } from '../_lib/supabase.js';
 
 export async function onRequestGet({ request, env }) {
   const auth = await authenticateApi(request, env);
   if (auth.response) return auth.response;
   const date = shanghaiDate();
   try {
-    const rows = await requestStore(env,
+    const rows = await requestBusinessData(env, auth.session,
       `meal_ratings?business_user_id=eq.${encodeURIComponent(auth.session.user_id)}&rating_date=eq.${date}&select=breakfast_score,lunch_score,dinner_score,comment,updated_at&limit=1`
     );
     return json({ date, rating: rows?.[0] || null }, 200, auth.headers);
@@ -30,12 +30,11 @@ export async function onRequestPut({ request, env }) {
   const displayName = cleanText(auth.session.display_name || auth.session.email?.split('@')[0] || '校园用户', 80);
   const date = shanghaiDate();
   try {
-    const rows = await requestStore(env, 'meal_ratings?on_conflict=business_user_id,rating_date', {
+    const rows = await requestBusinessData(env, auth.session, 'meal_ratings?on_conflict=business_user_id,rating_date', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify({
         business_user_id: auth.session.user_id,
-        user_id: null,
         display_name: displayName,
         rating_date: date,
         breakfast_score: scores[0],
