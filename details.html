@@ -457,13 +457,17 @@ function getFreshAvatar(src) {
 
 // ==================== 登录验证 ====================
 async function initAuth() {
-    const session = await ISAAuth.requireSession('/details.html' + location.search);
-    if (!session) return false;
-    currentUser = session.user;
-    userId = session.user.id;
-    currentUserEmail = session.user.email || '';
-    currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
-    return true;
+    try {
+        const session = await ISAAuth.getSession();
+        if (!session?.authenticated) return false;
+        currentUser = session.user;
+        userId = session.user.id;
+        currentUserEmail = session.user.email || '';
+        currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 // ==================== 图片上传【改造：先压缩再上传】 ====================
@@ -732,10 +736,9 @@ async function autoJumpFromUrl() {
 
 // ==================== 初始化 ====================
 window.onload=async()=>{
-    if(await initAuth()) {
-        await loadMainMessage();
-        autoJumpFromUrl();
-    }
+    await initAuth();
+    await loadMainMessage();
+    autoJumpFromUrl();
 };
     </script>
 </body>

@@ -823,13 +823,37 @@ async function renderMessageAvatars() {
 
 // 登录校验
 async function initAuth() {
-    const session = await ISAAuth.requireSession('/messages.html' + location.search);
-    if (!session) return false;
-    currentUser = session.user;
-    userId = session.user.id;
-    currentUserEmail = session.user.email || '';
-    currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
-    return true;
+    try {
+        const session = await ISAAuth.getSession();
+        if (!session?.authenticated) return false;
+        currentUser = session.user;
+        userId = session.user.id;
+        currentUserEmail = session.user.email || '';
+        currentUserRealName = session.user.name || session.user.email?.split('@')[0] || '用户';
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function initGuestMode() {
+    const nickname = document.getElementById('nicknameSelect');
+    nickname.innerHTML = '<option>登录后可发布</option>';
+    nickname.disabled = true;
+    document.getElementById('zoneSelect').disabled = true;
+    const email = document.getElementById('contactEmail');
+    email.value = '';
+    email.placeholder = '登录后与账号绑定';
+    document.getElementById('messageContent').disabled = true;
+    document.getElementById('messagePicFile').disabled = true;
+    document.getElementById('fileUploadContainer').style.opacity = '.55';
+    const submit = document.getElementById('submitBtn');
+    submit.textContent = '登录后发布';
+    submit.onclick = () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+    document.getElementById('avatarBtn').hidden = true;
+    const login = document.getElementById('logoutBtn');
+    login.textContent = '登录';
+    showFormStatus('已审核留言可直接浏览；发布、回复和通知需要登录。');
 }
 
 // 昵称下拉初始化
@@ -1108,10 +1132,12 @@ function escapeHtml(text) {
 // 页面初始化
 window.onload = async function () {
     const loggedIn = await initAuth();
-    if (!loggedIn) return;
-
-    document.getElementById('contactEmail').value = currentUserEmail;
-    initNicknameSelect();
+    if (loggedIn) {
+        document.getElementById('contactEmail').value = currentUserEmail;
+        initNicknameSelect();
+    } else {
+        initGuestMode();
+    }
     const contentInput = document.getElementById('messageContent');
     contentInput.addEventListener('input', () => {
         document.getElementById('contentCount').textContent = `${contentInput.value.length} / 1000`;
@@ -1139,12 +1165,12 @@ window.onload = async function () {
         loadMainMessages(false);
     });
     await loadMainMessages(false);
-    await initUserExtra();
+    if (loggedIn) await initUserExtra();
 
-    // 退出登录
-    document.getElementById('logoutBtn').onclick = async () => {
-        await ISAAuth.logout('/main.html');
-    };
+    // 登录或退出登录
+    document.getElementById('logoutBtn').onclick = loggedIn
+        ? async () => { await ISAAuth.logout('/main.html'); }
+        : () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
 
     // 头像下拉菜单
     const avatarBtn = document.getElementById('avatarBtn');
