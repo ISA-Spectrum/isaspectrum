@@ -4,6 +4,7 @@ import { requestBusinessData } from '../../_lib/supabase.js';
 
 const STATUSES = { pending: 0, approved: 1, deleted: 2 };
 const ACTIONS = new Set(['approve', 'reject', 'delete', 'restore']);
+const MESSAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function requireChecker(request, env) {
   return authenticateApi(request, env, { checker: true });
@@ -40,14 +41,14 @@ export async function onRequestPatch({ request, env }) {
   const id = String(body.id || '');
   const action = String(body.action || '');
   const reason = cleanText(body.reason, 1000);
-  if (!/^\d+$/.test(id) || !ACTIONS.has(action) || (['reject', 'delete'].includes(action) && !reason)) {
+  if (!MESSAGE_ID.test(id) || !ACTIONS.has(action) || (['reject', 'delete'].includes(action) && !reason)) {
     return json({ error: 'invalid_request' }, 400, auth.headers);
   }
   try {
     await requestBusinessData(env, auth.session, 'rpc/moderate_business_message', {
       method: 'POST',
       body: JSON.stringify({
-        p_message_id: Number(id),
+        p_message_id: id,
         p_action: action,
         p_reason: reason || null
       })

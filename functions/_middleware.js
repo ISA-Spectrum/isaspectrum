@@ -56,7 +56,7 @@ export async function onRequest(context) {
   const staticSuffix = [
     '.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif',
     '.css', '.js', '.mjs', '.woff', '.woff2', '.ttf', '.otf',
-    '.ico', '.map'
+    '.ico', '.map', '.webmanifest'
   ];
   const isStatic = staticSuffix.some(suffix => path.endsWith(suffix));
   if (isStatic || path === '/favicon.ico') return env.ASSETS.fetch(request);

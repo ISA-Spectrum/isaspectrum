@@ -34,6 +34,7 @@ IdP -> GET /auth/callback?code=...&state=...
 - `auth-client.js`：前端只读取业务 Session 状态及发起登录/退出，不接触任何 token。
 - `migrations/0001_auth_sessions.sql`：D1 中的一次性 OAuth transaction 和业务 Session。
 - `supabase/oidc_client.sql`：业务用户映射、用户数据 RLS、通知和审核日志。
+- `supabase/20260913_go_live_fixes.sql`：已执行旧版迁移的项目使用；将留言关联字段修正为 UUID，并修复餐食评分 upsert 唯一索引。
 - `.dev.vars.example`：本地配置模板。
 - `test/auth.test.js`：PKCE、跳转、HTTPS、审核授权和 ID Token 验证测试。
 

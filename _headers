@@ -18,7 +18,9 @@
   Cache-Control: public, max-age=604800, s-maxage=604800, immutable
 
 /favicon*
-/site.webmanifest
+  Cache-Control: public, max-age=604800, s-maxage=604800
+
+/images/site.webmanifest
   Cache-Control: public, max-age=604800, s-maxage=604800
 
 *.js
