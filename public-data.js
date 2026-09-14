@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const SUPABASE_URL = 'https://bbcnrsktqarvceekrswb.supabase.co';
+  const SUPABASE_URL = `${location.origin}/api/db-proxy`;
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_f3Kav8ipJco_f9tw5zO50A_w7KigE5D';
   const ZONES = new Set(['校园生活', '学习互助', '活动社团', '失物招领']);
 
