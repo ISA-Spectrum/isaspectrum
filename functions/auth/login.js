@@ -33,10 +33,12 @@ export async function onRequestGet({ request, env }) {
     }), 302, {
       'Set-Cookie': setCookie(names.transaction, browserBinding, config.transactionTtl, names.secure)
     });
-  } catch (error) {
-    const unavailable = error.message === 'authorization_server_unavailable';
-    return json({ error: unavailable ? 'authorization_server_unavailable' : 'configuration_error' }, unavailable ? 502 : 503);
-  }
+  }catch (error) {
+  console.log("LOGIN getConfig ERROR:", error.message);
+  const unavailable = error.message === 'authorization_server_unavailable';
+  return json({ error: unavailable ? 'authorization_server_unavailable' : 'configuration_error' }, unavailable ? 502 : 503);
+}
+
 }
 
 export function onRequest() {
