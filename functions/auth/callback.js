@@ -63,14 +63,13 @@ export async function onRequestGet({ request, env }) {
     await destroyBusinessSession(request, env);
     const sessionCookie = await issueBusinessSession(request, env, config, identity, claims);
     return responseWithClearedTransaction(request, transaction.redirect_path, sessionCookie);
-  } catch (error) {
-    const safeErrors = new Set([
-      'authorization_server_unavailable', 'invalid_grant', 'token_endpoint_failure',
-      'nonce_mismatch', 'invalid_id_token'
-    ]);
-    const codeName = safeErrors.has(error.message) ? error.message : 'invalid_id_token';
+    } catch (error) {
+    console.log("OIDC RAW ERROR:", error.message);
+    // 直接把原始错误丢到url参数，不再兜底掩盖！
+    const codeName = error.message;
     return responseWithClearedTransaction(request, oauthErrorRedirect(codeName));
   }
+
 }
 
 export function onRequest() {
