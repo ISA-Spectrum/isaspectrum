@@ -93,7 +93,7 @@ where u.identity_provider = 'https://maximus.tail39bd71.ts.net/realms/testrealm'
 
 ## 10. 业务 Session
 
-Session token 由 32 字节安全随机数生成，D1 只保存 SHA-256 哈希。Cookie 为 `HttpOnly; Secure; SameSite=Lax; Path=/`，HTTPS 下使用 `__Host-business_session`，默认空闲有效期 8 小时、每 30 分钟轮换、绝对有效期 7 天。轮换为旧哈希保留 60 秒并发宽限，避免并行请求误清新 Cookie。前端 `/auth/session` 只能得到必要的业务用户信息及认证中心返回的可选认证元数据，不能读取 Session token。`amr`、`acr`、`auth_time` 当前仅作审计信息，不参与审核端权限判断。
+Session token 由 32 字节安全随机数生成，D1 只保存 SHA-256 哈希。Cookie 为 `HttpOnly; Secure; SameSite=None; Path=/`，HTTPS 下使用 `__Host-business_session`，默认空闲有效期 8 小时、每 30 分钟轮换、绝对有效期 7 天。轮换为旧哈希保留 60 秒并发宽限，避免并行请求误清新 Cookie。前端 `/auth/session` 只能得到必要的业务用户信息及认证中心返回的可选认证元数据，不能读取 Session token。`amr`、`acr`、`auth_time` 当前仅作审计信息，不参与审核端权限判断。
 
 ## 11. Logout
 
