@@ -80,7 +80,7 @@ export async function onRequest(context) {
         headers: {
           Location: '/',
           'Cache-Control': 'no-store',
-          'Set-Cookie': `inner_verify=${expires}.${signature}; Path=/; Max-Age=86400; HttpOnly; SameSite=None${secure}`
+          'Set-Cookie': `inner_verify=${expires}.${signature}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax${secure}`
         }
       });
     }

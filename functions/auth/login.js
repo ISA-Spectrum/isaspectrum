@@ -6,11 +6,7 @@ import { createTransaction, pruneAuthState } from '../_lib/store.js';
 
 export async function onRequestGet({ request, env }) {
   let config;
-  try {
-    config = getConfig(env);
-  } catch (err) {
-    return json({ debug_error: err.message }, 500);
-  }
+  try { config = getConfig(env); } catch { return json({ error: 'configuration_error' }, 503); }
 
   const requestUrl = new URL(request.url);
   const redirectPath = safeReturnPath(requestUrl.searchParams.get('return_to') || requestUrl.searchParams.get('returnTo'));
@@ -37,12 +33,10 @@ export async function onRequestGet({ request, env }) {
     }), 302, {
       'Set-Cookie': setCookie(names.transaction, browserBinding, config.transactionTtl, names.secure)
     });
-  }catch (error) {
-  console.log("LOGIN getConfig ERROR:", error.message);
-  const unavailable = error.message === 'authorization_server_unavailable';
-  return json({ error: unavailable ? 'authorization_server_unavailable' : 'configuration_error' }, unavailable ? 502 : 503);
-}
-
+  } catch (error) {
+    const unavailable = error.message === 'authorization_server_unavailable';
+    return json({ error: unavailable ? 'authorization_server_unavailable' : 'configuration_error' }, unavailable ? 502 : 503);
+  }
 }
 
 export function onRequest() {

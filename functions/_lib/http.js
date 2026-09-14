@@ -64,11 +64,11 @@ export function cookieNames(request) {
 }
 
 export function setCookie(name, value, maxAge, secure) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=None${secure ? '; Secure' : ''}`;
+  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
 }
 
 export function clearCookie(name, secure) {
-  return `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=None${secure ? '; Secure' : ''}`;
+  return `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
 }
 
 export function oauthErrorRedirect(code) {

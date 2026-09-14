@@ -53,7 +53,7 @@ test('production session cookie is host-only, HttpOnly, Secure and SameSite Lax'
   assert.equal(names.session, '__Host-business_session');
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=None/);
+  assert.match(cookie, /SameSite=Lax/);
   assert.doesNotMatch(cookie, /Domain=/i);
 });
 
