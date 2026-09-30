@@ -1,0 +1,9 @@
+{
+  "d1_databases": [
+    {
+      "binding": "AUTH_DB",
+      "database_name": "auth-db",
+      "database_id": "0275d0dc-cb32-425c-bf92-2476678612a4"
+    }
+  ]
+}
