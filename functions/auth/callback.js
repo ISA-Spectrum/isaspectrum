@@ -42,6 +42,13 @@ const ERROR_CODES = {
 export function callbackErrorCode(message) {
   const name = String(message || '');
   if (name.startsWith('missing_config:') || name.startsWith('invalid_config:')) return 'configuration_error';
+  if (name.startsWith('business_store_failure:')) {
+    // The business store rejects writes for two very different reasons; telling them
+    // apart is what makes the login failure actionable.
+    if (/42501|permission denied/i.test(name)) return 'business_store_permission_denied';
+    if (/PGRST301|no suitable key|jwt/i.test(name)) return 'business_store_key_rejected';
+    return 'business_store_unavailable';
+  }
   return ERROR_CODES[name] || 'authentication_failed';
 }
 

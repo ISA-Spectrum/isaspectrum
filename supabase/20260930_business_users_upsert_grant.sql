@@ -43,7 +43,13 @@
 
 begin;
 
-grant update (identity_provider, identity_subject)
+-- user_id is included because PostgREST's DO UPDATE SET writes every column present in
+-- the request payload, including the conflict target. Granting it is still safe: the
+-- business_users_update_self policy requires the post-update user_id to equal
+-- auth.uid(), so a row can only keep its own owner. is_checker is deliberately NOT
+-- granted, because the policy does not constrain it and granting it would let any user
+-- promote themselves to reviewer.
+grant update (user_id, identity_provider, identity_subject)
   on table public.business_users to authenticated;
 
 commit;
