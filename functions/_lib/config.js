@@ -53,6 +53,15 @@ export function getConfig(env) {
   if (!allowedAlgorithms.size || [...allowedAlgorithms].some(value => !['RS256', 'PS256', 'ES256'].includes(value))) {
     throw new Error('invalid_config:OIDC_ALLOWED_ALGORITHMS');
   }
+  // Optional: where the provider should send the browser after RP-initiated logout. It
+  // must also be registered in the client's "Valid post logout redirect URIs". Left
+  // unset on purpose by default, so logout lands on the provider's own confirmation page
+  // instead of risking a rejection for an unregistered URI.
+  let postLogoutRedirect = null;
+  const postLogoutInput = String(env.AUTH_POST_LOGOUT_REDIRECT || '').trim();
+  if (postLogoutInput) {
+    try { postLogoutRedirect = absoluteUrl(postLogoutInput, 'AUTH_POST_LOGOUT_REDIRECT', allowLocalHttp); } catch { postLogoutRedirect = null; }
+  }
 
   return {
     issuer,
@@ -72,6 +81,7 @@ export function getConfig(env) {
     // With this enabled the client id is still proven by the signed `azp` claim, and
     // every other audience value must belong to this exact issuer. Default: strict.
     acceptAzpAsAudience: env.OIDC_ACCEPT_AZP_AS_AUDIENCE === '1',
+    postLogoutRedirect,
     businessSupabaseUrl,
     businessSupabasePublishableKey: required(env, 'BUSINESS_SUPABASE_PUBLISHABLE_KEY')
   };

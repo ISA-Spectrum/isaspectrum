@@ -7,6 +7,7 @@ import { buildAuthorizationUrl, exchangeCode, verifyIdToken } from '../functions
 import { authenticateApi } from '../functions/_lib/api.js';
 import { onRequestGet as startLogin } from '../functions/auth/login.js';
 import { callbackErrorCode, onRequestGet as finishLogin } from '../functions/auth/callback.js';
+import { onRequestPost as logoutSession } from '../functions/auth/logout.js';
 
 function config(overrides = {}) {
   return getConfig({
@@ -169,7 +170,10 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
               nonce: this.args[3], redirect_path: this.args[4], expires_at: this.args[6]
             };
           } else if (sql.includes('insert into business_sessions')) {
-            sessionRecord = { session_hash: this.args[0], user_id: this.args[1], amr: JSON.parse(this.args[12]) };
+            sessionRecord = {
+              session_hash: this.args[0], user_id: this.args[1],
+              display_name: this.args[5], amr: JSON.parse(this.args[12])
+            };
           }
           return { meta: { changes: 1 } };
         },
@@ -210,7 +214,7 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
       return Response.json({ id_token: `${signingInput}.${signature}`, access_token: 'ephemeral-provider-token', token_type: 'Bearer' });
     }
     if (url === discovery.jwks_uri) return Response.json({ keys: [providerJwk] });
-    if (url === discovery.userinfo_endpoint) return Response.json({ sub: 'subject-123', email: 'student@example.com', name: 'Student' });
+    if (url === discovery.userinfo_endpoint) return Response.json({ sub: 'subject-123', email: 'student@example.com', name: 'Student', nickname: '校园小星' });
     if (url.startsWith(`${storeOrigin}/rest/v1/business_users`)) {
       assert.equal(init.headers.apikey, 'publishable-test');
       const token = init.headers.Authorization.replace('Bearer ', '');
@@ -253,6 +257,8 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
   assert.match(completed.headers.get('set-cookie'), /__Host-business_session=/);
   assert.match(sessionRecord.user_id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(sessionRecord.amr, ['webauthn']);
+  // The OIDC `nickname` claim must win over the provider's first/last-name pair.
+  assert.equal(sessionRecord.display_name, '校园小星');
   assert.equal('access_token' in sessionRecord, false);
   assert.equal('id_token' in sessionRecord, false);
 
@@ -450,4 +456,98 @@ test('a failing callback reports the real cause to the login page and logs its s
   );
   // The authorization code must never appear in the logs.
   assert.ok(logs.every(line => !line.includes('one-time-code')), 'the authorization code must not be logged');
+});
+
+function logoutEnv(env) {
+  return {
+    AUTH_ISSUER: `https://logout-${env}.example.com`,
+    AUTH_CLIENT_ID: 'business-client',
+    AUTH_REDIRECT_URI: `https://business-${env}.example.com/auth/callback`,
+    BUSINESS_SUPABASE_URL: 'https://store.supabase.co',
+    BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'publishable-test',
+    AUTH_DB: {
+      prepare() {
+        return {
+          bind(...args) { this.args = args; return this; },
+          async run() { revokedHashes.push(this.args[0]); return { meta: { changes: 1 } }; }
+        };
+      },
+      async batch() { return []; }
+    }
+  };
+}
+let revokedHashes = [];
+
+test('logout revokes the business session and also ends the provider session', async t => {
+  const suffix = Date.now() + 29;
+  const issuer = `https://logout-${suffix}.example.com`;
+  const origin = `https://business-${suffix}.example.com`;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async input => {
+    if (String(input) === `${issuer}/.well-known/openid-configuration`) {
+      return Response.json({
+        issuer,
+        authorization_endpoint: `${issuer}/oauth/authorize`,
+        token_endpoint: `${issuer}/oauth/token`,
+        jwks_uri: `${issuer}/jwks`,
+        end_session_endpoint: `${issuer}/oauth/logout`,
+        response_types_supported: ['code'],
+        code_challenge_methods_supported: ['S256']
+      });
+    }
+    throw new Error(`unexpected fetch: ${input}`);
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+  revokedHashes = [];
+
+  const env = logoutEnv(suffix);
+  const response = await logoutSession({
+    request: new Request(`${origin}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Origin: origin, 'Content-Type': 'application/json',
+        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+      },
+      body: JSON.stringify({ returnTo: '/main.html' })
+    }),
+    env
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  const logoutUrl = new URL(body.idpLogoutUrl);
+  // Without a registered post_logout_redirect_uri the provider shows its own page; the
+  // client_id is what lets it end the right SSO session.
+  assert.equal(`${logoutUrl.origin}${logoutUrl.pathname}`, `${issuer}/oauth/logout`);
+  assert.equal(logoutUrl.searchParams.get('client_id'), 'business-client');
+  assert.equal(logoutUrl.searchParams.get('post_logout_redirect_uri'), null);
+  assert.match(response.headers.get('set-cookie'), /__Host-business_session=;/);
+  assert.equal(revokedHashes.length, 1, 'the business session must be revoked');
+});
+
+test('logout still succeeds when the provider is unreachable', async t => {
+  const suffix = Date.now() + 31;
+  const origin = `https://business-${suffix}.example.com`;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('provider down'); };
+  t.after(() => { globalThis.fetch = originalFetch; });
+  revokedHashes = [];
+
+  const response = await logoutSession({
+    request: new Request(`${origin}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Origin: origin, 'Content-Type': 'application/json',
+        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+      },
+      body: JSON.stringify({ returnTo: '/main.html' })
+    }),
+    env: logoutEnv(suffix)
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.idpLogoutUrl, null);
+  assert.equal(body.returnTo, '/main.html');
+  assert.equal(revokedHashes.length, 1, 'the local session must still be revoked');
 });

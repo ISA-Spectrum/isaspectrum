@@ -51,7 +51,11 @@
       body: JSON.stringify({ returnTo: safeReturnTo(returnTo) })
     });
     if (!response.ok) throw new Error('logout_failed');
-    location.replace(safeReturnTo(returnTo));
+    const result = await response.json().catch(() => null);
+    // The server also returns the provider's RP-initiated logout URL. Following it ends
+    // the authorization server's own session, so the next visit really asks for a
+    // password instead of silently re-authenticating the previous account.
+    location.replace(result?.idpLogoutUrl || safeReturnTo(returnTo));
   }
 
   window.ISAAuth = { getSession, requireSession, loginUrl, logout, safeReturnTo };

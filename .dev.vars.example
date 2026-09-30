@@ -17,6 +17,10 @@ OIDC_MAX_IAT_AGE_SECONDS=600
 # client_id but whose signed `azp` does (Keycloak's default: aud=account/realm,
 # azp=client_id). Prefer fixing the provider with an Audience protocol mapper.
 OIDC_ACCEPT_AZP_AS_AUDIENCE=0
+# Where the provider sends the browser after RP-initiated logout. Must also be listed in
+# the client's "Valid post logout redirect URIs". Leave empty to land on the provider's
+# own logged-out page instead.
+AUTH_POST_LOGOUT_REDIRECT=
 
 # --- Business session (Cloudflare D1 binding is named AUTH_DB) ---
 BUSINESS_SESSION_TTL_SECONDS=28800
