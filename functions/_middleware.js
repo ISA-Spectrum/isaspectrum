@@ -49,7 +49,7 @@ function page(content, status = 200) {
 // repository-internal files would otherwise be downloadable — and once the site runs
 // on a hostname without "test" in it, the inner-test gate below does not apply at all.
 // The check happens before the static branch because static extensions skip the gate.
-const PRIVATE_PREFIXES = ['/test/', '/docs/', '/supabase/', '/migrations/', '/functions/', '/.git/', '/.wrangler/'];
+const PRIVATE_PREFIXES = ['/test/', '/docs/', '/supabase/', '/migrations/', '/functions/', '/scripts/', '/.git/', '/.wrangler/'];
 const PRIVATE_FILES = new Set([
   '/package.json', '/package-lock.json', '/wrangler.jsonc', '/wrangler.toml',
   '/.gitignore', '/.assetsignore', '/.dev.vars', '/.dev.vars.example'
