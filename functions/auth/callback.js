@@ -101,7 +101,11 @@ export async function onRequestGet({ request, env }) {
     stage = 'userinfo';
     const userInfo = await fetchUserInfo(discovery, tokenSet, claims.sub);
     const rawEmail = userInfo?.email || claims.email;
-    const rawDisplayName = userInfo?.name || claims.name || claims.preferred_username;
+    // Prefer the standard OIDC `nickname` claim: the provider's first/last name pair is
+    // not what a community site wants to display. Falls back to the older sources so a
+    // realm without a nickname attribute keeps working.
+    const rawDisplayName = userInfo?.nickname || claims.nickname
+      || userInfo?.name || claims.name || claims.preferred_username;
     const email = typeof rawEmail === 'string' ? rawEmail.trim().slice(0, 320) || null : null;
     const displayName = typeof rawDisplayName === 'string'
       ? rawDisplayName.trim().slice(0, 120) || null
