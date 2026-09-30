@@ -1,0 +1,35 @@
+# Template for local development. Copy to `.dev.vars` (which is gitignored) and fill in.
+# The real values live only in the Cloudflare Pages project settings; never commit them.
+
+# --- Authorization Server (OIDC) ---
+AUTH_ISSUER=https://idp.example.com/realms/your-realm
+AUTH_CLIENT_ID=isaspectrum-web
+# Leave empty for a public client (Authorization Code + PKCE, no client secret).
+AUTH_CLIENT_SECRET=
+AUTH_REDIRECT_URI=http://127.0.0.1:8788/auth/callback
+AUTH_SCOPES=openid profile email
+# Required for http://127.0.0.1 redirect URIs. Never set this in production.
+AUTH_ALLOW_INSECURE_LOCALHOST=1
+OIDC_ALLOWED_ALGORITHMS=RS256
+OIDC_CLOCK_SKEW_SECONDS=60
+OIDC_MAX_IAT_AGE_SECONDS=600
+# Set to 1 only when the provider issues ID Tokens whose `aud` does not contain this
+# client_id but whose signed `azp` does (Keycloak's default: aud=account/realm,
+# azp=client_id). Prefer fixing the provider with an Audience protocol mapper.
+OIDC_ACCEPT_AZP_AS_AUDIENCE=0
+
+# --- Business session (Cloudflare D1 binding is named AUTH_DB) ---
+BUSINESS_SESSION_TTL_SECONDS=28800
+BUSINESS_SESSION_ABSOLUTE_TTL_SECONDS=604800
+BUSINESS_SESSION_ROTATE_AFTER_SECONDS=1800
+OAUTH_TRANSACTION_TTL_SECONDS=600
+
+# --- Business Supabase project ---
+BUSINESS_SUPABASE_URL=https://your-project.supabase.co
+BUSINESS_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+# Private ES256 JWK that matches a key registered in the Supabase project's JWT
+# signing keys. Server-side secret only; it must never reach the browser.
+BUSINESS_SUPABASE_SIGNING_JWK={"kty":"EC","crv":"P-256","kid":"...","x":"...","y":"...","d":"...","alg":"ES256"}
+
+# --- Inner test gate (only active when the request hostname contains "test") ---
+INNER_TEST_PASSWORD=change-me

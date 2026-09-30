@@ -1,0 +1,22 @@
+# Files listed here are not uploaded as static assets.
+# This Pages project publishes the repository root, so without this file the
+# source tree (schema, tests, docs, wrangler config) is served publicly.
+.git
+.gitignore
+.dev.vars
+.dev.vars.*
+.wrangler
+functions
+migrations
+supabase
+test
+docs
+node_modules
+wrangler.jsonc
+wrangler.local.jsonc
+package.json
+package-lock.json
+*.md
+CHANGELOG.md
+LICENSE
+CONTRIBUTING.md

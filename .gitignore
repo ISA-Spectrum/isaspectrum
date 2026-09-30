@@ -1,0 +1,11 @@
+.DS_Store
+functions/.DS_Store
+
+# Local secrets and runtime state must never be committed.
+# .dev.vars holds AUTH_CLIENT_SECRET / BUSINESS_SUPABASE_SIGNING_JWK.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+node_modules/
+wrangler.local.jsonc

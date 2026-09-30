@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getConfig } from '../functions/_lib/config.js';
 import { sha256Base64Url } from '../functions/_lib/crypto.js';
-import { cookieNames, safeReturnPath, setCookie } from '../functions/_lib/http.js';
+import { cookieNames, oauthErrorRedirect, safeReturnPath, setCookie } from '../functions/_lib/http.js';
 import { buildAuthorizationUrl, exchangeCode, verifyIdToken } from '../functions/_lib/oidc.js';
 import { authenticateApi } from '../functions/_lib/api.js';
 import { onRequestGet as startLogin } from '../functions/auth/login.js';
-import { onRequestGet as finishLogin } from '../functions/auth/callback.js';
+import { callbackErrorCode, onRequestGet as finishLogin } from '../functions/auth/callback.js';
 
 function config(overrides = {}) {
   return getConfig({
@@ -264,4 +264,153 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
   });
   assert.equal(replayed.status, 303);
   assert.equal(replayed.headers.get('location'), '/login.html?error=state_mismatch');
+});
+
+test('callback failures keep their precise cause instead of collapsing into invalid_id_token', () => {
+  assert.equal(callbackErrorCode('invalid_id_token_audience'), 'id_token_audience_mismatch');
+  assert.equal(callbackErrorCode('invalid_id_token_authorized_party'), 'id_token_audience_mismatch');
+  assert.equal(callbackErrorCode('unsupported_id_token_algorithm'), 'id_token_algorithm_mismatch');
+  assert.equal(callbackErrorCode('id_token_key_not_found'), 'id_token_key_unavailable');
+  assert.equal(callbackErrorCode('invalid_id_token_signature'), 'id_token_signature_invalid');
+  assert.equal(callbackErrorCode('invalid_id_token_issuer'), 'id_token_issuer_mismatch');
+  assert.equal(callbackErrorCode('expired_id_token'), 'id_token_expired');
+  assert.equal(callbackErrorCode('invalid_id_token_issued_at'), 'id_token_clock_skew');
+  assert.equal(callbackErrorCode('invalid_auth_time'), 'id_token_clock_skew');
+  assert.equal(callbackErrorCode('nonce_mismatch'), 'nonce_mismatch');
+  assert.equal(callbackErrorCode('invalid_grant'), 'invalid_grant');
+  assert.equal(callbackErrorCode('userinfo_subject_mismatch'), 'identity_mismatch');
+  assert.equal(callbackErrorCode('business_store_failure'), 'business_store_unavailable');
+  assert.equal(callbackErrorCode('missing_config:AUTH_ISSUER'), 'configuration_error');
+  assert.equal(callbackErrorCode('invalid_config:OIDC_ALLOWED_ALGORITHMS'), 'configuration_error');
+  assert.equal(callbackErrorCode('some unexpected boom'), 'authentication_failed');
+  // Every code the callback can emit must survive URL sanitisation unchanged.
+  for (const name of ['invalid_id_token_audience', 'expired_id_token', 'business_store_failure', 'id_token_clock_skew']) {
+    const code = callbackErrorCode(name);
+    assert.equal(oauthErrorRedirect(code), `/login.html?error=${code}`);
+  }
+  assert.equal(oauthErrorRedirect('<script>alert(1)</script>'), '/login.html?error=authentication_failed');
+});
+
+test('ID token audience is strict by default and can trust a signed azp only when enabled', async t => {
+  const issuer = `https://audience-${Date.now()}.example.com`;
+  const pair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify']
+  );
+  const jwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
+  Object.assign(jwk, { kid: 'audience-key', alg: 'RS256', use: 'sig' });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const discovery = { issuer, jwks_uri: `${issuer}/jwks` };
+  const now = Math.floor(Date.now() / 1000);
+  const sign = async (aud, azp) => {
+    const header = encoded({ alg: 'RS256', kid: 'audience-key', typ: 'JWT' });
+    const payload = encoded({ iss: issuer, sub: 'subject-1', aud, azp, exp: now + 300, iat: now, nonce: 'audience-nonce' });
+    const signature = Buffer.from(await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5', pair.privateKey, new TextEncoder().encode(`${header}.${payload}`)
+    )).toString('base64url');
+    return `${header}.${payload}.${signature}`;
+  };
+
+  const strict = config({ AUTH_ISSUER: issuer });
+  const relaxed = config({ AUTH_ISSUER: issuer, OIDC_ACCEPT_AZP_AS_AUDIENCE: '1' });
+
+  const specCompliant = await sign('business-client', 'business-client');
+  const keycloakStyle = await sign('account', 'business-client');
+  const keycloakStyleWithIssuer = await sign(['account', issuer], 'business-client');
+  const wrongAuthorizedParty = await sign('account', 'someone-else');
+  const foreignAudience = await sign(['account', 'unrelated-party'], 'business-client');
+  const foreignOnly = await sign('unrelated-party', 'business-client');
+
+  // Strict (default): the client id must be one of the audiences.
+  await verifyIdToken(specCompliant, discovery, strict, 'audience-nonce');
+  await assert.rejects(() => verifyIdToken(keycloakStyle, discovery, strict, 'audience-nonce'), /invalid_id_token_audience/);
+
+  // Opt-in: a matching signed azp is accepted, unrelated audiences still are not.
+  await verifyIdToken(keycloakStyle, discovery, relaxed, 'audience-nonce');
+  await verifyIdToken(keycloakStyleWithIssuer, discovery, relaxed, 'audience-nonce');
+  await assert.rejects(() => verifyIdToken(wrongAuthorizedParty, discovery, relaxed, 'audience-nonce'), /invalid_id_token_audience/);
+  await assert.rejects(() => verifyIdToken(foreignAudience, discovery, relaxed, 'audience-nonce'), /invalid_id_token_audience/);
+  await assert.rejects(() => verifyIdToken(foreignOnly, discovery, relaxed, 'audience-nonce'), /invalid_id_token_audience/);
+});
+
+test('a failing callback reports the real cause to the login page and logs its stage', async t => {
+  const suffix = Date.now() + 13;
+  const issuer = `https://audit-${suffix}.example.com`;
+  const businessOrigin = `https://audit-${suffix}.example.com`;
+  const pair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify']
+  );
+  const jwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
+  Object.assign(jwk, { kid: 'audit-key', alg: 'RS256', use: 'sig' });
+  const discovery = {
+    issuer,
+    authorization_endpoint: `${issuer}/oauth/authorize`,
+    token_endpoint: `${issuer}/oauth/token`,
+    jwks_uri: `${issuer}/.well-known/jwks.json`,
+    response_types_supported: ['code'],
+    code_challenge_methods_supported: ['S256']
+  };
+  const d1 = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { meta: { changes: 1 } }; },
+        async first() {
+          if (!sql.includes('delete from oauth_transactions')) return null;
+          return { code_verifier: 'verifier', nonce: 'audit-nonce', redirect_path: '/main.html' };
+        }
+      };
+    },
+    async batch() { return []; }
+  };
+  const env = {
+    AUTH_ISSUER: issuer,
+    AUTH_CLIENT_ID: 'business-client',
+    AUTH_REDIRECT_URI: `${businessOrigin}/auth/callback`,
+    BUSINESS_SUPABASE_URL: 'https://store.supabase.co',
+    BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'publishable-test',
+    AUTH_DB: d1
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async input => {
+    const url = String(input);
+    if (url === `${issuer}/.well-known/openid-configuration`) return Response.json(discovery);
+    if (url === discovery.jwks_uri) return Response.json({ keys: [jwk] });
+    if (url === discovery.token_endpoint) {
+      const now = Math.floor(Date.now() / 1000);
+      const header = encoded({ alg: 'RS256', kid: 'audit-key', typ: 'JWT' });
+      // Keycloak-style ID token: aud is the realm/account client, azp names the client.
+      const payload = encoded({ iss: issuer, sub: 'subject-1', aud: 'account', azp: 'someone-else', exp: now + 300, iat: now, nonce: 'audit-nonce' });
+      const signature = Buffer.from(await crypto.subtle.sign(
+        'RSASSA-PKCS1-v1_5', pair.privateKey, new TextEncoder().encode(`${header}.${payload}`)
+      )).toString('base64url');
+      return Response.json({ id_token: `${header}.${payload}.${signature}`, token_type: 'Bearer' });
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  const logs = [];
+  const originalError = console.error;
+  console.error = (...args) => logs.push(args.join(' '));
+  t.after(() => { globalThis.fetch = originalFetch; console.error = originalError; });
+
+  const failed = await finishLogin({
+    request: new Request(`${businessOrigin}/auth/callback?code=one-time-code&state=state-value`, {
+      headers: { Cookie: '__Host-oauth_transaction=binding-value' }
+    }),
+    env
+  });
+  assert.equal(failed.status, 303);
+  assert.equal(failed.headers.get('location'), '/login.html?error=id_token_audience_mismatch');
+  assert.ok(
+    logs.some(line => line.includes('stage=id-token-verification') && line.includes('invalid_id_token_audience')),
+    `expected a diagnostic log, got: ${logs.join(' | ')}`
+  );
+  // The authorization code must never appear in the logs.
+  assert.ok(logs.every(line => !line.includes('one-time-code')), 'the authorization code must not be logged');
 });

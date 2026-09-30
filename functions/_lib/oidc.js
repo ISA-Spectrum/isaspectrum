@@ -165,12 +165,33 @@ async function verifySignature(jwt, header, key) {
   if (!valid) throw new Error('invalid_id_token_signature');
 }
 
+function realmFromIssuer(issuer) {
+  // "https://host/realms/testrealm" -> "testrealm". Used only to widen the trusted
+  // audience set to values minted by this same issuer.
+  const match = /\/(?:realms|realm)\/([^/]+)\/?$/.exec(String(issuer || ''));
+  return match ? match[1] : null;
+}
+
 function validateClaims(claims, discovery, config, nonce) {
   const now = Math.floor(Date.now() / 1000);
   if (claims.iss !== discovery.issuer) throw new Error('invalid_id_token_issuer');
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  if (!audiences.includes(config.clientId)) throw new Error('invalid_id_token_audience');
-  if (audiences.length > 1 && claims.azp !== config.clientId) throw new Error('invalid_id_token_authorized_party');
+  if (!audiences.length || audiences.some(value => typeof value !== 'string' || !value)) {
+    throw new Error('invalid_id_token_audience');
+  }
+  if (config.acceptAzpAsAudience) {
+    // `azp` is inside the signed token and names the client the token was minted for,
+    // so it proves the same property as an `aud` entry. Only audiences that belong to
+    // this issuer are accepted, so a token minted for an unrelated party still fails.
+    if (!audiences.includes(config.clientId) && claims.azp !== config.clientId) {
+      throw new Error('invalid_id_token_audience');
+    }
+    const trusted = new Set([config.clientId, discovery.issuer, realmFromIssuer(discovery.issuer), 'account'].filter(Boolean));
+    if (audiences.some(value => !trusted.has(value))) throw new Error('invalid_id_token_audience');
+  } else {
+    if (!audiences.includes(config.clientId)) throw new Error('invalid_id_token_audience');
+    if (audiences.length > 1 && claims.azp !== config.clientId) throw new Error('invalid_id_token_authorized_party');
+  }
   if (!Number.isFinite(claims.exp) || claims.exp <= now - config.clockSkew) throw new Error('expired_id_token');
   if (!Number.isFinite(claims.iat) || claims.iat > now + config.clockSkew || claims.iat < now - config.maxIatAge - config.clockSkew) {
     throw new Error('invalid_id_token_issued_at');

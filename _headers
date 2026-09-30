@@ -1,13 +1,23 @@
+# Cloudflare Pages _headers
+# Path patterns MUST start with "/". Bare patterns such as "*.js" are rejected by
+# the parser, which silently dropped every JS/CSS/font cache rule before.
+# Specific rules come first so they win regardless of how duplicate rules are merged;
+# the global "/*" block only adds security headers and never overrides Cache-Control.
+
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
 
-/*
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Referrer-Policy: no-referrer
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
-  Strict-Transport-Security: max-age=31536000; includeSubDomains
+/auth-client.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/home.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/meal-rating.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/checker-ui.js
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /*.html
   Cache-Control: no-cache, no-store, must-revalidate
@@ -23,25 +33,25 @@
 /images/site.webmanifest
   Cache-Control: public, max-age=604800, s-maxage=604800
 
-*.js
+/*.js
   Cache-Control: public, max-age=259200, s-maxage=259200
 
-/auth-client.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
-/home.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
-/meal-rating.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
-/checker-ui.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
-*.css
+/*.css
   Cache-Control: public, max-age=259200, s-maxage=259200
 
-*.woff2
-*.woff
-*.ttf
+/*.woff2
   Cache-Control: public, max-age=604800, s-maxage=604800
+
+/*.woff
+  Cache-Control: public, max-age=604800, s-maxage=604800
+
+/*.ttf
+  Cache-Control: public, max-age=604800, s-maxage=604800
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

@@ -67,6 +67,11 @@ export function getConfig(env) {
     clockSkew: integer(env, 'OIDC_CLOCK_SKEW_SECONDS', 60, 0, 300),
     maxIatAge: integer(env, 'OIDC_MAX_IAT_AGE_SECONDS', 600, 60, 3600),
     allowedAlgorithms,
+    // Keycloak (and several other providers) only put the realm/`account` audience in
+    // the ID Token unless an "Audience" protocol mapper is configured on the client.
+    // With this enabled the client id is still proven by the signed `azp` claim, and
+    // every other audience value must belong to this exact issuer. Default: strict.
+    acceptAzpAsAudience: env.OIDC_ACCEPT_AZP_AS_AUDIENCE === '1',
     businessSupabaseUrl,
     businessSupabasePublishableKey: required(env, 'BUSINESS_SUPABASE_PUBLISHABLE_KEY')
   };

@@ -72,12 +72,20 @@ export function clearCookie(name, secure) {
 }
 
 export function oauthErrorRedirect(code) {
+  // Only these identifiers may reach the browser. They are fixed internal names and
+  // never contain token material, provider response bodies or user data.
   const safeCodes = new Set([
     'access_denied', 'invalid_request', 'invalid_grant', 'login_required',
     'interaction_required', 'state_mismatch', 'nonce_mismatch',
     'pkce_mismatch', 'expired_code', 'used_code', 'token_endpoint_failure',
     'authorization_server_unavailable', 'invalid_id_token',
-    'configuration_error'
+    'configuration_error',
+    // Granular ID Token / identity failures. Collapsing these into a single
+    // "invalid_id_token" made real outages undiagnosable from the login page.
+    'id_token_algorithm_mismatch', 'id_token_key_unavailable',
+    'id_token_signature_invalid', 'id_token_issuer_mismatch',
+    'id_token_audience_mismatch', 'id_token_expired', 'id_token_clock_skew',
+    'id_token_invalid', 'identity_mismatch', 'business_store_unavailable'
   ]);
   const value = safeCodes.has(code) ? code : 'authentication_failed';
   return `/login.html?error=${encodeURIComponent(value)}`;
