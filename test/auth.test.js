@@ -281,11 +281,22 @@ test('callback failures keep their precise cause instead of collapsing into inva
   assert.equal(callbackErrorCode('invalid_client'), 'client_authentication_failed');
   assert.equal(callbackErrorCode('userinfo_subject_mismatch'), 'identity_mismatch');
   assert.equal(callbackErrorCode('business_store_failure'), 'business_store_unavailable');
+  // The business store rejects writes for two very different reasons; the login page
+  // must be able to tell "missing column grant" from "signing key not registered".
+  assert.equal(
+    callbackErrorCode('business_store_failure:401:{"code":"42501","message":"permission denied for table business_users"}'),
+    'business_store_permission_denied'
+  );
+  assert.equal(
+    callbackErrorCode('business_store_failure:401:{"code":"PGRST301","message":"No suitable key was found to decode the JWT"}'),
+    'business_store_key_rejected'
+  );
+  assert.equal(callbackErrorCode('business_store_failure:500:something else'), 'business_store_unavailable');
   assert.equal(callbackErrorCode('missing_config:AUTH_ISSUER'), 'configuration_error');
   assert.equal(callbackErrorCode('invalid_config:OIDC_ALLOWED_ALGORITHMS'), 'configuration_error');
   assert.equal(callbackErrorCode('some unexpected boom'), 'authentication_failed');
   // Every code the callback can emit must survive URL sanitisation unchanged.
-  for (const name of ['invalid_id_token_audience', 'expired_id_token', 'business_store_failure', 'id_token_clock_skew', 'invalid_client']) {
+  for (const name of ['invalid_id_token_audience', 'expired_id_token', 'business_store_failure', 'id_token_clock_skew', 'invalid_client', 'business_store_permission_denied', 'business_store_key_rejected']) {
     const code = callbackErrorCode(name);
     assert.equal(oauthErrorRedirect(code), `/login.html?error=${code}`);
   }

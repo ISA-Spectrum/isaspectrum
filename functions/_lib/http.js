@@ -86,6 +86,7 @@ export function oauthErrorRedirect(code) {
     'id_token_signature_invalid', 'id_token_issuer_mismatch',
     'id_token_audience_mismatch', 'id_token_expired', 'id_token_clock_skew',
     'id_token_invalid', 'identity_mismatch', 'business_store_unavailable',
+    'business_store_permission_denied', 'business_store_key_rejected',
     'client_authentication_failed'
   ]);
   const value = safeCodes.has(code) ? code : 'authentication_failed';

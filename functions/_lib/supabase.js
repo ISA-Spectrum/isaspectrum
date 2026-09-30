@@ -78,7 +78,16 @@ async function requestSupabase(env, session, route, init = {}) {
       ...init.headers
     }
   });
-  if (!response.ok) throw new Error('business_store_failure');
+  if (!response.ok) {
+    // Keep the HTTP status and the PostgREST error code. A 42501 "permission denied"
+    // means a missing column grant, while PGRST301 means the project does not trust our
+    // signing key. Both used to collapse into one indistinguishable failure.
+    let detail = '';
+    try { detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 200); } catch {}
+    // Never log the query string: it carries user ids and filters.
+    console.error(`[supabase] ${init.method || 'GET'} ${String(route).split('?')[0]} -> ${response.status} ${detail}`);
+    throw new Error(`business_store_failure:${response.status}:${detail}`);
+  }
   if (response.status === 204) return null;
   const text = await response.text();
   return text ? JSON.parse(text) : null;
