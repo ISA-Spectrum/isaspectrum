@@ -44,6 +44,12 @@
   ! Cache-Control
   Cache-Control: no-cache, no-store, must-revalidate
 
+# Coupled to the database schema (the approved_messages_public projection changes with
+# migrations), so a long cache would keep old visitors on a stale column list.
+/public-data.js
+  ! Cache-Control
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /home.js
   ! Cache-Control
   Cache-Control: no-cache, no-store, must-revalidate

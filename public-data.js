@@ -34,7 +34,7 @@
     const safePage = Math.max(0, Number(page) || 0);
     const safeLimit = Math.min(50, Math.max(1, Number(limit) || 20));
     const params = new URLSearchParams({
-      select: 'id,username,content,zone,pic_url,created_at,reply_to',
+      select: 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url',
       reply_to: 'is.null',
       order: `created_at.${sort === 'oldest' ? 'asc' : 'desc'}`,
       offset: String(safePage * safeLimit),
@@ -65,7 +65,7 @@
       throw new Error('invalid_message_id');
     }
     const params = new URLSearchParams({
-      select: 'id,username,content,zone,pic_url,created_at,reply_to',
+      select: 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url',
       order: 'created_at.asc',
       limit: '1000'
     });

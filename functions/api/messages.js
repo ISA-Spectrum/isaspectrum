@@ -9,7 +9,7 @@ async function listMessages(request, env) {
   const url = new URL(request.url);
   const thread = url.searchParams.get('thread');
   const params = new URLSearchParams({
-    select: 'id,username,content,zone,pic_url,created_at,reply_to'
+    select: 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url'
   });
   if (thread) {
     if (!MESSAGE_ID.test(thread)) return json({ error: 'invalid_request' }, 400);

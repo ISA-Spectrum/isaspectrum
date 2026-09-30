@@ -60,8 +60,8 @@ test('the same-origin API accepts the UUID identifiers used by the messages tabl
   globalThis.fetch = async input => {
     const url = new URL(String(input));
     assert.equal(url.pathname, '/rest/v1/approved_messages_public');
-    assert.equal(url.searchParams.get('select'), 'id,username,content,zone,pic_url,created_at,reply_to');
-    return Response.json([{ id, username: 'ISAer', content: '测试', zone: '校园生活', pic_url: null, created_at: new Date().toISOString(), reply_to: null }]);
+    assert.equal(url.searchParams.get('select'), 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url');
+    return Response.json([{ id, username: 'ISAer', content: '测试', zone: '校园生活', pic_url: null, created_at: new Date().toISOString(), reply_to: null, avatar_url: null }]);
   };
   t.after(() => { globalThis.fetch = originalFetch; });
 
