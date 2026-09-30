@@ -278,17 +278,43 @@ test('callback failures keep their precise cause instead of collapsing into inva
   assert.equal(callbackErrorCode('invalid_auth_time'), 'id_token_clock_skew');
   assert.equal(callbackErrorCode('nonce_mismatch'), 'nonce_mismatch');
   assert.equal(callbackErrorCode('invalid_grant'), 'invalid_grant');
+  assert.equal(callbackErrorCode('invalid_client'), 'client_authentication_failed');
   assert.equal(callbackErrorCode('userinfo_subject_mismatch'), 'identity_mismatch');
   assert.equal(callbackErrorCode('business_store_failure'), 'business_store_unavailable');
   assert.equal(callbackErrorCode('missing_config:AUTH_ISSUER'), 'configuration_error');
   assert.equal(callbackErrorCode('invalid_config:OIDC_ALLOWED_ALGORITHMS'), 'configuration_error');
   assert.equal(callbackErrorCode('some unexpected boom'), 'authentication_failed');
   // Every code the callback can emit must survive URL sanitisation unchanged.
-  for (const name of ['invalid_id_token_audience', 'expired_id_token', 'business_store_failure', 'id_token_clock_skew']) {
+  for (const name of ['invalid_id_token_audience', 'expired_id_token', 'business_store_failure', 'id_token_clock_skew', 'invalid_client']) {
     const code = callbackErrorCode(name);
     assert.equal(oauthErrorRedirect(code), `/login.html?error=${code}`);
   }
   assert.equal(oauthErrorRedirect('<script>alert(1)</script>'), '/login.html?error=authentication_failed');
+});
+
+test('a rejected or missing client secret is distinguishable from other token endpoint failures', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const discovery = {
+    token_endpoint: 'https://auth.example.com/oauth/token',
+    token_endpoint_auth_methods_supported: ['client_secret_basic']
+  };
+  const confidential = config({ AUTH_CLIENT_SECRET: 'rotated-secret' });
+  const respond = (body, status) => {
+    globalThis.fetch = async () => new Response(JSON.stringify(body), { status });
+  };
+
+  respond({ error: 'invalid_client', error_description: 'Invalid client or Invalid client credentials' }, 401);
+  await assert.rejects(() => exchangeCode(discovery, confidential, 'code', 'verifier'), /invalid_client/);
+
+  respond({ error: 'unauthorized_client' }, 400);
+  await assert.rejects(() => exchangeCode(discovery, confidential, 'code', 'verifier'), /invalid_client/);
+
+  respond({ error: 'temporarily_unavailable' }, 503);
+  await assert.rejects(() => exchangeCode(discovery, confidential, 'code', 'verifier'), /token_endpoint_failure/);
+
+  respond({ error: 'invalid_grant' }, 400);
+  await assert.rejects(() => exchangeCode(discovery, confidential, 'code', 'verifier'), /invalid_grant/);
 });
 
 test('ID token audience is strict by default and can trust a signed azp only when enabled', async t => {

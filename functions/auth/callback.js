@@ -17,6 +17,7 @@ const ERROR_CODES = {
   pkce_s256_not_supported: 'configuration_error',
   unsupported_token_auth_method: 'configuration_error',
   invalid_grant: 'invalid_grant',
+  invalid_client: 'client_authentication_failed',
   token_endpoint_failure: 'token_endpoint_failure',
   nonce_mismatch: 'nonce_mismatch',
   unsupported_id_token_algorithm: 'id_token_algorithm_mismatch',

@@ -103,6 +103,9 @@ export async function exchangeCode(discovery, config, code, codeVerifier) {
     let codeName = '';
     try { codeName = (await response.json()).error || ''; } catch {}
     if (codeName === 'invalid_grant') throw new Error('invalid_grant');
+    // A confidential client with a missing, wrong or expired AUTH_CLIENT_SECRET fails
+    // here. Keycloak answers HTTP 401 with error=invalid_client for this case.
+    if (codeName === 'invalid_client' || codeName === 'unauthorized_client') throw new Error('invalid_client');
     throw new Error('token_endpoint_failure');
   }
   let tokenSet;
