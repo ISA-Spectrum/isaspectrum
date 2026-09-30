@@ -45,6 +45,24 @@ function page(content, status = 200) {
   });
 }
 
+// This Pages project has no build command and publishes the repository root, so
+// repository-internal files would otherwise be downloadable — and once the site runs
+// on a hostname without "test" in it, the inner-test gate below does not apply at all.
+// The check happens before the static branch because static extensions skip the gate.
+const PRIVATE_PREFIXES = ['/test/', '/docs/', '/supabase/', '/migrations/', '/functions/', '/.git/', '/.wrangler/'];
+const PRIVATE_FILES = new Set([
+  '/package.json', '/package-lock.json', '/wrangler.jsonc', '/wrangler.toml',
+  '/.gitignore', '/.assetsignore', '/.dev.vars', '/.dev.vars.example'
+]);
+const PRIVATE_EXTENSIONS = ['.md', '.sql', '.jsonc', '.toml', '.yml', '.yaml'];
+
+function isPrivateAsset(path) {
+  if (PRIVATE_PREFIXES.some(prefix => path.startsWith(prefix))) return true;
+  if (PRIVATE_FILES.has(path)) return true;
+  const dot = path.lastIndexOf('.');
+  return dot !== -1 && PRIVATE_EXTENSIONS.includes(path.slice(dot).toLowerCase());
+}
+
 export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
@@ -52,6 +70,13 @@ export async function onRequest(context) {
 
   // OAuth/OIDC callbacks and server endpoints must reach their Pages Functions.
   if (path.startsWith('/auth/') || path.startsWith('/api/')) return next();
+
+  if (isPrivateAsset(path)) {
+    return new Response('Not Found', {
+      status: 404,
+      headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+  }
 
   const staticSuffix = [
     '.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif',
