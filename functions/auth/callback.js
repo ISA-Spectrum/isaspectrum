@@ -119,7 +119,7 @@ export async function onRequestGet({ request, env }) {
     });
     stage = 'session-issue';
     await destroyBusinessSession(request, env);
-    const sessionCookie = await issueBusinessSession(request, env, config, identity, claims);
+    const sessionCookie = await issueBusinessSession(request, env, config, identity, claims, tokenSet.id_token);
     return responseWithClearedTransaction(request, transaction.redirect_path, sessionCookie);
   } catch (error) {
     // Log the failure for `wrangler pages deployment tail`. Only the internal name

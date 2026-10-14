@@ -2,7 +2,7 @@ import { randomBase64Url, sha256Base64Url } from './crypto.js';
 import { cookieNames, clearCookie, parseCookies, setCookie } from './http.js';
 import { createSession, readSession, revokeSession, rotateSession } from './store.js';
 
-export async function issueBusinessSession(request, env, config, identity, claims) {
+export async function issueBusinessSession(request, env, config, identity, claims, rawIdToken) {
   const token = randomBase64Url(32);
   const sessionHash = await sha256Base64Url(token);
   const expiresAt = new Date(Date.now() + config.sessionTtl * 1000).toISOString();
@@ -19,7 +19,8 @@ export async function issueBusinessSession(request, env, config, identity, claim
     absolute_expires_at: absoluteExpiresAt,
     auth_time: Number.isFinite(claims.auth_time) ? new Date(claims.auth_time * 1000).toISOString() : null,
     amr: Array.isArray(claims.amr) ? claims.amr : [],
-    acr: typeof claims.acr === 'string' ? claims.acr : null
+    acr: typeof claims.acr === 'string' ? claims.acr : null,
+    id_token_raw: rawIdToken || null
   });
   const names = cookieNames(request);
   return setCookie(names.session, token, Math.min(config.sessionTtl, config.sessionAbsoluteTtl), names.secure);

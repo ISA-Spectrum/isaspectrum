@@ -44,18 +44,7 @@
   }
 
   async function logout(returnTo = '/main.html') {
-    const response = await fetch('/auth/logout', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ returnTo: safeReturnTo(returnTo) })
-    });
-    if (!response.ok) throw new Error('logout_failed');
-    const result = await response.json().catch(() => null);
-    // The server also returns the provider's RP-initiated logout URL. Following it ends
-    // the authorization server's own session, so the next visit really asks for a
-    // password instead of silently re-authenticating the previous account.
-    location.replace(result?.idpLogoutUrl || safeReturnTo(returnTo));
+    location.href = '/auth/logout';
   }
 
   window.ISAAuth = { getSession, requireSession, loginUrl, logout, safeReturnTo };

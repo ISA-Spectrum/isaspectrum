@@ -1169,8 +1169,12 @@ window.onload = async function () {
 
     // 登录或退出登录
     document.getElementById('logoutBtn').onclick = loggedIn
-        ? async () => { await ISAAuth.logout('/main.html'); }
-        : () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+    ? async () => {
+        const ok = confirm("确定要退出登录吗？");
+        if(!ok) return;
+        await ISAAuth.logout('/main.html');
+    }
+    : () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
 
     // 头像下拉菜单
     const avatarBtn = document.getElementById('avatarBtn');
