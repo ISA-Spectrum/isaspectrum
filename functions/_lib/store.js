@@ -43,8 +43,8 @@ export async function createSession(env, session) {
     insert into business_sessions (
       session_hash, user_id, identity_provider, identity_subject, email, display_name,
       is_checker, created_at, last_seen_at, expires_at, absolute_expires_at,
-      auth_time, amr, acr
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      auth_time, amr, acr, id_token_raw
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     session.session_hash,
     session.user_id,
@@ -59,7 +59,8 @@ export async function createSession(env, session) {
     session.absolute_expires_at,
     session.auth_time,
     JSON.stringify(session.amr || []),
-    session.acr
+    session.acr,
+    session.id_token_raw
   ).run();
 }
 
