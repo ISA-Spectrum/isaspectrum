@@ -22,88 +22,90 @@ async function getTodayAiCounter(env) {
 }
 
 /** AI审核：5s超时，429最多重试1次 */
+/** AI审核：5s超时，429最多重试1次 */
 async function runAiCheck(content, imageUrls, env) {
-    const nvApiKey = env.NVAPI_KEY;
-    if (!nvApiKey) {
-        console.error('[AI Check] NVAPI_KEY 未配置');
-        return "error";
+const nvApiKey = env.NVAPI_KEY;
+if (!nvApiKey) {
+console.error('[AI Check] NVAPI_KEY 未配置');
+return "error";
     }
-
-    const multiContent = [{ type: "text", text: content }];
-    for (const imgUrl of imageUrls) {
-        multiContent.push({ type: "image_url", image_url: { url: imgUrl } });
+const multiContent = [{ type: "text", text: content }];
+for (const imgUrl of imageUrls) {
+multiContent.push({ type: "image_url", image_url: { url: imgUrl } });
     }
-    const payload = {
-        model: NVAPI_MODEL,
-        messages: [{ role: "user", content: multiContent }]
+const payload = {
+model: NVAPI_MODEL,
+messages: [{ role: "user", content: multiContent }]
     };
-    const headers = {
-        "Authorization": `Bearer ${nvApiKey}`,
-        "Content-Type": "application/json"
+const headers = {
+"Authorization": `Bearer ${nvApiKey}`,
+"Content-Type": "application/json"
     };
-    console.log('[AI Check] 请求 payload:', JSON.stringify(payload));
-
-    let retries = 1;
-    while (retries >= 0) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        try {
-            const resp = await fetch(NVAPI_ENDPOINT, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(payload),
-                signal: controller.signal
+console.log('[AI Check] 请求 payload:', JSON.stringify(payload));
+let retries = 1;
+while (retries >= 0) {
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+try {
+const resp = await fetch(NVAPI_ENDPOINT, {
+method: "POST",
+headers,
+body: JSON.stringify(payload),
+signal: controller.signal
             });
-            console.log('[AI Check] 响应状态:', resp.status);
-            if (resp.status === 429) {
-                retries--;
-                if (retries >= 0) {
-                    console.log('[AI Check] 遇到429，1秒后重试...');
-                    await new Promise(r => setTimeout(r, 1000));
-                    continue;
+console.log('[AI Check] 响应状态:', resp.status);
+if (resp.status === 429) {
+retries--;
+if (retries >= 0) {
+console.log('[AI Check] 遇到429，1秒后重试...');
+await new Promise(r => setTimeout(r, 1000));
+continue;
                 } else {
-                    console.error('[AI Check] 429重试次数用尽');
-                    return "uncertain";
+console.error('[AI Check] 429重试次数用尽');
+return "uncertain";
                 }
             }
-            if (!resp.ok) {
-                const errText = await resp.text().catch(() => '');
-                console.error('[AI Check] 非200响应:', resp.status, errText);
-                return "uncertain";
+if (!resp.ok) {
+const errText = await resp.text().catch(() => '');
+console.error('[AI Check] 非200响应:', resp.status, errText);
+return "uncertain";
             }
-            const data = await resp.json();
-            console.log('[AI Check] 响应数据:', JSON.stringify(data));
-            const out = data.choices?.[0]?.message?.content?.trim() ?? "";
-            console.log('[AI Check] 模型返回内容:', out);
-            // 宽松判断：只要包含 safe 且不包含 unsafe，即视为安全
-            const lower = out.toLowerCase();
-            if (lower.includes("safe") && !lower.includes("unsafe")) {
-                return "safe";
-            }
-            // 如果模型返回的是 JSON，尝试解析
-            try {
-                const jsonOut = JSON.parse(out);
-                if (jsonOut.safe === true || jsonOut.result === "safe" || jsonOut.label === "safe") {
-                    return "safe";
-                }
-            } catch { /* 不是JSON，忽略 */ }
-            return "uncertain";
+const data = await resp.json();
+console.log('[AI Check] 响应数据:', JSON.stringify(data));
+const out = data.choices?.[0]?.message?.content?.trim() ?? "";
+console.log('[AI Check] 模型返回内容:', out);
+
+// ===== Nemotron-4-Guardrails 正确解析逻辑 =====
+let isSafe = false;
+try {
+    const jsonOut = JSON.parse(out);
+    if (jsonOut.decision === "ALLOW" && jsonOut.failed !== true) {
+        isSafe = true;
+    }
+} catch {
+    // 输出不是合法JSON，判定不确定，转入人工
+    isSafe = false;
+}
+if (isSafe) {
+    return "safe";
+}
+return "uncertain";
+// ==============================================
+
         } catch (e) {
-            if (e.name === "AbortError") {
-                console.error('[AI Check] 请求超时');
-                return "timeout";
+if (e.name === "AbortError") {
+console.error('[AI Check] 请求超时');
+return "timeout";
             }
-            console.error('[AI Check] 请求异常:', e);
-            return "error";
+console.error('[AI Check] 请求异常:', e);
+return "error";
         } finally {
-            clearTimeout(timeoutId);
-            controller.abort();
+clearTimeout(timeoutId);
+controller.abort();
         }
     }
-    return "uncertain";
+return "uncertain";
 }
-
-
 async function listMessages(request, env) {
     const url = new URL(request.url);
     const thread = url.searchParams.get('thread');
