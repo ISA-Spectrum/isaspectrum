@@ -1,5 +1,6 @@
 import { authenticateApi, cleanText, integerParam } from '../_lib/api.js';
 import { json, methodNotAllowed } from '../_lib/http.js';
+import { loadLexicon, scanLexicon } from '../_lib/lexicon.js';
 import { requestBusinessData, requestPublicData } from '../_lib/supabase.js';
 
 const ZONES = new Set(['校园生活', '学习互助', '活动社团', '失物招领']);
@@ -7,11 +8,13 @@ const MESSAGE_ID = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a
 
 const NVAPI_MODEL = 'nvidia/nemotron-3.5-content-safety';
 const NVAPI_ENDPOINT = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const NVAPI_TIMEOUT_MS = 15000;
+const NVAPI_MAX_ATTEMPTS = 2;
 
 /** KV统计，故障不影响业务 */
 async function getTodayAiCounter(env) {
   try {
-    const todayUtc = new Date().toUTCString().slice(0, 10);
+    const todayUtc = new Date().toISOString().slice(0, 10);
     const kvKey = `ai_check:${todayUtc}`;
     const raw = await env.AI_COUNTER_KV.get(kvKey);
     const count = Number(raw) || 0;
@@ -21,23 +24,57 @@ async function getTodayAiCounter(env) {
   }
 }
 
+/** KV 计数 +1，失败静默 */
+async function bumpCounter(env, key, expirationTtl = 86400) {
+  if (!key) return;
+  try {
+    const raw = await env.AI_COUNTER_KV.get(key);
+    await env.AI_COUNTER_KV.put(key, String((Number(raw) || 0) + 1), { expirationTtl });
+  } catch {}
+}
+
 /**
- * AI审核
- * - 含图片：直接转人工（图片审核常超时，暂不自动处理）
- * - 纯文本：调用 NVIDIA nemotron-3.5-content-safety
- *   返回 "safe" 表示通过，其余一律转人工
+ * 解析 NIM 输出。只认最后一次出现的判定，避免推理文本里的字样干扰。
+ */
+function verdictFromText(outText) {
+  if (!outText) return { verdict: 'uncertain', reason: 'empty_output' };
+  const matches = [...outText.matchAll(/user safety:\s*(safe|unsafe)/gi)];
+  const last = matches.length ? matches[matches.length - 1][1].toLowerCase() : '';
+  if (last === 'safe') return { verdict: 'safe', reason: 'model_safe' };
+  if (last === 'unsafe') return { verdict: 'blocked', reason: 'model_unsafe' };
+  return { verdict: 'uncertain', reason: 'unparsed_output' };
+}
+
+/**
+ * 两级审核
+ *   L1 本地词库：零网络开销，命中即阻断转人工（含图片的留言同样执行）
+ *   L2 NVIDIA nemotron-3.5-content-safety：仅纯文本，明确输出 safe 才通过
+ *
+ * 返回 { verdict, reason, hits }
+ *   verdict: 'safe' | 'blocked' | 'uncertain' | 'timeout' | 'error'
+ *   reason : 'lexicon' | 'model_safe' | 'model_unsafe' | 'image' | ...
+ * 仅 verdict === 'safe' 时放行，其余一律 flag=0 转人工。
  */
 async function runAiCheck(contentText, imageUrls, env) {
+  // ---- L1 词库 ----
+  const lex = await loadLexicon(env);
+  const scan = scanLexicon(contentText, lex);
+  if (scan.hit) {
+    console.log(`[AI Check] 词库命中 ${scan.words.length} 条，转人工`);
+    return { verdict: 'blocked', reason: 'lexicon', hits: scan.words };
+  }
+
+  // ---- L2 NIM ----
   // 有图片直接跳过API，转入人工
   if (imageUrls && imageUrls.length > 0) {
     console.log('[AI Check] 留言包含图片，跳过AI自动审核，转入人工');
-    return 'uncertain';
+    return { verdict: 'uncertain', reason: 'image' };
   }
 
   const nvApiKey = env.NVAPI_KEY;
   if (!nvApiKey) {
     console.error('[AI Check] NVAPI_KEY 环境变量缺失');
-    return 'error';
+    return { verdict: 'error', reason: 'missing_key' };
   }
 
   const payload = {
@@ -52,7 +89,8 @@ async function runAiCheck(contentText, imageUrls, env) {
     temperature: 0.01,
     top_p: 0.95,
     chat_template_kwargs: {
-      request_categories: '/no_categories'
+      request_categories: '/no_categories',
+      enable_thinking: false
     }
   };
 
@@ -61,12 +99,12 @@ async function runAiCheck(contentText, imageUrls, env) {
     'Content-Type': 'application/json'
   };
 
-  console.log('[AI Check] 请求 payload:', JSON.stringify(payload));
+  console.log(`[AI Check] 请求 NIM，文本长度 ${contentText.length}`);
 
-  let retries = 1;
-  while (retries >= 0) {
+  for (let attempt = 1; attempt <= NVAPI_MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), NVAPI_TIMEOUT_MS);
+    let retryable = false;
 
     try {
       const resp = await fetch(NVAPI_ENDPOINT, {
@@ -75,49 +113,44 @@ async function runAiCheck(contentText, imageUrls, env) {
         body: JSON.stringify(payload),
         signal: controller.signal
       });
-      console.log('[AI Check] 响应状态:', resp.status);
 
-      if (resp.status === 429) {
-        retries--;
-        if (retries >= 0) {
-          console.log('[AI Check] 429限流，等待1s重试');
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-        console.error('[AI Check] 429重试耗尽');
-        return 'uncertain';
+      if (resp.ok) {
+        const apiResult = await resp.json();
+        const outText = apiResult.choices?.[0]?.message?.content?.trim() ?? '';
+        console.log(`[AI Check] 判定结果: ${outText.replace(/\s+/g, ' ').slice(0, 200)}`);
+        return verdictFromText(outText);
       }
 
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => '');
-        console.error('[AI Check] 非200响应：', resp.status, errText);
-        return 'uncertain';
+      const errText = await resp.text().catch(() => '');
+      if (resp.status === 429 || resp.status >= 500) {
+        console.error(`[AI Check] 可重试状态 ${resp.status}：`, errText.slice(0, 300));
+        retryable = true;
+      } else {
+        console.error(`[AI Check] 非重试错误 ${resp.status}：`, errText.slice(0, 300));
+        return { verdict: 'error', reason: `http_${resp.status}` };
       }
-
-      const apiResult = await resp.json();
-      console.log('[AI Check] 完整API返回:', JSON.stringify(apiResult));
-
-      const outText = apiResult.choices?.[0]?.message?.content?.trim() ?? '';
-      console.log('[AI Check] 模型输出文本:', outText);
-
-      // 仅当明确输出 safe 且不包含 unsafe 时判定为安全
-      if (/user safety:\s*safe/i.test(outText) && !/user safety:\s*unsafe/i.test(outText)) {
-        return 'safe';
-      }
-      return 'uncertain';
     } catch (e) {
-      if (e.name === 'AbortError') {
-        console.error('[AI Check] 请求超时>8s');
-        return 'timeout';
+      if (e?.name === 'AbortError') {
+        console.error(`[AI Check] 请求超时 > ${NVAPI_TIMEOUT_MS}ms`);
+      } else {
+        console.error('[AI Check] 请求异常：', e?.message);
       }
-      console.error('[AI Check] 请求异常', e);
-      return 'error';
+      retryable = true;
     } finally {
       clearTimeout(timeoutId);
       controller.abort();
     }
+
+    if (retryable && attempt < NVAPI_MAX_ATTEMPTS) {
+      const backoff = 500 * attempt;
+      console.log(`[AI Check] ${backoff}ms 后重试（第 ${attempt + 1} 次）`);
+      await new Promise((r) => setTimeout(r, backoff));
+      continue;
+    }
+    return { verdict: 'uncertain', reason: 'upstream_unavailable' };
   }
-  return 'uncertain';
+
+  return { verdict: 'uncertain', reason: 'upstream_unavailable' };
 }
 
 async function listMessages(request, env) {
@@ -225,16 +258,18 @@ async function createMessage(request, env) {
   const { kvKey, count } = await getTodayAiCounter(env);
 
   const aiRes = await runAiCheck(content, imageUrls, env);
-  if (aiRes === 'safe') {
+  if (aiRes.verdict === 'safe') {
     flag = 1;
   }
+  console.log(`[AI Check] 结论: ${aiRes.verdict} / ${aiRes.reason}`);
 
-  // KV统计，吞掉异常
   if (kvKey) {
-    try {
-      await env.AI_COUNTER_KV.put(kvKey, String(count + 1), { expirationTtl: 86400 });
-    } catch {}
+    await bumpCounter(env, kvKey);
+    if (aiRes.reason === 'lexicon') {
+      await bumpCounter(env, kvKey.replace('ai_check:', 'lexicon_hit:'));
+    }
   }
+  // 命中词条本身不落库、不入日志，避免二次泄露
   // ===========================
 
   try {

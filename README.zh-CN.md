@@ -25,6 +25,16 @@ ISA Spectrum 是专为 **ISA Wuhan** 设计的校园社区网站，面向师生�
 - 登录：OAuth 2.0 Authorization Code + PKCE / OpenID Connect
 - 部署方式：Cloudflare Pages
 
+## 第三方组件说明
+本项目内容审核功能使用 [konsheng/Sensitive‑lexicon](https://github.com/konsheng/Sensitive‑lexicon) 的敏感词条数据集，遵循 **MIT License**。
+
+> ⚠️ 词库原始文件**不存放于本Git仓库**：
+> 1. 使用本地一次性脚本 `build‑lexicon.mjs` 离线处理原始词库
+> 2. 生成后的词条文本上传至 Cloudflare KV 运行时使用
+> 3. 构建脚本仅本地使用，**不提交进入本代码仓库**
+>
+> 完整许可证文本见项目根目录 [`NOTICE`](./NOTICE)。
+
 ## 本地运行指南
 1. 克隆本仓库到本地
 2. 将 `.dev.vars.example` 复制为 `.dev.vars` 并填写本地 OIDC/业务数据库配置
