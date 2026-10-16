@@ -1,8 +1,3 @@
-<!--
-Copyright (c) 2026 ISA Spectrum
-Copyright (c) 2026 沧海四象
-Licensed under the MIT License.
--->
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -20,7 +15,6 @@ Licensed under the MIT License.
             margin: 80px auto 60px;
             padding: 0 20px;
         }
-
         .back-btn {
             display: inline-block;
             margin-bottom: 20px;
@@ -32,12 +26,10 @@ Licensed under the MIT License.
             border: 1px solid var(--theme-color);
             transition: all 0.2s ease;
         }
-
         .back-btn:hover {
             background-color: var(--theme-color);
             color: white;
         }
-
         .main-message-card {
             background-color: var(--card-bg);
             border-radius: 10px;
@@ -45,7 +37,6 @@ Licensed under the MIT License.
             margin-bottom: 30px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-
         .comment-section {
             background-color: var(--card-bg);
             border-radius: 10px;
@@ -53,7 +44,6 @@ Licensed under the MIT License.
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             margin-bottom: 40px;
         }
-
         .section-title {
             font-size: 20px;
             color: var(--theme-color);
@@ -61,7 +51,6 @@ Licensed under the MIT License.
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
         }
-
         .message-item {
             padding: 20px;
             border-bottom: 1px solid #eee;
@@ -72,24 +61,20 @@ Licensed under the MIT License.
             text-align: left;
             transition: background-color 0.3s;
         }
-
         .message-item:last-child {
             border-bottom: none;
             margin-bottom: 0;
         }
-
         .message-item.level-1 {
             margin-left: 0;
             background-color: transparent;
             border-radius: 0;
         }
-
         .message-item.level-2 {
             margin-left: 40px;
             background-color: #f5f8ff;
             border-radius: 8px;
         }
-
         .message-item.highlight {
             background-color: #d7e7ff !important;
             border-left: 4px solid var(--theme-color);
@@ -100,11 +85,9 @@ Licensed under the MIT License.
             50% { background-color: #b9d1ff; }
             100% { background-color: #d7e7ff; }
         }
-
         .message-avatar-box {
             flex-shrink: 0;
         }
-
         .message-header {
             display: flex;
             justify-content: space-between;
@@ -112,18 +95,15 @@ Licensed under the MIT License.
             margin-bottom: 10px;
             width: 100%;
         }
-
         .message-author {
             font-weight: bold;
             color: var(--theme-color);
             font-size: 16px;
         }
-
         .message-time {
             font-size: 12px;
             color: var(--text-gray);
         }
-
         .message-content {
             color: #555;
             line-height: 1.8;
@@ -131,7 +111,6 @@ Licensed under the MIT License.
             white-space: pre-line;
             text-align: left;
         }
-
         .message-zone {
             display: inline-flex;
             align-items: center;
@@ -143,14 +122,12 @@ Licensed under the MIT License.
             font-size: 12px;
             font-weight: 750;
         }
-
         .message-images {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             margin-top: 10px;
         }
-
         .message-image {
             width: 150px;
             height: 150px;
@@ -158,7 +135,6 @@ Licensed under the MIT License.
             border-radius: 8px;
             cursor: pointer;
         }
-
         .reply-info {
             font-size: 13px;
             color: #0c5460;
@@ -175,7 +151,6 @@ Licensed under the MIT License.
             background: #d1ecf1;
             text-decoration: underline;
         }
-
         .reply-btn, .comment-btn {
             background: none;
             border: none;
@@ -192,14 +167,12 @@ Licensed under the MIT License.
         .reply-btn:hover, .comment-btn:hover {
             background: #e9ecef;
         }
-
         .comment-input-container {
             display: none;
             margin-top: 15px;
             margin-bottom: 20px;
             text-align: left;
         }
-
         .comment-input {
             width: 100%;
             padding: 12px 15px;
@@ -212,13 +185,11 @@ Licensed under the MIT License.
             margin-bottom: 10px;
             text-align: left;
         }
-
         .comment-input:focus {
             outline: none;
             border-color: var(--theme-color);
             box-shadow: 0 0 0 2px rgba(30, 80, 174, 0.1);
         }
-
         .image-upload-container {
             margin-bottom: 12px;
             border: 1px dashed #ddd;
@@ -251,7 +222,6 @@ Licensed under the MIT License.
             border-radius: 6px;
             object-fit: cover;
         }
-
         .anonymous-checkbox-container {
             margin-bottom: 10px;
             display: flex;
@@ -268,7 +238,6 @@ Licensed under the MIT License.
             color: #666;
             cursor: pointer;
         }
-
         .comment-submit-btn {
             background-color: var(--theme-color);
             color: white;
@@ -279,11 +248,9 @@ Licensed under the MIT License.
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
-
         .comment-submit-btn:hover {
             background-color: #15408f;
         }
-
         .cancel-comment-btn {
             background: none;
             border: 1px solid #ddd;
@@ -295,25 +262,21 @@ Licensed under the MIT License.
             margin-left: 10px;
             transition: background-color 0.2s ease;
         }
-
         .cancel-comment-btn:hover {
             background-color: #f5f5f5;
         }
-
         .empty-comment {
             text-align: center;
             padding: 20px 0;
             color: var(--text-gray);
             font-size: 14px;
         }
-
         .loading {
             text-align: center;
             padding: 20px 0;
             color: var(--text-gray);
             font-size: 14px;
         }
-
         /* 页面移动端专属 */
         @media (max-width: 768px) {
             .main-content {
@@ -346,28 +309,33 @@ Licensed under the MIT License.
 <body>
     <!-- 公共头部挂载容器 -->
     <div id="headerBox"></div>
-
     <main class="main-content">
         <a href="messages.html" class="back-btn">← 返回校墙</a>
         <h1 class="page-title" style="text-align:center; font-size:28px; color:var(--theme-color); margin-bottom:20px;">留言详情</h1>
-
         <div class="main-message-card" id="mainMessageCard">
             <div class="loading">加载主楼内容中...</div>
         </div>
-
         <div class="comment-section">
             <h2 class="section-title">💬 全部评论</h2>
             <div id="commentContainer" class="loading">加载评论中...</div>
         </div>
     </main>
-
     <!-- 公共页脚挂载容器 -->
     <div id="footerBox"></div>
-
     <!-- 全局导航JS -->
     <script src="./common.js"></script>
     <!-- 页面业务JS完整保留 -->
     <script>
+// ===================== 开发者昵称白名单，与messages.html保持同步 =====================
+const DEVELOPER_NICKNAMES = [
+    "Sam.Li",
+    "ISA Spectrum官方",
+    "Jerry",
+    "Maod1e",
+    "bYcHhh",
+    "曹颢喆 Jerry"
+];
+
 // ===================== 新增：通用图片压缩函数（和messages.html保持一致） =====================
 function compressImage(file, options = {}) {
     return new Promise((resolve, reject) => {
@@ -381,7 +349,6 @@ function compressImage(file, options = {}) {
             mimeType: "image/webp"
         };
         const opts = { ...defaultOpts, ...options };
-
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = e => {
@@ -400,7 +367,6 @@ function compressImage(file, options = {}) {
                 canvas.height = height;
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, width, height);
-
                 canvas.toBlob(blob => {
                     if (!blob) return reject("图片压缩失败");
                     const suffix = opts.mimeType === "image/webp" ? ".webp" : ".jpg";
@@ -414,9 +380,7 @@ function compressImage(file, options = {}) {
         reader.onerror = () => reject("文件读取失败");
     });
 }
-
 // Identity and data writes are handled by the business backend.
-
 let mainMsgId = null;
 let currentUser = null;
 let userId = '';
@@ -424,18 +388,15 @@ let currentUserRealName = '';
 let currentUserEmail = '';
 let allMessages = [];
 let userMap = {};
-
 function getMsgIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
     return params.get('id');
 }
-
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
 }
-
 function parseMessageContent(content = '', storedZone = '') {
     const marker = content.match(/^【([^】]+)】\s*/);
     const groups = [
@@ -449,12 +410,10 @@ function parseMessageContent(content = '', storedZone = '') {
     const inferred = groups.find(group => group.keywords.some(word => text.includes(word)))?.label;
     return { zone: validZones.includes(storedZone) ? storedZone : (explicitZone || inferred || '校园生活'), text };
 }
-
 function getFreshAvatar(src) {
     if (!src) return '';
     return src + (src.includes('?') ? '&' : '?') + 't=' + Date.now();
 }
-
 // ==================== 登录验证 ====================
 async function initAuth() {
     try {
@@ -469,7 +428,6 @@ async function initAuth() {
         return false;
     }
 }
-
 // ==================== 图片上传【改造：先压缩再上传】 ====================
 async function uploadImages(files, targetId) {
     if (!files || files.length === 0) return [];
@@ -496,7 +454,6 @@ async function uploadImages(files, targetId) {
     if (!response.ok) throw new Error('图片上传失败');
     return (await response.json()).urls || [];
 }
-
 function previewImages(targetId) {
     const input = document.getElementById(`imageUpload-${targetId}`);
     const box = document.getElementById(`preview-${targetId}`);
@@ -514,8 +471,7 @@ function previewImages(targetId) {
         r.readAsDataURL(file);
     });
 }
-
-// ==================== 头像渲染 ====================
+// ==================== 头像渲染（增加Dev头像框+角标，与messages.html逻辑完全对齐） ====================
 async function renderMessageAvatars() {
     const items = document.querySelectorAll('.message-item');
     items.forEach(el => {
@@ -524,18 +480,50 @@ async function renderMessageAvatars() {
         if (!box) return;
         const name = el.querySelector('.message-author')?.textContent || '';
         const c = name.charAt(0) || '?';
+
+        const isDeveloper = DEVELOPER_NICKNAMES.includes(name);
+
+        const devWrapStyle = isDeveloper
+            ? `position:relative;padding:2px;border-radius:50%;background:linear-gradient(135deg,#ffd700,#ff9500);`
+            : ``;
+        const devInnerStyle = isDeveloper
+            ? `border-radius:50%;background:#fff;padding:1px;`
+            : ``;
+
         if (name === '匿名用户') {
             box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#000;"></div>`;
             return;
         }
+
+        let avatarCore = "";
         if (avatarUrl) {
-            box.innerHTML = `<img src="${getFreshAvatar(avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+            if (isDeveloper) {
+                avatarCore = `
+                <div style="${devWrapStyle}">
+                    <div style="${devInnerStyle}">
+                        <img src="${getFreshAvatar(avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;display:block;">
+                    </div>
+                    <span style="position:absolute;right:-6px;bottom:-2px;font-size:9px;font-weight:bold;color:#fff;background:#c28c00;padding:1px 4px;border-radius:6px;white-space:nowrap;z-index:2;">Dev</span>
+                </div>`;
+            } else {
+                avatarCore = `<img src="${getFreshAvatar(avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`;
+            }
         } else {
-            box.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${escapeHtml(c)}</div>`;
+            if (isDeveloper) {
+                avatarCore = `
+                <div style="${devWrapStyle}">
+                    <div style="${devInnerStyle}">
+                        <div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${escapeHtml(c)}</div>
+                    </div>
+                    <span style="position:absolute;right:-6px;bottom:-2px;font-size:9px;font-weight:bold;color:#fff;background:#c28c00;padding:1px 4px;border-radius:6px;white-space:nowrap;z-index:2;">Dev</span>
+                </div>`;
+            } else {
+                avatarCore = `<div style="width:38px;height:38px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center;color:#666;">${escapeHtml(c)}</div>`;
+            }
         }
+        box.innerHTML = avatarCore;
     });
 }
-
 // ==================== 加载内容 ====================
 async function loadMainMessage() {
     mainMsgId = getMsgIdFromUrl();
@@ -550,7 +538,6 @@ async function loadMainMessage() {
     const main = allMessages.find(message => String(message.id) === String(mainMsgId));
     if (main) { renderMainMessage(main); loadAllComments(); }
 }
-
 function renderMainMessage(msg) {
     const parsedContent = parseMessageContent(msg.content, msg.zone);
     const t = new Date(msg.created_at).toLocaleString();
@@ -572,12 +559,10 @@ function renderMainMessage(msg) {
     </div>`;
     renderMessageAvatars();
 }
-
 async function loadAllComments() {
     allMessages.forEach(m => userMap[m.id] = m.username);
     renderCommentTree();
 }
-
 function renderCommentTree() {
     const c = document.getElementById('commentContainer');
     const roots = allMessages.filter(m => String(m.reply_to) === String(mainMsgId));
@@ -623,12 +608,10 @@ function renderCommentTree() {
     c.innerHTML = html;
     renderMessageAvatars();
 }
-
 // ==================== 评论框 ====================
 function closeAllCommentBoxes() {
     document.querySelectorAll('.comment-input-container').forEach(e => e.style.display = 'none');
 }
-
 function showMainCommentBox(tid) {
     closeAllCommentBoxes();
     const b = document.getElementById(`reply-box-${tid}`);
@@ -650,7 +633,6 @@ function showMainCommentBox(tid) {
         <button class="cancel-comment-btn" onclick="closeAllCommentBoxes()">取消</button>
     </div>`;
 }
-
 function showReplyBox(tid) {
     closeAllCommentBoxes();
     const b = document.getElementById(`reply-box-${tid}`);
@@ -673,22 +655,18 @@ function showReplyBox(tid) {
         <button class="cancel-comment-btn" onclick="closeAllCommentBoxes()">取消</button>
     </div>`;
 }
-
 // ==================== 提交评论 ====================
 async function submitComment(rid, type) {
     if (!currentUser || !currentUser.id) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
-
     const el = type === 'main'
         ? document.getElementById('mainCommentInput')
         : document.getElementById(`replyInput-${rid}`);
     const content = el?.value.trim();
     if (!content) { alert('内容不能为空'); return; }
-
     const ano = document.getElementById(`anonymous-${rid}`)?.checked || false;
     const filesInput = document.getElementById(`imageUpload-${rid}`);
     const files = filesInput?.files;
     const urls = files && files.length > 0 ? await uploadImages(files, rid) : [];
-
     const response = await fetch('/api/messages', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -699,12 +677,10 @@ async function submitComment(rid, type) {
         alert('发布失败，请稍后重试');
         return;
     }
-
     alert('发布成功！等待审核');
     closeAllCommentBoxes();
     loadAllComments();
 }
-
 // ==================== 跳转 + 高亮 ====================
 function jumpToComment(targetId) {
     const el = document.getElementById(`msg-${targetId}`);
@@ -713,13 +689,11 @@ function jumpToComment(targetId) {
     el.classList.add('highlight');
     setTimeout(() => el.classList.remove('highlight'), 2000);
 }
-
 async function autoJumpFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const replyId = params.get('replyId');
     
     if (!replyId) return;
-
     let retry = 0;
     const interval = setInterval(() => {
         const el = document.getElementById(`msg-${replyId}`);
@@ -733,7 +707,6 @@ async function autoJumpFromUrl() {
         if (retry > 20) clearInterval(interval);
     }, 100);
 }
-
 // ==================== 初始化 ====================
 window.onload=async()=>{
     await initAuth();
