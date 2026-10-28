@@ -25,9 +25,9 @@ export async function onRequestPost({ request, env }) {
   try {
     for (const file of files) {
       const path = kind === 'avatar'
-        ? `business/${auth.session.user_id}.${extensionFor(file.type)}`
+        ? `business/${auth.session.user_id}.${randomBase64Url(24)}.${extensionFor(file.type)}`
         : `business/${auth.session.user_id}/${randomBase64Url(24)}.${extensionFor(file.type)}`;
-      urls.push(await uploadBusinessObject(env, auth.session, bucket, path, file, kind === 'avatar'));
+      urls.push(await uploadBusinessObject(env, auth.session, bucket, path, file));
     }
     return json({ urls }, 201, auth.headers);
   } catch {

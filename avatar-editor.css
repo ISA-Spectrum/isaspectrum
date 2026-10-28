@@ -1,0 +1,118 @@
+/* All component rules are scoped; no site .modal-body/.preview/global overrides. */
+body.isa-avatar-editor-scroll-lock {
+  position: fixed; top: var(--isa-avatar-editor-scroll-top, 0); left: 0; right: 0;
+  width: 100%; overflow: hidden; overscroll-behavior: none;
+}
+#avatar-editor-dialog {
+  padding: 0; margin: auto; border: 1px solid var(--line); border-radius: var(--radius-md);
+  width: calc(100% - 40px); max-width: 820px; max-height: 92vh; max-height: 92dvh;
+  background: #fff; color: var(--ink); box-shadow: var(--shadow-lg);
+  font: 14px/1.6 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  overflow: hidden;
+}
+#avatar-editor-dialog[open] { display: flex; flex-direction: column; }
+#avatar-editor-dialog::backdrop { background: #10142580; backdrop-filter: blur(4px); }
+#avatar-editor-dialog, #avatar-editor-dialog * { box-sizing: border-box; }
+#avatar-editor-dialog [hidden] { display: none !important; }
+#avatar-editor-dialog button {
+  font: inherit; cursor: pointer; touch-action: manipulation; letter-spacing: normal;
+  margin: 0; text-transform: none; line-height: 1.5; box-shadow: none;
+}
+#avatar-editor-dialog button:disabled { opacity: .45; cursor: not-allowed; }
+#avatar-editor-dialog button:focus-visible, #avatar-editor-stage:focus-visible {
+  outline: 3px solid var(--theme-color); outline-offset: 3px;
+}
+#avatar-editor-dialog h2, #avatar-editor-dialog h3, #avatar-editor-dialog p { margin: 0; }
+#avatar-editor-dialog .isa-avatar-editor-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 22px 26px; border-bottom: 1px solid var(--line); flex: none;
+}
+#avatar-editor-title { color: var(--ink); font-size: 20px; font-weight: 700; }
+#avatar-editor-dialog .isa-avatar-editor-head p { font-size: 12px; color: var(--muted); margin-top: 5px; }
+#avatar-editor-dialog .isa-avatar-editor-close {
+  border: 0; border-radius: 50%; background: var(--theme-soft); color: var(--ink);
+  width: 40px; height: 40px; padding: 0; flex: none; font-size: 24px;
+}
+#avatar-editor-dialog .isa-avatar-editor-body {
+  display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px;
+  padding: 24px 26px; overflow-y: auto; overscroll-behavior: contain; min-height: 0;
+}
+#avatar-editor-dialog .isa-avatar-editor-editing { min-width: 0; }
+#avatar-editor-stage {
+  height: 310px; position: relative; border-radius: var(--radius-md);
+  overflow: hidden; background: var(--theme-soft); isolation: isolate;
+}
+#avatar-editor-source { display: none; max-width: 100%; }
+#avatar-editor-stage .cropper-view-box {
+  border-radius: 50%; outline: 0; box-shadow: 0 0 0 999px rgba(0, 0, 0, .45);
+}
+#avatar-editor-stage .cropper-face { background: transparent; }
+#avatar-editor-stage .cropper-dashed, #avatar-editor-stage .cropper-line,
+#avatar-editor-stage .cropper-point.point-ne, #avatar-editor-stage .cropper-point.point-nw,
+#avatar-editor-stage .cropper-point.point-se, #avatar-editor-stage .cropper-point.point-sw { display: none; }
+#avatar-editor-empty {
+  height: 100%; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; padding: 16px; text-align: center;
+}
+#avatar-editor-dialog #avatar-editor-empty p { font-size: 11px; color: var(--muted); }
+#avatar-editor-dialog .isa-avatar-editor-primary, #avatar-editor-dialog .isa-avatar-editor-secondary {
+  border: 1px solid transparent; border-radius: var(--radius-md); padding: 10px 18px;
+  min-height: 44px; font-size: 13px; font-weight: 650;
+}
+#avatar-editor-dialog .isa-avatar-editor-primary { background: var(--theme-color); color: #fff; }
+#avatar-editor-dialog .isa-avatar-editor-secondary { background: #fff; color: var(--ink); border-color: var(--line); }
+#avatar-editor-dialog .isa-avatar-editor-text {
+  border: 0; background: transparent; color: var(--theme-color); padding: 10px 3px;
+  min-height: 40px; font-size: 12px;
+}
+#avatar-editor-dialog .isa-avatar-editor-toolbar {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 13px;
+}
+#avatar-editor-dialog .isa-avatar-editor-toolbar button {
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 10px; padding: 8px 11px; font-size: 12px; min-width: 40px; min-height: 40px;
+}
+#avatar-editor-dialog .isa-avatar-editor-hint { text-align: center; color: var(--muted); font-size: 11px; margin-top: 10px; }
+#avatar-editor-dialog .isa-avatar-editor-previews { min-width: 0; }
+#avatar-editor-dialog .isa-avatar-editor-previews h3 { font-size: 12px; font-weight: 650; margin-bottom: 20px; }
+#avatar-editor-dialog .isa-avatar-editor-preview { overflow: hidden; border-radius: 50%; background: var(--theme-soft); flex-shrink: 0; }
+#avatar-editor-dialog .isa-avatar-editor-large { width: 116px; height: 116px; box-shadow: 0 0 0 4px #fff, var(--shadow-lg); }
+#avatar-editor-dialog .isa-avatar-editor-small { width: 34px; height: 34px; }
+#avatar-editor-dialog .isa-avatar-editor-big-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 0;
+  background: var(--theme-soft); border-radius: var(--radius-md);
+}
+#avatar-editor-dialog .isa-avatar-editor-big-wrap small { color: var(--muted); font-size: 11px; }
+#avatar-editor-dialog .isa-avatar-editor-small-wrap { display: flex; gap: 9px; align-items: center; padding: 20px 0; }
+#avatar-editor-name { font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
+#avatar-editor-dialog .isa-avatar-editor-previews > p { color: var(--muted); font-size: 11px; }
+#avatar-editor-dialog .isa-avatar-editor-foot {
+  border-top: 1px solid var(--line); padding: 18px 26px; display: flex; flex: none;
+  align-items: center; justify-content: space-between; gap: 16px; background: #fff;
+}
+#avatar-editor-note { color: var(--muted); font-size: 11px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#avatar-editor-note.isa-avatar-editor-error { color: #b42318; }
+#avatar-editor-dialog .isa-avatar-editor-foot > div { display: flex; gap: 10px; flex-shrink: 0; }
+@media (max-width: 760px) {
+  #avatar-editor-dialog {
+    width: 100%; max-width: none; height: 100vh; height: 100dvh;
+    max-height: 100vh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0;
+  }
+  #avatar-editor-dialog .isa-avatar-editor-head { padding: max(16px, env(safe-area-inset-top)) 20px 16px; }
+  #avatar-editor-dialog .isa-avatar-editor-body {
+    display: block; flex: 1 1 auto; padding: 18px 20px; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #avatar-editor-stage { height: clamp(190px, 38vh, 360px); height: clamp(190px, 38dvh, 360px); }
+  #avatar-editor-dialog .isa-avatar-editor-previews { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+  #avatar-editor-dialog .isa-avatar-editor-previews h3, #avatar-editor-dialog .isa-avatar-editor-previews > p { display: none; }
+  #avatar-editor-dialog .isa-avatar-editor-big-wrap { background: none; padding: 8px; gap: 4px; flex-shrink: 0; }
+  #avatar-editor-dialog .isa-avatar-editor-large { width: 64px; height: 64px; }
+  #avatar-editor-dialog .isa-avatar-editor-small-wrap { flex: 1; min-width: 0; }
+  #avatar-editor-dialog .isa-avatar-editor-foot {
+    flex-direction: column; align-items: stretch; gap: 10px;
+    padding: 12px 20px max(14px, env(safe-area-inset-bottom));
+  }
+  #avatar-editor-dialog .isa-avatar-editor-foot > div { justify-content: flex-end; }
+  #avatar-editor-note { max-height: 5em; overflow-y: auto; font-size: 11px; }
+}
