@@ -97,7 +97,7 @@ Session token 由 32 字节安全随机数生成，D1 只保存 SHA-256 哈希�
 
 ## 11. Logout
 
-`POST /auth/logout` 校验同源 `Origin`，在数据库撤销业务 Session 并清 Cookie。它不会假装同时退出认证中心。若未来需要全局登出，应按认证中心 discovery/协议另行接入 RP-Initiated Logout；不能共享父域 Cookie。
+`POST /auth/logout` 校验同源 `Origin`，在数据库撤销业务 Session 并清 Cookie，再尝试根据认证中心 discovery 引导浏览器退出认证中心。认证中心不可用时本地退出仍会完成；认证中心退出是否成功需要实际环境验证，不能共享父域 Cookie。
 
 ## 12. 错误处理
 

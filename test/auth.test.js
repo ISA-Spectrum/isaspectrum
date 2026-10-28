@@ -469,7 +469,8 @@ function logoutEnv(env) {
       prepare() {
         return {
           bind(...args) { this.args = args; return this; },
-          async run() { revokedHashes.push(this.args[0]); return { meta: { changes: 1 } }; }
+          async first() { return null; },
+          async run() { revokedHashes.push(this.args[1]); return { meta: { changes: 1 } }; }
         };
       },
       async batch() { return []; }
@@ -550,4 +551,58 @@ test('logout still succeeds when the provider is unreachable', async t => {
   assert.equal(body.idpLogoutUrl, null);
   assert.equal(body.returnTo, '/main.html');
   assert.equal(revokedHashes.length, 1, 'the local session must still be revoked');
+});
+
+
+test('logout rejects cross-origin requests without revoking the session', async () => {
+  revokedHashes = [];
+  const response = await logoutSession({
+    request: new Request('https://business.example.com/auth/logout', {
+      method: 'POST', headers: { Origin: 'https://attacker.example.com', Cookie: '__Host-business_session=opaque' }
+    }),
+    env: logoutEnv('cross-origin')
+  });
+  assert.equal(response.status, 403);
+  assert.equal(revokedHashes.length, 0);
+});
+
+test('logout reports failure when session revocation fails', async () => {
+  const env = logoutEnv('failure');
+  env.AUTH_DB.prepare = () => ({ bind() { return this; }, async first() { return null; }, async run() { throw new Error('database unavailable'); } });
+  const response = await logoutSession({
+    request: new Request('https://business-failure.example.com/auth/logout', {
+      method: 'POST', headers: { Origin: 'https://business-failure.example.com', Cookie: '__Host-business_session=opaque' }
+    }), env
+  });
+  assert.equal(response.status, 503);
+});
+
+test('logout uses the session ID token and revokes its actual hash', async t => {
+  const suffix = `session-${Date.now()}`;
+  const env = logoutEnv(suffix);
+  const issuer = env.AUTH_ISSUER;
+  const origin = `https://business-${suffix}.example.com`;
+  let revokedHash;
+  env.AUTH_DB.prepare = () => ({
+    bind(...args) { this.args = args; return this; },
+    async first() { return { user_id: 'user', id_token_raw: 'id-token' }; },
+    async run() { revokedHash = this.args[1]; return { meta: { changes: 1 } }; }
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    issuer, authorization_endpoint: `${issuer}/authorize`, token_endpoint: `${issuer}/token`,
+    jwks_uri: `${issuer}/jwks`, end_session_endpoint: `${issuer}/logout`,
+    response_types_supported: ['code'], code_challenge_methods_supported: ['S256']
+  });
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const response = await logoutSession({
+    request: new Request(`${origin}/auth/logout`, {
+      method: 'POST', headers: { Origin: origin, Cookie: '__Host-business_session=opaque' }, body: '{}'
+    }), env
+  });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(new URL(result.idpLogoutUrl).searchParams.get('id_token_hint'), 'id-token');
+  const { sha256Base64Url } = await import('../functions/_lib/crypto.js');
+  assert.equal(revokedHash, await sha256Base64Url('opaque'));
 });

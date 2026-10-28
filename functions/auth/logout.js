@@ -1,7 +1,7 @@
 import { getConfig } from '../_lib/config.js';
-import { methodNotAllowed, redirect } from '../_lib/http.js';
+import { json, methodNotAllowed, sameOriginRequest, safeReturnPath } from '../_lib/http.js';
 import { discover } from '../_lib/oidc.js';
-import { getBusinessSession } from '../_lib/session.js';
+import { destroyBusinessSession, getBusinessSession } from '../_lib/session.js';
 
 async function providerLogoutUrl(env, rawIdToken) {
   try {
@@ -23,24 +23,23 @@ async function providerLogoutUrl(env, rawIdToken) {
   }
 }
 
-export async function onRequestGet({ request, env }) {
-  const config = getConfig(env);
-  const { session } = await getBusinessSession(request, env, config);
+export async function onRequestPost({ request, env }) {
+  if (!sameOriginRequest(request)) return json({ error: 'invalid_origin' }, 403);
 
-  if (!session?.user_id) {
-    return redirect('/main.html',302);
+  let session, cookie;
+  try {
+    const config = getConfig(env);
+    ({ session } = await getBusinessSession(request, env, config));
+    cookie = await destroyBusinessSession(request, env, true);
+  } catch {
+    return json({ error: 'session_unavailable' }, 503);
   }
-
-  const idpLogoutUrl = await providerLogoutUrl(env, session.id_token_raw);
-  if(!idpLogoutUrl) {
-    return redirect('/main.html',302);
-  }
-  return redirect(idpLogoutUrl, 302);
+  let body = {};
+  try { body = await request.json(); } catch {}
+  const idpLogoutUrl = await providerLogoutUrl(env, session?.id_token_raw);
+  return json({ idpLogoutUrl, returnTo: safeReturnPath(body?.returnTo) }, 200, { 'Set-Cookie': cookie });
 }
 
-export function onRequestPost() {
-  return methodNotAllowed();
-}
 export function onRequest() {
-  return methodNotAllowed();
+  return methodNotAllowed('POST');
 }
