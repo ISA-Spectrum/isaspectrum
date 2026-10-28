@@ -44,18 +44,7 @@
   }
 
   async function logout(returnTo = '/main.html') {
-    try {
-      const response = await fetch('/auth/logout', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ returnTo: safeReturnTo(returnTo) })
-      });
-      if (!response.ok) throw new Error('logout_failed');
-      const result = await response.json();
-      location.href = result.idpLogoutUrl || safeReturnTo(result.returnTo);
-    } catch {
-      alert('退出失败，请稍后重试');
-    }
+    location.href = '/auth/logout';
   }
 
   window.ISAAuth = { getSession, requireSession, loginUrl, logout, safeReturnTo };

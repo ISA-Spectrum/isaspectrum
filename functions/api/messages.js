@@ -155,22 +155,33 @@ async function runAiCheck(contentText, imageUrls, env) {
 
 async function listMessages(request, env) {
   const url = new URL(request.url);
-  const thread = url.searchParams.get('thread')?.toLowerCase();
+  const thread = url.searchParams.get('thread');
   const params = new URLSearchParams({
     select: 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url'
   });
 
   if (thread) {
     if (!MESSAGE_ID.test(thread)) return json({ error: 'invalid_request' }, 400);
-    const page = integerParam(url.searchParams.get('thread_page'), 0, 0, 100000);
-    const limit = 100;
-    params.set('p_root_id', thread);
-    params.set('order', 'created_at.asc,id.asc');
-    params.set('limit', String(limit + 1));
-    params.set('offset', String(page * limit));
-    const rows = await requestPublicData(env, `rpc/approved_message_thread?${params}`);
-    if (page === 0 && !rows.length) return json({ error: 'not_found' }, 404);
-    return json({ messages: rows.slice(0, limit), hasMore: rows.length > limit });
+    params.set('order', 'created_at.asc');
+    params.set('limit', '1000');
+    const all = await requestPublicData(env, `approved_messages_public?${params}`);
+    const byParent = new Map();
+    all.forEach((message) => {
+      const key = message.reply_to == null ? null : String(message.reply_to);
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key).push(message);
+    });
+    const root = all.find((message) => String(message.id) === thread && message.reply_to == null);
+    if (!root) return json({ error: 'not_found' }, 404);
+    const result = [root];
+    const visit = (parentId) => {
+      for (const child of byParent.get(String(parentId)) || []) {
+        result.push(child);
+        visit(child.id);
+      }
+    };
+    visit(root.id);
+    return json({ messages: result });
   }
 
   const page = integerParam(url.searchParams.get('page'), 0, 0, 100000);

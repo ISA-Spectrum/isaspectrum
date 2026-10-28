@@ -26,13 +26,7 @@
       cache: 'no-store',
       signal
     });
-    if (!response.ok) {
-      if (params.has('thread') && response.status === 404) {
-        const body = await response.json().catch(() => null);
-        if (body?.error === 'not_found') return { messages: [] };
-      }
-      throw new Error('public_data_unavailable');
-    }
+    if (!response.ok) throw new Error('public_data_unavailable');
     return response.json();
   }
 
@@ -66,34 +60,40 @@
   }
 
   async function getThread(id, signal) {
-    const value = String(id || '').toLowerCase();
+    const value = String(id || '');
     if (!/^\d+$/.test(value) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
       throw new Error('invalid_message_id');
     }
-    const fields = 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url';
+    const params = new URLSearchParams({
+      select: 'id,username,content,zone,pic_url,created_at,reply_to,avatar_url',
+      order: 'created_at.asc',
+      limit: '1000'
+    });
+    let rows;
     try {
-      const thread = [];
-      let offset = 0;
-      while (true) {
-        const params = new URLSearchParams({ p_root_id: value, select: fields,
-          order: 'created_at.asc,id.asc', limit: '100', offset: String(offset) });
-        const rows = await select('rpc/approved_message_thread', params, signal);
-        thread.push(...rows);
-        if (rows.length < 100) break;
-        offset += rows.length;
-      }
-      return thread;
+      rows = await select('approved_messages_public', params, signal);
     } catch (error) {
       if (wasAborted(error, signal)) throw error;
-      const thread = [];
-      let page = 0;
-      while (true) {
-        const result = await requestMessagesApi(new URLSearchParams({ thread: value, thread_page: String(page) }), signal);
-        thread.push(...(result.messages || []));
-        if (!result.hasMore) return thread;
-        page++;
-      }
+      const result = await requestMessagesApi(new URLSearchParams({ thread: value }), signal);
+      return result.messages || [];
     }
+    const byParent = new Map();
+    rows.forEach(message => {
+      const key = message.reply_to == null ? null : String(message.reply_to);
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key).push(message);
+    });
+    const root = rows.find(message => String(message.id) === String(id) && message.reply_to == null);
+    if (!root) return [];
+    const thread = [root];
+    const visit = parentId => {
+      for (const child of byParent.get(String(parentId)) || []) {
+        thread.push(child);
+        visit(child.id);
+      }
+    };
+    visit(root.id);
+    return thread;
   }
 
   window.ISAPublicData = { listMessages, getThread };

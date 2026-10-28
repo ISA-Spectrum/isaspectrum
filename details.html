@@ -526,22 +526,17 @@ async function renderMessageAvatars() {
 }
 // ==================== 加载内容 ====================
 async function loadMainMessage() {
-    mainMsgId = (getMsgIdFromUrl() || '').toLowerCase();
+    mainMsgId = getMsgIdFromUrl();
     if (!/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(mainMsgId || '')) return location.replace('/messages.html');
     try {
         if (!window.ISAPublicData) throw new Error('public_data_unavailable');
         allMessages = await ISAPublicData.getThread(mainMsgId);
     } catch {
-        document.getElementById('mainMessageCard').innerHTML = '<div class="loading">留言加载失败，请稍后重试</div>';
-        document.getElementById('commentContainer').innerHTML = '<div class="empty-comment">评论暂时无法加载</div>';
+        document.getElementById('mainMessageCard').innerHTML = '<div class="loading">留言不存在或暂不可用</div>';
         return;
     }
     const main = allMessages.find(message => String(message.id) === String(mainMsgId));
     if (main) { renderMainMessage(main); loadAllComments(); }
-    else {
-        document.getElementById('mainMessageCard').innerHTML = '<div class="loading">留言不存在或暂不可用</div>';
-        document.getElementById('commentContainer').innerHTML = '<div class="empty-comment">暂无可显示的评论</div>';
-    }
 }
 function renderMainMessage(msg) {
     const parsedContent = parseMessageContent(msg.content, msg.zone);
@@ -570,36 +565,46 @@ async function loadAllComments() {
 }
 function renderCommentTree() {
     const c = document.getElementById('commentContainer');
-    const children = new Map();
-    allMessages.forEach(message => {
-        const parent = String(message.reply_to);
-        if (!children.has(parent)) children.set(parent, []);
-        children.get(parent).push(message);
-    });
-    const roots = children.get(String(mainMsgId)) || [];
+    const roots = allMessages.filter(m => String(m.reply_to) === String(mainMsgId));
     if (!roots.length) { c.innerHTML = '<div class="empty-comment">暂无评论</div>'; return; }
-    const stack = roots.slice().reverse().map(message => ({ message, depth: 1 }));
     let html = '';
-    while (stack.length) {
-        const { message: x, depth } = stack.pop();
-        html += `
-            <div class="message-item ${depth === 1 ? 'level-1' : 'level-2'}" id="msg-${x.id}" data-avatar-url="${escapeHtml(x.avatar_url || '')}">
+    function renderChildren(pid, d) {
+        allMessages.filter(m => String(m.reply_to) === String(pid)).forEach(x => {
+            html += `
+            <div class="message-item ${d === 1 ? 'level-1' : 'level-2'}" id="msg-${x.id}" data-avatar-url="${escapeHtml(x.avatar_url || '')}">
                 <div class="message-avatar-box"></div>
                 <div style="flex:1">
                     <div class="message-header">
                         <span class="message-author">${escapeHtml(x.username)}</span>
                         <span class="message-time">${new Date(x.created_at).toLocaleString()}</span>
                     </div>
-                    ${depth > 1 ? `<div class="reply-info" onclick="jumpToComment('${x.reply_to}')">↳ 回复 @${escapeHtml(userMap[x.reply_to] || '用户')}</div>` : ''}
+                    ${d >= 2 ? `<div class="reply-info" onclick="jumpToComment('${x.reply_to}')">↳ 回复 @${escapeHtml(userMap[x.reply_to] || '用户')}</div>` : ''}
                     <div class="message-content">${escapeHtml(x.content).replace(/\n/g, '<br>')}</div>
                     <div class="message-images">${x.pic_url ? x.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
                     <button class="reply-btn" onclick="showReplyBox('${x.id}')">💬 回复</button>
                     <div id="reply-box-${x.id}" class="comment-input-container"></div>
                 </div>
             </div>`;
-        const replies = children.get(String(x.id)) || [];
-        for (let i = replies.length - 1; i >= 0; i--) stack.push({ message: replies[i], depth: depth + 1 });
+            renderChildren(x.id, d + 1);
+        });
     }
+    roots.forEach(r => {
+        html += `
+        <div class="message-item level-1" id="msg-${r.id}" data-avatar-url="${escapeHtml(r.avatar_url || '')}">
+            <div class="message-avatar-box"></div>
+            <div style="flex:1">
+                <div class="message-header">
+                    <span class="message-author">${escapeHtml(r.username)}</span>
+                    <span class="message-time">${new Date(r.created_at).toLocaleString()}</span>
+                </div>
+                <div class="message-content">${escapeHtml(r.content).replace(/\n/g, '<br>')}</div>
+                <div class="message-images">${r.pic_url ? r.pic_url.map(u => `<img src="${escapeHtml(u)}" class="message-image" onclick="window.open(this.src)">`).join('') : ''}</div>
+                <button class="reply-btn" onclick="showReplyBox('${r.id}')">💬 回复</button>
+                <div id="reply-box-${r.id}" class="comment-input-container"></div>
+            </div>
+        </div>`;
+        renderChildren(r.id, 2);
+    });
     c.innerHTML = html;
     renderMessageAvatars();
 }
