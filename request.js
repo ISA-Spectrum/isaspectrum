@@ -3,7 +3,7 @@ const BACKUP_API = "https://api.celestivast.com";          //备用站
 
 let isFallback = false;
 
-export async function request(path, options = {}) {
+async function request(path, options = {}) {
   if (isFallback) return fetch(BACKUP_API + path, options);
 
   try {
@@ -24,3 +24,4 @@ export async function request(path, options = {}) {
     return fetch(BACKUP_API + path, options);
   }
 }
+window.request = request;
