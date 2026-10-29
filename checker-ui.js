@@ -17,7 +17,7 @@
   }
 
   async function api(url, options = {}) {
-    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options });
+    const response = await request(url, { credentials: 'include', cache: 'no-store', ...options });
     if (response.status === 401) {
       login();
       throw new Error('authentication_required');

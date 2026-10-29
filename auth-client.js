@@ -24,8 +24,8 @@
   }
 
   async function getSession() {
-    const response = await fetch('/auth/session', {
-      credentials: 'same-origin',
+    const response = await request('/auth/session', {
+      credentials: 'include',
       headers: { Accept: 'application/json' },
       cache: 'no-store'
     });

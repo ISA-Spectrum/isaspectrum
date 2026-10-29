@@ -450,7 +450,7 @@ async function uploadImages(files, targetId) {
     const form = new FormData();
     form.append('kind', 'message');
     compressedFiles.forEach(file => form.append('files', file, file.name));
-    const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+    const response = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
     if (!response.ok) throw new Error('图片上传失败');
     return (await response.json()).urls || [];
 }
@@ -667,8 +667,8 @@ async function submitComment(rid, type) {
     const filesInput = document.getElementById(`imageUpload-${rid}`);
     const files = filesInput?.files;
     const urls = files && files.length > 0 ? await uploadImages(files, rid) : [];
-    const response = await fetch('/api/messages', {
-        method: 'POST', credentials: 'same-origin',
+    const response = await request('/api/messages', {
+        method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, anonymous: ano, imageUrls: urls, replyTo: rid })
     });

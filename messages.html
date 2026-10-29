@@ -601,7 +601,7 @@
 
         async function refreshNotificationDot() {
             if (!userId) return;
-            const response = await fetch('/api/notifications?unread=1&limit=1', { credentials: 'same-origin', cache: 'no-store' });
+            const response = await request('/api/notifications?unread=1&limit=1', { credentials: 'include', cache: 'no-store' });
             const data = response.ok ? await response.json() : { notifications: [] };
             const hasUnread = data.notifications?.length > 0;
             notificationDot.style.display = hasUnread ? "block" : "none";
@@ -622,7 +622,7 @@
             }
 
             try {
-                const response = await fetch(`/api/notifications?page=${notifyPage}&limit=${NOTIFY_PAGE_SIZE}`, { credentials: 'same-origin', cache: 'no-store' });
+                const response = await request(`/api/notifications?page=${notifyPage}&limit=${NOTIFY_PAGE_SIZE}`, { credentials: 'include', cache: 'no-store' });
                 if (!response.ok) throw new Error('通知服务暂时不可用');
                 const result = await response.json();
                 const notes = result.notifications || [];
@@ -659,7 +659,7 @@
                 notifyHasMore = result.hasMore === true;
 
                 if (!append) {
-                    await fetch('/api/notifications', { method: 'PATCH', credentials: 'same-origin' });
+                    await request('/api/notifications', { method: 'PATCH', credentials: 'include' });
                     refreshNotificationDot();
                 }
 
@@ -672,7 +672,7 @@
         }
 
         async function initUserExtra() {
-            const response = await fetch('/api/profile', { credentials: 'same-origin', cache: 'no-store' });
+            const response = await request('/api/profile', { credentials: 'include', cache: 'no-store' });
             const data = response.ok ? await response.json() : {};
             const url = data.avatarUrl;
 
@@ -743,10 +743,10 @@
                 const form = new FormData();
                 form.append('kind', 'avatar');
                 form.append('files', compressedFile, 'avatar.webp');
-                const upload = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+                const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
                 if (!upload.ok) throw new Error('上传失败');
                 const publicUrl = (await upload.json()).urls[0];
-                const saved = await fetch('/api/profile', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
+                const saved = await request('/api/profile', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
                 if (!saved.ok) throw new Error('头像保存失败');
                 avatarImg.src = getFreshAvatar(publicUrl);
                 avatarImg.style.display = "block";
@@ -923,7 +923,7 @@
                 form.append('kind', 'message');
                 compressedFiles.forEach(file => form.append('files', file, file.name));
                 progressBar.style.width = '45%';
-                const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+                const response = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
                 if (!response.ok) throw new Error('图片上传失败');
                 progressBar.style.width = '100%';
                 return (await response.json()).urls || [];
@@ -950,8 +950,8 @@
             try {
                 const picUrls = await uploadImages(Array.from(files));
                 showFormStatus('正在上传并提交…');
-                const response = await fetch('/api/messages', {
-                    method: 'POST', credentials: 'same-origin',
+                const response = await request('/api/messages', {
+                    method: 'POST', credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content, zone, anonymous, imageUrls: picUrls })
                 });

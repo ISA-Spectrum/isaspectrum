@@ -36,7 +36,7 @@
     });
 
     try {
-      const response = await fetch('/api/meal-ratings', { credentials: 'same-origin', cache: 'no-store' });
+      const response = await request('/api/meal-ratings', { credentials: 'include', cache: 'no-store' });
       if (response.status === 401) return location.replace(ISAAuth.loginUrl('/meal-rating.html'));
       if (!response.ok) throw new Error('load_failed');
       const result = await response.json();
@@ -70,8 +70,8 @@
       submit.textContent = '提交中…';
       showStatus(status, '正在保存今日反馈…');
       try {
-        const response = await fetch('/api/meal-ratings', {
-          method: 'PUT', credentials: 'same-origin',
+        const response = await request('/api/meal-ratings', {
+          method: 'PUT', credentials: 'include',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
             breakfastScore: scores.breakfast,

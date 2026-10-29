@@ -20,9 +20,9 @@
   }
 
   async function requestMessagesApi(params, signal) {
-    const response = await fetch(`/api/messages?${params}`, {
+    const response = await request(`/api/messages?${params}`, {
       headers: { Accept: 'application/json' },
-      credentials: 'same-origin',
+      credentials: 'include',
       cache: 'no-store',
       signal
     });
