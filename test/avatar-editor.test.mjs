@@ -27,7 +27,7 @@ function harness() {
     close() { this.open=false; setImmediate(() => this.fire('close')); }
     getBoundingClientRect() { return {left:0,top:0,right:500,bottom:500}; }
   }
-  const keys = ['title','close','stage','source','empty','choose','sample','reselect','name','note','cancel','save','file'];
+  const keys = ['title','close','stage','source','empty','choose','reselect','name','note','cancel','save','file'];
   const el = Object.fromEntries(keys.map(k => [k, new Element('avatar-editor-'+k)]));
   const actions = ['in','out','left','right','reset'].map(a => { const e=new Element(a); e.dataset={avatarAction:a}; return e; });
   const previews = [new Element('preview'), new Element('preview')];
@@ -66,8 +66,8 @@ test('open validates callback, synchronously opens and cancel restores focus and
   h.el.cancel.click(); assert.equal(await p,null); assert.equal(h.dialog.open,false); assert.equal(h.document.activeElement,h.opener); assert.equal(h.window.scrolled.top,34);
 });
 
-test('sample loads locally, before-ready arrows do nothing, ready enables editing', async () => {
-  const h=harness(), p=h.open(); h.el.sample.click(); assert.ok(h.probes[0].src.startsWith('data:image/png')); const c=h.load();
+test('before-ready arrows do nothing, ready enables editing', async () => {
+  const h=harness(), p=h.open({file:h.input()}), c=h.load();
   const event=h.el.stage.fire('keydown',{key:'ArrowLeft'}); assert.equal(event.defaultPrevented,undefined); assert.equal(c.moves.length,0); assert.equal(h.el.save.disabled,true);
   c.triggerReady(); assert.equal(h.el.save.disabled,false); assert.equal(h.el.stage.fire('keydown',{key:'ArrowRight'}).defaultPrevented,true); assert.deepEqual(c.moves[0],[5,0]);
   h.el.close.click(); assert.equal(await p,null);

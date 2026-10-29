@@ -16,7 +16,7 @@
     const ready = Boolean(cropper && cropper.ready);
     dialog.querySelectorAll('[data-avatar-action]').forEach(button => { button.disabled = !ready || busy; });
     get('save').disabled = !ready || busy;
-    ['cancel', 'close', 'choose', 'reselect', 'sample', 'file'].forEach(key => { get(key).disabled = busy; });
+    ['cancel', 'close', 'choose', 'reselect', 'file'].forEach(key => { get(key).disabled = busy; });
     get('save').textContent = busy ? '正在保存…' : '保存头像';
     dialog.setAttribute('aria-busy', String(busy));
   }
@@ -160,28 +160,6 @@
     try { loadImage(window.URL.createObjectURL(file), '照片'); }
     catch (error) { failLoad('读取图片失败，请重新选择照片。'); }
   }
-  function sample() {
-    if (busy) return;
-    // Synchronous local canvas: no remote image, network request or sample race.
-    try {
-      const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 750;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas unavailable');
-      ctx.fillStyle = '#dfe9cf'; ctx.fillRect(0, 0, 1000, 750);
-      ctx.fillStyle = '#b7c9a0'; ctx.beginPath(); ctx.arc(870, 70, 260, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#849e79'; ctx.fillRect(0, 570, 1000, 180);
-      ctx.fillStyle = '#edbb6a'; ctx.beginPath(); ctx.arc(160, 135, 65, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#f5eee0'; ctx.beginPath(); ctx.ellipse(500, 760, 220, 300, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#e5b48c'; ctx.beginPath(); ctx.ellipse(500, 330, 125, 150, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#344a39'; ctx.beginPath(); ctx.ellipse(500, 225, 135, 80, 0, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillRect(365, 220, 40, 110);
-      ctx.beginPath(); ctx.arc(458, 325, 7, 0, Math.PI * 2); ctx.arc(542, 325, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#965f46'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(500, 360, 35, 0.2, Math.PI - 0.2); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 24px sans-serif'; ctx.fillText('ISA / SAMPLE', 40, 710);
-      // A data URL remains entirely local and requires no fetch.
-      loadImage(canvas.toDataURL('image/png'), '示例图片');
-    } catch (error) { note('无法生成示例图片，请选择本地照片。', true); }
-  }
   async function save() {
     if (!cropper?.ready || busy || !session) return;
     const activeSession = session, generation = revision;
@@ -227,7 +205,7 @@
     element.setAttribute('aria-labelledby', prefix + 'title');
     element.setAttribute('aria-describedby', prefix + 'note');
     element.innerHTML =       '<header class="isa-avatar-editor-head"><div><h2 id="avatar-editor-title">更改头像</h2><p>选一个喜欢的角度，让大家认识你。</p></div><button type="button" id="avatar-editor-close" class="isa-avatar-editor-close" aria-label="关闭头像编辑">×</button></header>' +
-      '<div class="isa-avatar-editor-body"><section class="isa-avatar-editor-editing" aria-label="裁切编辑"><div id="avatar-editor-stage" tabindex="0" aria-label="图片裁切区域，可用方向键微调"><img id="avatar-editor-source" alt="正在编辑的头像"><div id="avatar-editor-empty"><strong>选择一张照片</strong><p>JPEG、PNG、WebP · 不超过 10 MB</p><button type="button" id="avatar-editor-choose" class="isa-avatar-editor-primary">选择照片</button><button type="button" id="avatar-editor-sample" class="isa-avatar-editor-text">没有照片？试用示例</button></div></div>' +
+      '<div class="isa-avatar-editor-body"><section class="isa-avatar-editor-editing" aria-label="裁切编辑"><div id="avatar-editor-stage" tabindex="0" aria-label="图片裁切区域，可用方向键微调"><img id="avatar-editor-source" alt="正在编辑的头像"><div id="avatar-editor-empty"><strong>选择一张照片</strong><p>JPEG、PNG、WebP · 不超过 10 MB</p><button type="button" id="avatar-editor-choose" class="isa-avatar-editor-primary">选择照片</button></div></div>' +
       '<div class="isa-avatar-editor-toolbar" aria-label="图片调整"><button type="button" data-avatar-action="out" aria-label="缩小" disabled>−</button><button type="button" data-avatar-action="in" aria-label="放大" disabled>＋</button><button type="button" data-avatar-action="left" disabled>↶ 左转</button><button type="button" data-avatar-action="right" disabled>↷ 右转</button><button type="button" data-avatar-action="reset" disabled>重置</button></div><p class="isa-avatar-editor-hint">拖动图片或裁切框 · 滚轮 / 双指缩放</p><button type="button" id="avatar-editor-reselect" class="isa-avatar-editor-text">重新选择照片</button></section>' +
       '<aside class="isa-avatar-editor-previews" aria-label="头像显示预览"><h3>看看显示效果</h3><div class="isa-avatar-editor-big-wrap"><div class="isa-avatar-editor-preview isa-avatar-editor-large"></div><small>个人头像</small></div><div class="isa-avatar-editor-small-wrap"><div class="isa-avatar-editor-preview isa-avatar-editor-small"></div><strong id="avatar-editor-name"></strong></div><p>圆形是显示效果，保存的图片为正方形。</p></aside></div>' +
       '<footer class="isa-avatar-editor-foot"><p id="avatar-editor-note" role="status" aria-live="polite" aria-atomic="true"></p><div><button type="button" id="avatar-editor-cancel" class="isa-avatar-editor-secondary">取消</button><button type="button" id="avatar-editor-save" class="isa-avatar-editor-primary" disabled>保存头像</button></div></footer><input type="file" id="avatar-editor-file" accept="image/jpeg,image/png,image/webp" hidden>';
@@ -237,7 +215,6 @@
     dialog.querySelectorAll('[id]').forEach(node => { nodes[node.id.slice(prefix.length)] = node; });
     ['close', 'cancel'].forEach(key => get(key).addEventListener('click', () => close()));
     ['choose', 'reselect'].forEach(key => get(key).addEventListener('click', () => { if (!busy) get('file').click(); }));
-    get('sample').addEventListener('click', sample);
     get('save').addEventListener('click', save);
     get('file').addEventListener('change', () => {
       const file = get('file').files[0]; get('file').value = ''; chooseFile(file);
