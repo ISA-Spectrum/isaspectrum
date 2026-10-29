@@ -114,7 +114,7 @@
       const result = await ISAPublicData.listMessages({ limit: 40, sort: 'newest' });
       renderZones(host, result.messages || []);
     } catch (error) {
-      host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请稍后重试。</div><a class="text-link" href="messages.html">前往校墙 →</a></div>';
+      host.innerHTML = '<div class="zone-card"><div class="zone-empty">暂时无法同步分区内容，请稍后重试。</div><a class="text-link" href="/messages">前往校墙 →</a></div>';
     }
   }
   async function loadNotices() {
@@ -128,10 +128,10 @@
       host.innerHTML = notices.map((item) => {
         const title = item.querySelector('h3')?.textContent.trim() || '站内公告';
         const match = item.textContent.match(/20\d{2}年\d{1,2}月\d{1,2}日/);
-        return `<a class="notice-row" href="notice.html"><span class="notice-date">${escapeHtml(match?.[0] || '最新')}</span><span class="notice-title">${escapeHtml(title)}</span><span aria-hidden="true">→</span></a>`;
+        return `<a class="notice-row" href="/notice"><span class="notice-date">${escapeHtml(match?.[0] || '最新')}</span><span class="notice-title">${escapeHtml(title)}</span><span aria-hidden="true">→</span></a>`;
       }).join('');
     } catch (error) {
-      host.innerHTML = '<a class="notice-row" href="notice.html"><span class="notice-date">最新</span><span class="notice-title">前往公告页查看更新</span><span>→</span></a>';
+      host.innerHTML = '<a class="notice-row" href="/notice"><span class="notice-date">最新</span><span class="notice-title">前往公告页查看更新</span><span>→</span></a>';
     }
   }
 

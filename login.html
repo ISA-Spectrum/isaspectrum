@@ -10,13 +10,13 @@
   </style>
 </head>
 <body><main class="card">
-  <a class="brand" href="main.html"><img src="./images/logo.png" alt=""><span><strong>ISA Spectrum</strong><small>统一认证登录</small></span></a>
+  <a class="brand" href="/main"><img src="./images/logo.png" alt=""><span><strong>ISA Spectrum</strong><small>统一认证登录</small></span></a>
   <h1>登录校园社区</h1>
   <p>登录将在独立认证中心完成。密码、Passkey、验证码和恢复方式不会交给本站处理。</p>
   <div class="notice">认证成功后，本站只保存自己的安全会话，不会把认证中心令牌写入浏览器存储。</div>
   <a class="button" id="loginButton" href="/auth/login">前往统一认证中心</a>
   <p class="error" id="errorMessage" role="alert" hidden></p>
-  <a class="back" href="main.html">返回首页</a>
+  <a class="back" href="/main">返回首页</a>
 </main><script src="./auth-client.js"></script><script>
   const params=new URLSearchParams(location.search);
   const returnTo=ISAAuth.safeReturnTo(params.get('returnTo')||params.get('return_to'),'/messages.html');

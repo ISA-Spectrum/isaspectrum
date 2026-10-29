@@ -2,12 +2,14 @@
 (function () {
   'use strict';
 
+  // ✅ 修复 1：去掉所有的 .html
   const SAFE_PAGES = new Set([
-    '/main.html', '/messages.html', '/meal-rating.html', '/details.html',
-    '/checker-pending.html', '/checker-approved.html', '/checker-deleted.html'
+    '/main', '/messages', '/meal-rating', '/details',
+    '/checker-pending', '/checker-approved', '/checker-deleted'
   ]);
 
-  function safeReturnTo(value, fallback = '/main.html') {
+  // ✅ 修复 2：默认 fallback 也去掉 .html
+  function safeReturnTo(value, fallback = '/main') {
     try {
       const candidate = value?.startsWith('/') ? value : `/${value || ''}`;
       const url = new URL(candidate, location.origin);
@@ -24,11 +26,13 @@
   }
 
   async function getSession() {
-    const response = await request('/auth/session', {
+    // ✅ 修复 3：换回原生 fetch，防止超时跨域导致 Cookie 丢失
+    const response = await fetch('/auth/session', {
       credentials: 'include',
       headers: { Accept: 'application/json' },
       cache: 'no-store'
     });
+    
     if (response.status === 401) return null;
     if (!response.ok) throw new Error('session_unavailable');
     return response.json();
@@ -43,8 +47,9 @@
     return session;
   }
 
-  async function logout(returnTo = '/main.html') {
-    location.href = '/auth/logout';
+  // ✅ 修复 4：让注销也带上 return_to
+  async function logout(returnTo = '/main') {
+    location.href = `/auth/logout?return_to=${encodeURIComponent(safeReturnTo(returnTo))}`;
   }
 
   window.ISAAuth = { getSession, requireSession, loginUrl, logout, safeReturnTo };

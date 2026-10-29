@@ -58,17 +58,25 @@ export function cookieNames(request) {
   const secure = new URL(request.url).protocol === 'https:';
   return {
     secure,
-    session: secure ? '__Host-business_session' : 'business_session',
+    session: secure ? '__Secure-business_session' : 'business_session',
     transaction: secure ? '__Host-oauth_transaction' : 'oauth_transaction'
   };
 }
 
 export function setCookie(name, value, maxAge, secure) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+  const isSession = name.includes('session');
+  const sameSite = isSession ? 'None' : 'Lax';
+  const domainAttr = isSession ? '; Domain=.celestivast.com' : '';
+  
+  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=${sameSite}${secure ? '; Secure' : ''}${domainAttr}`;
 }
 
 export function clearCookie(name, secure) {
-  return `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+  const isSession = name.includes('session');
+  const sameSite = isSession ? 'None' : 'Lax';
+  const domainAttr = isSession ? '; Domain=.celestivast.com' : '';
+
+  return `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=${sameSite}${secure ? '; Secure' : ''}${domainAttr}`;
 }
 
 export function oauthErrorRedirect(code) {
