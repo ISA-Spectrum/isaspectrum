@@ -2,7 +2,7 @@
   "cleanUrls": true,
   "functions": {
     "functions/**/*.js": {
-      "runtime": "nodejs20.x"
+      "runtime": "@vercel/node@5.6.18"
     }
   },
   "rewrites": [
