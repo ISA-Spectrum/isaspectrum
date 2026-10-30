@@ -37,7 +37,7 @@
 
     try {
       const response = await request('/api/meal-ratings', { credentials: 'include', cache: 'no-store' });
-      if (response.status === 401) return location.replace(ISAAuth.loginUrl('/meal-rating.html'));
+      if (response.status === 401) return ISAAuth.handleLogin('/meal-rating');
       if (!response.ok) throw new Error('load_failed');
       const result = await response.json();
       document.getElementById('ratingDate').textContent = new Date(`${result.date}T12:00:00+08:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });

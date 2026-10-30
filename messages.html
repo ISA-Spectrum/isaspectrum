@@ -845,7 +845,7 @@
             document.getElementById('fileUploadContainer').style.opacity = '.55';
             const submit = document.getElementById('submitBtn');
             submit.textContent = '登录后发布';
-            submit.onclick = () => location.assign(ISAAuth.loginUrl());
+            submit.onclick = () => ISAAuth.handleLogin();
             document.getElementById('avatarBtn').hidden = true;
             const login = document.getElementById('logoutBtn');
             login.textContent = '登录';
@@ -956,7 +956,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content, zone, anonymous, imageUrls: picUrls })
                 });
-                if (response.status === 401) return location.replace(ISAAuth.loginUrl('/messages.html'));
+                if (response.status === 401) return ISAAuth.handleLogin('/messages');
                 if (!response.ok) throw new Error('留言服务暂时不可用');
                 showFormStatus('发布成功，审核结果会通过站内通知告知你。', 'success');
                 document.getElementById('messageContent').value = '';
@@ -1157,7 +1157,7 @@
                 if(!ok) return;
                 await ISAAuth.logout('/main');
             }
-            : () => location.assign(ISAAuth.loginUrl());
+            : () => ISAAuth.handleLogin();
 
             const avatarBtn = document.getElementById('avatarBtn');
             const avatarDropdown = document.getElementById('avatarDropdown');

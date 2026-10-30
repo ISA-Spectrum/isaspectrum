@@ -658,7 +658,7 @@ function showReplyBox(tid) {
 }
 // ==================== 提交评论 ====================
 async function submitComment(rid, type) {
-    if (!currentUser || !currentUser.id) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
+    if (!currentUser || !currentUser.id) return ISAAuth.handleLogin('/details' + location.search);
     const el = type === 'main'
         ? document.getElementById('mainCommentInput')
         : document.getElementById(`replyInput-${rid}`);
@@ -673,7 +673,7 @@ async function submitComment(rid, type) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, anonymous: ano, imageUrls: urls, replyTo: rid })
     });
-    if (response.status === 401) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
+    if (response.status === 401) return ISAAuth.handleLogin('/details' + location.search);
     if (!response.ok) {
         alert('发布失败，请稍后重试');
         return;
