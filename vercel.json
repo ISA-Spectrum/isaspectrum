@@ -1,4 +1,14 @@
 {
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/functions/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "/functions/auth/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
