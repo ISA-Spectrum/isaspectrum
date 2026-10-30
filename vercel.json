@@ -2,7 +2,7 @@
   "cleanUrls": true,
   "functions": {
     "functions/**/*.js": {
-      "runtime": "edge"
+      "runtime": "@vercel/node@latest"
     }
   },
   "rewrites": [
