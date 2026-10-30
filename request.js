@@ -1,4 +1,4 @@
-const PRIMARY_API = "https://isaspectrum.celestivast.com"; //主站
+const PRIMARY_API = "https://isaspectrum.celestivast-dead114514.com"; //主站
 const BACKUP_API = "https://api.celestivast.com";          //备用站
 
 let isFallback = false;
