@@ -58,6 +58,13 @@ function verdictFromText(outText) {
 async function runAiCheck(contentText, imageUrls, env) {
   // ---- L1 词库 ----
   const lex = await loadLexicon(env);
+
+  // 🎯 核心补丁：Fail-Safe 拦截防线
+  if (!lex) {
+    console.error('[AI Check] 词库不可用，触发 Fail-Safe，强制转人工审核以阻断绕过！');
+    return { verdict: 'uncertain', reason: 'lexicon_unavailable' };
+  }
+
   const scan = scanLexicon(contentText, lex);
   if (scan.hit) {
     console.log(`[AI Check] 词库命中 ${scan.words.length} 条，转人工`);

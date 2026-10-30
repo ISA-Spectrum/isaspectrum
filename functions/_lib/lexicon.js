@@ -8,8 +8,8 @@
  *   单次扫描在毫秒级。
  * - 归一化：NFKC（全角→半角）+ 小写 + 剔除全部非字母/数字/汉字字符，
  *   用于对抗「色 情」「色-情」「ＳＥＸ」这类插字规避。
- * - KV 未绑定或读取失败时：isolate 内已有缓存则沿用缓存，无缓存则返回 null。
- *   两种情况下词库层都只是降级，不影响上游 NIM 审核。
+ * - Fail-Safe 策略：KV 未绑定或读取失败时，如果无历史缓存，强制返回 null。
+ *   调用方（messages.js）必须拦截 null，直接拒绝发布，绝不允许漏过。
  *
  * 注意：MIN_LEN 为 2，单字词条一概丢弃（噪声远大于收益）。
  */
@@ -68,35 +68,41 @@ function buildIndex(rawText, fingerprint) {
 }
 
 /**
- * 取词库索引。env.LEXICON_KV 未绑定时返回 null（调用方据此跳过词库层）。
+ * 取词库索引。
+ * 🚨 Fail-Safe：如果无法获取任何有效词库，必须返回 null。
  */
 export async function loadLexicon(env) {
   const now = Date.now();
+  // 如果内存里有缓存且未过期，直接用
   if (cache && now - cache.loadedAt < CACHE_TTL_MS) return cache;
 
   const kv = env?.LEXICON_KV;
   if (!kv) {
-    if (!cache) console.warn('[Lexicon] 未绑定 LEXICON_KV，词库层跳过');
-    return cache;
+    console.error('[Lexicon] 🚨 严重错误：未绑定 LEXICON_KV！触发 Fail-Safe');
+    // 如果有老缓存就用，没有就坚决返回 null 触发拦截
+    return cache ? cache : null; 
   }
 
   try {
     const value = await kv.get(KV_KEY);
     if (!value) {
-      console.warn('[Lexicon] KV 中无词库数据，词库层跳过');
-      return cache;
+      console.error('[Lexicon] 🚨 严重错误：KV 中无词库数据！触发 Fail-Safe');
+      return cache ? cache : null;
     }
+    
     const fingerprint = `${value.length}:${value.slice(0, 48)}`;
     if (cache && cache.fingerprint === fingerprint) {
       cache.loadedAt = now;
       return cache;
     }
+    
     cache = buildIndex(value, fingerprint);
     console.log(`[Lexicon] 索引重建完成：词条 ${cache.size} 条，最长 ${cache.maxLen}，跳过 ${cache.skipped}`);
     return cache;
   } catch (e) {
-    console.error('[Lexicon] 读取 KV 失败：', e?.message);
-    return cache;
+    console.error('[Lexicon] 🚨 读取 KV 异常：', e?.message);
+    // 发生异常时同理，宁可拦截也不能放行
+    return cache ? cache : null;
   }
 }
 
