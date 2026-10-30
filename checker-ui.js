@@ -23,7 +23,7 @@
       throw new Error('authentication_required');
     }
     if (response.status === 403) {
-      location.replace('/login-messageschecker.html?error=forbidden');
+      location.replace('/login-messageschecker?error=forbidden');
       throw new Error('forbidden');
     }
     if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'request_failed');
@@ -102,12 +102,12 @@
       if (!['authentication_required', 'forbidden'].includes(error.message)) alert('操作失败，请刷新后重试');
     } finally { event.target.disabled = false; }
   });
-  document.getElementById('logoutBtn').addEventListener('click', () => ISAAuth.logout('/main.html'));
+  document.getElementById('logoutBtn').addEventListener('click', () => ISAAuth.logout('/main'));
 
   (async () => {
     const session = await ISAAuth.getSession().catch(() => null);
     if (!session?.authenticated) return login();
-    if (!session.user?.checker) return location.replace('/login-messageschecker.html?error=forbidden');
+    if (!session.user?.checker) return location.replace('/login-messageschecker?error=forbidden');
     await load();
   })();
 })();

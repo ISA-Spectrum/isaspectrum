@@ -845,7 +845,7 @@
             document.getElementById('fileUploadContainer').style.opacity = '.55';
             const submit = document.getElementById('submitBtn');
             submit.textContent = '登录后发布';
-            submit.onclick = () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+            submit.onclick = () => location.assign(ISAAuth.loginUrl());
             document.getElementById('avatarBtn').hidden = true;
             const login = document.getElementById('logoutBtn');
             login.textContent = '登录';
@@ -1155,9 +1155,9 @@
             ? async () => {
                 const ok = confirm("确定要退出登录吗？");
                 if(!ok) return;
-                await ISAAuth.logout('/main.html');
+                await ISAAuth.logout('/main');
             }
-            : () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+            : () => location.assign(ISAAuth.loginUrl());
 
             const avatarBtn = document.getElementById('avatarBtn');
             const avatarDropdown = document.getElementById('avatarDropdown');
