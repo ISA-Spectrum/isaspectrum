@@ -378,10 +378,15 @@
         .community-heading p { max-width:440px; margin:10px 0 0; color:var(--muted); }
         .logout-bar { margin:0; }
         .logout-btn { color:#6b2130 !important; border:1px solid #ffd4dc !important; border-radius:12px !important; background:#fff1f3 !important; font-weight:700; }
-        .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:start; }
+        .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:stretch; }
         .message-form-section,.message-list-section { margin:0; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:var(--shadow-sm); }
-        .message-form-section { position:sticky; top:92px; max-height:calc(100vh - 112px); padding:26px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
-        .message-list-section { padding:26px; }
+        .message-form-section { padding:26px; }
+        /* The form determines the grid row height; the feed never stretches the page. */
+        .message-list-section { position:relative; min-height:0; padding:0; }
+        .message-list-inner { position:absolute; inset:26px; display:flex; flex-direction:column; min-height:0; }
+        .feed-controls { flex:none; }
+        .message-feed { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:4px 4px 0; }
+        .message-feed:focus-visible { outline:2px solid var(--theme-color); outline-offset:4px; border-radius:12px; }
         .form-title { margin:0; color:var(--ink); text-align:left; font-size:20px; }
         .section-copy { margin:4px 0 22px; color:var(--muted); font-size:14px; }
         .form-control { min-height:46px; padding:11px 13px; border-color:var(--line); border-radius:12px; background:#fbfcff; font-size:15px; }
@@ -417,12 +422,10 @@
             .community-heading { display:block; }
             .logout-bar { margin-top:18px; justify-content:flex-start; }
             .community-layout { grid-template-columns:1fr; }
-            .message-form-section { position:static; max-height:none; overflow:visible; }
+            .message-list-section { height:80vh; height:80svh; min-height:560px; }
+            .message-list-inner { inset:20px; }
             .feed-toolbar { grid-template-columns:1fr; }
-            .message-form-section,
-            .message-list-section {
-                padding: 20px;
-            }
+            .message-form-section { padding:20px; }
             .submit-btn {
                 width: 100%;
             }
@@ -514,24 +517,30 @@
                 <p class="form-note" style="margin:10px 0 0 0;">发布留言时请遵守<a href="/community-rules" style="color:var(--theme-color);text-decoration:underline;font-weight:500;">《ISA Spectrum社区公约》</a></p>
                 <p class="form-note">留言审核结果将通过站内通知告知您</p>
             </section>
-            <section class="message-list-section">
-                <h2 class="form-title">最新动态</h2>
-                <p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
-                <div class="feed-toolbar">
-                    <input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容">
-                    <select id="messageZoneFilter" aria-label="按分区筛选">
-                        <option value="all">全部分区</option>
-                        <option value="校园生活">校园生活</option>
-                        <option value="学习互助">学习互助</option>
-                        <option value="活动社团">活动社团</option>
-                        <option value="失物招领">失物招领</option>
-                    </select>
-                    <select id="messageSort" aria-label="留言排序">
-                        <option value="newest">最新发布</option>
-                        <option value="oldest">最早发布</option>
-                    </select>
+            <section class="message-list-section" aria-labelledby="feedTitle">
+                <div class="message-list-inner">
+                    <div class="feed-controls">
+                        <h2 class="form-title" id="feedTitle">最新动态</h2>
+                        <p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
+                        <div class="feed-toolbar">
+                            <input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容">
+                            <select id="messageZoneFilter" aria-label="按分区筛选">
+                                <option value="all">全部分区</option>
+                                <option value="校园生活">校园生活</option>
+                                <option value="学习互助">学习互助</option>
+                                <option value="活动社团">活动社团</option>
+                                <option value="失物招领">失物招领</option>
+                            </select>
+                            <select id="messageSort" aria-label="留言排序">
+                                <option value="newest">最新发布</option>
+                                <option value="oldest">最早发布</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="messageFeed" class="message-feed" role="region" aria-label="留言列表" tabindex="0">
+                        <div id="messageContainer" class="loading">加载留言中...</div>
+                    </div>
                 </div>
-                <div id="messageContainer" class="loading">加载留言中...</div>
             </section>
         </div>
     </main>
@@ -985,7 +994,7 @@
 
         async function loadMainMessages(isLoadMore = false) {
             if (isLoadMore && (!hasMore || isLoadingMore)) return;
-            if (isLoadMore) isLoadingMore = true;
+            isLoadingMore = true;
             if (abortController) abortController.abort();
             abortController = new AbortController();
             const signal = abortController.signal;
@@ -994,6 +1003,7 @@
 
             if (!isLoadMore) {
                 container.innerHTML = '<div class="loading">加载留言中...</div>';
+                document.getElementById('messageFeed').scrollTop = 0;
                 currentPage = 0;
                 hasMore = true;
                 if (loadMoreWrap) loadMoreWrap.remove();
@@ -1081,13 +1091,20 @@
                 }
 
                 renderMessageAvatars();
+                // A tall form can leave the first page shorter than the feed viewport.
+                requestAnimationFrame(() => {
+                    const feed = document.getElementById('messageFeed');
+                    if (!signal.aborted && hasMore && feed.clientHeight > 0 && feed.scrollHeight <= feed.clientHeight) {
+                        loadMainMessages(true);
+                    }
+                });
             } catch (err) {
                 if (signal.aborted) return;
                 if (!isLoadMore) {
                     container.innerHTML = `<div class="empty-message">加载失败：${err.message}</div>`;
                 }
             } finally {
-                isLoadingMore = false;
+                if (!signal.aborted) isLoadingMore = false;
             }
         }
 
@@ -1215,14 +1232,12 @@
                 }
             });
 
-            window.addEventListener('scroll', () => {
+            const messageFeed = document.getElementById('messageFeed');
+            messageFeed.addEventListener('scroll', () => {
                 if (isLoadingMore || !hasMore) return;
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
-                    const scrollTop = Math.max(window.pageYOffset, document.documentElement.scrollTop);
-                    const viewHeight = window.innerHeight;
-                    const docHeight = document.documentElement.scrollHeight;
-                    if (scrollTop + viewHeight >= docHeight - SCROLL_THRESHOLD) {
+                    if (messageFeed.scrollTop + messageFeed.clientHeight >= messageFeed.scrollHeight - SCROLL_THRESHOLD) {
                         loadMainMessages(true);
                     }
                 }, 120);
