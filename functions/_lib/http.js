@@ -51,7 +51,8 @@ export function safeReturnPath(input, fallback = '/main.html') {
 export function sameOriginRequest(request) {
   const origin = request.headers.get('Origin');
   if (!origin) return false;
-  return origin === new URL(request.url).origin;
+  const target = new URL(request.url).origin;
+  return origin === target || (target === 'https://api.celestivast.com' && origin === 'https://isaspectrum.celestivast.com');
 }
 
 export function cookieNames(request) {

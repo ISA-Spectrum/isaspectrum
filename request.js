@@ -1,39 +1,34 @@
-const PRIMARY_API = "https://isaspectrum.celestivast.com"; // 主站
-const BACKUP_API = "https://api.celestivast.com";          // 备用站
-
-let isFallback = false;
-
+// Cloudflare first. Only an explicit quota response opens the short circuit.
+const PRIMARY_API = location.origin === 'https://api.celestivast.com'
+  ? 'https://isaspectrum.celestivast.com' : location.origin;
+const BACKUP_API = 'https://api.celestivast.com';
+let fallbackUntil = 0;
 async function request(path, options = {}) {
-  if (isFallback) return fetch(BACKUP_API + path, options);
-
+  if (!/^\/(api|auth)\//.test(path)) throw new Error('invalid_api_path');
+  const method = (options.method || 'GET').toUpperCase();
+  const read = method === 'GET' || method === 'HEAD';
+  const init = { credentials: 'include', ...options, method };
+  if (options.signal?.aborted) throw options.signal.reason || new DOMException('Aborted', 'AbortError');
+  if (Date.now() < fallbackUntil) return fetch(BACKUP_API + path, init);
+  const controller = new AbortController();
+  const abort = () => controller.abort(options.signal.reason);
+  options.signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(() => controller.abort(), read ? 20000 : 60000);
+  let response;
   try {
-    const controller = new AbortController();
-    
-    // 🎯 核心改动：如果是 POST/PUT/DELETE 等写操作，给 15 秒；读取（GET）依然 3 秒
-    const isWrite = options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE';
-    const timeoutDuration = isWrite ? 15000 : 3000;
-    
-    const timeout = setTimeout(() => controller.abort(), timeoutDuration); 
-
-    const res = await fetch(PRIMARY_API + path, { ...options, signal: controller.signal });
-    clearTimeout(timeout);
-    
-    // 如果 CF 额度耗尽 (429) 或者服务器报错 (5xx)
-    if (res.status === 429 || res.status >= 500) {
-      throw new Error(`主 API 异常，状态码: ${res.status}`);
-    }
-    
-    return res;
-  } catch (err) {
-    // 动态显示是超时还是其他错误
-    console.warn("🚨 主 API 不可用，自动切换备用！原因:", err.message);
-    isFallback = true;
-    
-    // 5分钟后尝试重新探测主站
-    setTimeout(() => { isFallback = false; }, 5 * 60 * 1000);
-    
-    return fetch(BACKUP_API + path, options);
+    response = await fetch(PRIMARY_API + path, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (options.signal?.aborted || !read) throw error;
+    return fetch(BACKUP_API + path, init);
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', abort);
   }
+  if (response.status === 429) fallbackUntil = Date.now() + 60000;
+  // Never replay an ambiguous write: the first server may already have committed it.
+  if (response.status === 429 || (read && response.status >= 500)) {
+    return fetch(BACKUP_API + path, init);
+  }
+  return response;
 }
-
 window.request = request;
