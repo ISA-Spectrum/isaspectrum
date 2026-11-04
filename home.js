@@ -71,6 +71,7 @@
       button.type = 'button';
       button.className = `hero-dot${index === 0 ? ' active' : ''}`;
       button.setAttribute('aria-label', `显示第 ${index + 1} 张：${slide.dataset.label}`);
+      button.setAttribute('aria-pressed', String(index === 0));
       host.appendChild(button);
       return button;
     });
@@ -81,7 +82,10 @@
     const show = (next, restart = false) => {
       current = (next + slides.length) % slides.length;
       slides.forEach((slide, index) => slide.classList.toggle('active', index === current));
-      dots.forEach((dot, index) => dot.classList.toggle('active', index === current));
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === current);
+        dot.setAttribute('aria-pressed', String(index === current));
+      });
       if (restart) schedule();
     };
     dots.forEach((dot, index) => dot.addEventListener('click', () => show(index, true)));
