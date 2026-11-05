@@ -45,10 +45,6 @@ function page(content, status = 200) {
   });
 }
 
-// This Pages project has no build command and publishes the repository root, so
-// repository-internal files would otherwise be downloadable — and once the site runs
-// on a hostname without "test" in it, the inner-test gate below does not apply at all.
-// The check happens before the static branch because static extensions skip the gate.
 const PRIVATE_PREFIXES = ['/test/', '/docs/', '/supabase/', '/migrations/', '/functions/', '/scripts/', '/.git/', '/.wrangler/'];
 const PRIVATE_FILES = new Set([
   '/package.json', '/package-lock.json', '/wrangler.jsonc', '/wrangler.toml',
@@ -63,13 +59,47 @@ function isPrivateAsset(path) {
   return dot !== -1 && PRIVATE_EXTENSIONS.includes(path.slice(dot).toLowerCase());
 }
 
+// 核心新增：给 Response 对象注入跨域头
+function addCorsHeaders(response, request) {
+  const newHeaders = new Headers(response.headers);
+  const origin = request.headers.get('Origin');
+  
+  // 动态匹配你的主站和本地开发环境
+  if (origin === 'https://isaspectrum.celestivast.com' || origin?.startsWith('http://localhost') || origin?.startsWith('http://127.0.0.1')) {
+    newHeaders.set('Access-Control-Allow-Origin', origin);
+    newHeaders.set('Access-Control-Allow-Credentials', 'true');
+  } else {
+    // 默认放行主站
+    newHeaders.set('Access-Control-Allow-Origin', 'https://isaspectrum.celestivast.com');
+    newHeaders.set('Access-Control-Allow-Credentials', 'true');
+  }
+
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // 因为 headers 是不可变的，必须重新构造 Response
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
 export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // OAuth/OIDC callbacks and server endpoints must reach their Pages Functions.
-  if (path.startsWith('/auth/') || path.startsWith('/api/')) return next();
+  // 1. 拦截 OPTIONS 预检请求
+  if (request.method === 'OPTIONS') {
+    return addCorsHeaders(new Response(null, { status: 204 }), request);
+  }
+
+  // 2. 放行 API 和 Auth，并用 addCorsHeaders 包裹
+  if (path.startsWith('/auth/') || path.startsWith('/api/')) {
+    const response = await next();
+    return addCorsHeaders(response, request);
+  }
 
   if (isPrivateAsset(path)) {
     return new Response('Not Found', {

@@ -101,7 +101,19 @@ export async function exchangeCode(discovery, config, code, codeVerifier) {
   }
   if (!response.ok) {
     let codeName = '';
-    try { codeName = (await response.json()).error || ''; } catch {}
+    try {
+      const failure = await response.json();
+      codeName = failure.error || '';
+      // Log only fixed categories, never the provider response or authorization code.
+      const description = String(failure.error_description || '');
+      const reason = /redirect.?uri/i.test(description) ? 'redirect_uri_mismatch'
+        : /pkce|code.?verifier/i.test(description) ? 'pkce_mismatch'
+        : /expired/i.test(description) ? 'code_expired'
+        : /session.*(active|found)|user session/i.test(description) ? 'provider_session_inactive'
+        : /code.*(valid|used|found)/i.test(description) ? 'code_invalid_or_used'
+        : 'unspecified';
+      console.error(`[auth/token] status=${response.status} error=${['invalid_grant', 'invalid_client', 'unauthorized_client'].includes(codeName) ? codeName : 'other'} reason=${reason}`);
+    } catch {}
     if (codeName === 'invalid_grant') throw new Error('invalid_grant');
     // A confidential client with a missing, wrong or expired AUTH_CLIENT_SECRET fails
     // here. Keycloak answers HTTP 401 with error=invalid_client for this case.

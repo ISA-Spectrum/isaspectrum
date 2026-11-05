@@ -19,7 +19,7 @@ test('avatar uploads use distinct objects and a failed profile update preserves 
     if(u.pathname==='/rest/v1/business_users') return new Response('unavailable',{status:503});
     throw Error('unexpected request');
   };t.after(()=>{globalThis.fetch=original;});
-  const headers={Origin:'https://site.example',Cookie:'__Host-business_session=mock-session'};
+  const headers={Origin:'https://site.example',Cookie:'__Secure-business_session=mock-session'};
   async function newUpload(){const form=new FormData();form.append('kind','avatar');form.append('files',new File(['new-avatar'],'avatar.webp',{type:'image/webp'}));const res=await upload({request:new Request('https://site.example/api/uploads',{method:'POST',headers,body:form}),env});assert.equal(res.status,201);return (await res.json()).urls[0];}
   const first=await newUpload(),second=await newUpload();assert.notEqual(first,second);
   const saved=await saveProfile({request:new Request('https://site.example/api/profile',{method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({avatarUrl:first})}),env});

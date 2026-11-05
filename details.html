@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>留言详情 - ISA Spectrum</title>
+    <script src="./request.js?v=20261101"></script>
     <script src="./auth-client.js"></script>
     <script src="./public-data.js"></script>
     <!-- 引入全局公共样式 -->
@@ -310,7 +311,7 @@
     <!-- 公共头部挂载容器 -->
     <div id="headerBox"></div>
     <main class="main-content">
-        <a href="messages.html" class="back-btn">← 返回校墙</a>
+        <a href="/messages" class="back-btn">← 返回校墙</a>
         <h1 class="page-title" style="text-align:center; font-size:28px; color:var(--theme-color); margin-bottom:20px;">留言详情</h1>
         <div class="main-message-card" id="mainMessageCard">
             <div class="loading">加载主楼内容中...</div>
@@ -450,7 +451,7 @@ async function uploadImages(files, targetId) {
     const form = new FormData();
     form.append('kind', 'message');
     compressedFiles.forEach(file => form.append('files', file, file.name));
-    const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+    const response = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
     if (!response.ok) throw new Error('图片上传失败');
     return (await response.json()).urls || [];
 }
@@ -657,7 +658,7 @@ function showReplyBox(tid) {
 }
 // ==================== 提交评论 ====================
 async function submitComment(rid, type) {
-    if (!currentUser || !currentUser.id) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
+    if (!currentUser || !currentUser.id) return ISAAuth.handleLogin('/details' + location.search);
     const el = type === 'main'
         ? document.getElementById('mainCommentInput')
         : document.getElementById(`replyInput-${rid}`);
@@ -667,12 +668,12 @@ async function submitComment(rid, type) {
     const filesInput = document.getElementById(`imageUpload-${rid}`);
     const files = filesInput?.files;
     const urls = files && files.length > 0 ? await uploadImages(files, rid) : [];
-    const response = await fetch('/api/messages', {
-        method: 'POST', credentials: 'same-origin',
+    const response = await request('/api/messages', {
+        method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, anonymous: ano, imageUrls: urls, replyTo: rid })
     });
-    if (response.status === 401) return location.replace(ISAAuth.loginUrl('/details.html' + location.search));
+    if (response.status === 401) return ISAAuth.handleLogin('/details' + location.search);
     if (!response.ok) {
         alert('发布失败，请稍后重试');
         return;

@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>校墙 - ISA Spectrum</title>
+    <title>校园广场与校墙留言｜ISA Spectrum 爱莎万象</title>
+  <meta name="description" content="在 ISA Spectrum 校园广场浏览校园生活、交流话题与校墙留言，按分区查找动态。登录后可发布内容，所有留言经审核后公开。">
+  <link rel="canonical" href="https://isaspectrum.celestivast.com/messages">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ISA Spectrum · 爱莎万象">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="校园广场与校墙留言｜ISA Spectrum 爱莎万象">
+  <meta property="og:description" content="在 ISA Spectrum 校园广场浏览校园生活、交流话题与校墙留言，按分区查找动态。登录后可发布内容，所有留言经审核后公开。">
+  <meta property="og:url" content="https://isaspectrum.celestivast.com/messages">
+  <meta property="og:image" content="https://isaspectrum.celestivast.com/images/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="校园广场与校墙留言｜ISA Spectrum 爱莎万象">
+  <meta name="twitter:description" content="在 ISA Spectrum 校园广场浏览校园生活、交流话题与校墙留言，按分区查找动态。登录后可发布内容，所有留言经审核后公开。">
+  <meta name="twitter:image" content="https://isaspectrum.celestivast.com/images/logo.png">
+
+    <script src="./request.js?v=20261101"></script>
     <script src="./auth-client.js"></script>
     <script src="./public-data.js"></script>
     <link rel="stylesheet" href="./common.css">
@@ -377,10 +392,15 @@
         .community-heading p { max-width:440px; margin:10px 0 0; color:var(--muted); }
         .logout-bar { margin:0; }
         .logout-btn { color:#6b2130 !important; border:1px solid #ffd4dc !important; border-radius:12px !important; background:#fff1f3 !important; font-weight:700; }
-        .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:start; }
+        .community-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.35fr); gap:20px; align-items:stretch; }
         .message-form-section,.message-list-section { margin:0; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:var(--shadow-sm); }
-        .message-form-section { position:sticky; top:92px; max-height:calc(100vh - 112px); padding:26px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
-        .message-list-section { padding:26px; }
+        .message-form-section { padding:26px; }
+        /* The form determines the grid row height; the feed never stretches the page. */
+        .message-list-section { position:relative; min-height:0; padding:0; }
+        .message-list-inner { position:absolute; inset:26px; display:flex; flex-direction:column; min-height:0; }
+        .feed-controls { flex:none; }
+        .message-feed { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:4px 4px 0; }
+        .message-feed:focus-visible { outline:2px solid var(--theme-color); outline-offset:4px; border-radius:12px; }
         .form-title { margin:0; color:var(--ink); text-align:left; font-size:20px; }
         .section-copy { margin:4px 0 22px; color:var(--muted); font-size:14px; }
         .form-control { min-height:46px; padding:11px 13px; border-color:var(--line); border-radius:12px; background:#fbfcff; font-size:15px; }
@@ -416,12 +436,10 @@
             .community-heading { display:block; }
             .logout-bar { margin-top:18px; justify-content:flex-start; }
             .community-layout { grid-template-columns:1fr; }
-            .message-form-section { position:static; max-height:none; overflow:visible; }
+            .message-list-section { height:80vh; height:80svh; min-height:560px; }
+            .message-list-inner { inset:20px; }
             .feed-toolbar { grid-template-columns:1fr; }
-            .message-form-section,
-            .message-list-section {
-                padding: 20px;
-            }
+            .message-form-section { padding:20px; }
             .submit-btn {
                 width: 100%;
             }
@@ -509,27 +527,33 @@
                 </div>
                 <button class="submit-btn" onclick="postMessage()" id="submitBtn">发布留言</button>
                 <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
-                <p class="form-note" style="margin:10px 0 0 0;">发布留言时请遵守<a href="community-rules.html" style="color:var(--theme-color);text-decoration:underline;font-weight:500;">《ISA Spectrum社区公约》</a></p>
+                <p class="form-note" style="margin:10px 0 0 0;">发布留言时请遵守<a href="/community-rules" style="color:var(--theme-color);text-decoration:underline;font-weight:500;">《ISA Spectrum社区公约》</a></p>
                 <p class="form-note">留言审核结果将通过站内通知告知您</p>
             </section>
-            <section class="message-list-section">
-                <h2 class="form-title">最新动态</h2>
-                <p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
-                <div class="feed-toolbar">
-                    <input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容">
-                    <select id="messageZoneFilter" aria-label="按分区筛选">
-                        <option value="all">全部分区</option>
-                        <option value="校园生活">校园生活</option>
-                        <option value="学习互助">学习互助</option>
-                        <option value="活动社团">活动社团</option>
-                        <option value="失物招领">失物招领</option>
-                    </select>
-                    <select id="messageSort" aria-label="留言排序">
-                        <option value="newest">最新发布</option>
-                        <option value="oldest">最早发布</option>
-                    </select>
+            <section class="message-list-section" aria-labelledby="feedTitle">
+                <div class="message-list-inner">
+                    <div class="feed-controls">
+                        <h2 class="form-title" id="feedTitle">最新动态</h2>
+                        <p class="section-copy">按时间浏览，或直接寻找你关心的话题。</p>
+                        <div class="feed-toolbar">
+                            <input id="messageSearch" type="search" placeholder="搜索留言内容" aria-label="搜索留言内容">
+                            <select id="messageZoneFilter" aria-label="按分区筛选">
+                                <option value="all">全部分区</option>
+                                <option value="校园生活">校园生活</option>
+                                <option value="学习互助">学习互助</option>
+                                <option value="活动社团">活动社团</option>
+                                <option value="失物招领">失物招领</option>
+                            </select>
+                            <select id="messageSort" aria-label="留言排序">
+                                <option value="newest">最新发布</option>
+                                <option value="oldest">最早发布</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="messageFeed" class="message-feed" role="region" aria-label="留言列表" tabindex="0">
+                        <div id="messageContainer" class="loading">加载留言中...</div>
+                    </div>
                 </div>
-                <div id="messageContainer" class="loading">加载留言中...</div>
             </section>
         </div>
     </main>
@@ -600,7 +624,7 @@
 
         async function refreshNotificationDot() {
             if (!userId) return;
-            const response = await fetch('/api/notifications?unread=1&limit=1', { credentials: 'same-origin', cache: 'no-store' });
+            const response = await request('/api/notifications?unread=1&limit=1', { credentials: 'include', cache: 'no-store' });
             const data = response.ok ? await response.json() : { notifications: [] };
             const hasUnread = data.notifications?.length > 0;
             notificationDot.style.display = hasUnread ? "block" : "none";
@@ -621,7 +645,7 @@
             }
 
             try {
-                const response = await fetch(`/api/notifications?page=${notifyPage}&limit=${NOTIFY_PAGE_SIZE}`, { credentials: 'same-origin', cache: 'no-store' });
+                const response = await request(`/api/notifications?page=${notifyPage}&limit=${NOTIFY_PAGE_SIZE}`, { credentials: 'include', cache: 'no-store' });
                 if (!response.ok) throw new Error('通知服务暂时不可用');
                 const result = await response.json();
                 const notes = result.notifications || [];
@@ -658,7 +682,7 @@
                 notifyHasMore = result.hasMore === true;
 
                 if (!append) {
-                    await fetch('/api/notifications', { method: 'PATCH', credentials: 'same-origin' });
+                    await request('/api/notifications', { method: 'PATCH', credentials: 'include' });
                     refreshNotificationDot();
                 }
 
@@ -671,7 +695,7 @@
         }
 
         async function initUserExtra() {
-            const response = await fetch('/api/profile', { credentials: 'same-origin', cache: 'no-store' });
+            const response = await request('/api/profile', { credentials: 'include', cache: 'no-store' });
             const data = response.ok ? await response.json() : {};
             const url = data.avatarUrl;
 
@@ -744,10 +768,10 @@
                 const form = new FormData();
                 form.append('kind', 'avatar');
                 form.append('files', compressedFile, compressedFile.name);
-                const upload = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+                const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
                 if (!upload.ok) throw new Error('上传失败');
                 const publicUrl = (await upload.json()).urls[0];
-                const saved = await fetch('/api/profile', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
+                const saved = await request('/api/profile', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
                 if (!saved.ok) throw new Error('头像保存失败');
                 avatarImg.src = getFreshAvatar(publicUrl);
                 avatarImg.style.display = "block";
@@ -844,7 +868,7 @@
             document.getElementById('fileUploadContainer').style.opacity = '.55';
             const submit = document.getElementById('submitBtn');
             submit.textContent = '登录后发布';
-            submit.onclick = () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+            submit.onclick = () => ISAAuth.handleLogin();
             document.getElementById('avatarBtn').hidden = true;
             const login = document.getElementById('logoutBtn');
             login.textContent = '登录';
@@ -923,7 +947,7 @@
                 form.append('kind', 'message');
                 compressedFiles.forEach(file => form.append('files', file, file.name));
                 progressBar.style.width = '45%';
-                const response = await fetch('/api/uploads', { method: 'POST', credentials: 'same-origin', body: form });
+                const response = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
                 if (!response.ok) throw new Error('图片上传失败');
                 progressBar.style.width = '100%';
                 return (await response.json()).urls || [];
@@ -950,12 +974,12 @@
             try {
                 const picUrls = await uploadImages(Array.from(files));
                 showFormStatus('正在上传并提交…');
-                const response = await fetch('/api/messages', {
-                    method: 'POST', credentials: 'same-origin',
+                const response = await request('/api/messages', {
+                    method: 'POST', credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content, zone, anonymous, imageUrls: picUrls })
                 });
-                if (response.status === 401) return location.replace(ISAAuth.loginUrl('/messages.html'));
+                if (response.status === 401) return ISAAuth.handleLogin('/messages');
                 if (!response.ok) throw new Error('留言服务暂时不可用');
                 showFormStatus('发布成功，审核结果会通过站内通知告知你。', 'success');
                 document.getElementById('messageContent').value = '';
@@ -984,7 +1008,7 @@
 
         async function loadMainMessages(isLoadMore = false) {
             if (isLoadMore && (!hasMore || isLoadingMore)) return;
-            if (isLoadMore) isLoadingMore = true;
+            isLoadingMore = true;
             if (abortController) abortController.abort();
             abortController = new AbortController();
             const signal = abortController.signal;
@@ -993,6 +1017,7 @@
 
             if (!isLoadMore) {
                 container.innerHTML = '<div class="loading">加载留言中...</div>';
+                document.getElementById('messageFeed').scrollTop = 0;
                 currentPage = 0;
                 hasMore = true;
                 if (loadMoreWrap) loadMoreWrap.remove();
@@ -1080,13 +1105,20 @@
                 }
 
                 renderMessageAvatars();
+                // A tall form can leave the first page shorter than the feed viewport.
+                requestAnimationFrame(() => {
+                    const feed = document.getElementById('messageFeed');
+                    if (!signal.aborted && hasMore && feed.clientHeight > 0 && feed.scrollHeight <= feed.clientHeight) {
+                        loadMainMessages(true);
+                    }
+                });
             } catch (err) {
                 if (signal.aborted) return;
                 if (!isLoadMore) {
                     container.innerHTML = `<div class="empty-message">加载失败：${err.message}</div>`;
                 }
             } finally {
-                isLoadingMore = false;
+                if (!signal.aborted) isLoadingMore = false;
             }
         }
 
@@ -1154,9 +1186,9 @@
             ? async () => {
                 const ok = confirm("确定要退出登录吗？");
                 if(!ok) return;
-                await ISAAuth.logout('/main.html');
+                await ISAAuth.logout('/main');
             }
-            : () => location.assign(ISAAuth.loginUrl('/messages.html' + location.search));
+            : () => ISAAuth.handleLogin();
 
             const avatarBtn = document.getElementById('avatarBtn');
             const avatarDropdown = document.getElementById('avatarDropdown');
@@ -1251,14 +1283,12 @@
                 }
             });
 
-            window.addEventListener('scroll', () => {
+            const messageFeed = document.getElementById('messageFeed');
+            messageFeed.addEventListener('scroll', () => {
                 if (isLoadingMore || !hasMore) return;
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
-                    const scrollTop = Math.max(window.pageYOffset, document.documentElement.scrollTop);
-                    const viewHeight = window.innerHeight;
-                    const docHeight = document.documentElement.scrollHeight;
-                    if (scrollTop + viewHeight >= docHeight - SCROLL_THRESHOLD) {
+                    if (messageFeed.scrollTop + messageFeed.clientHeight >= messageFeed.scrollHeight - SCROLL_THRESHOLD) {
                         loadMainMessages(true);
                     }
                 }, 120);

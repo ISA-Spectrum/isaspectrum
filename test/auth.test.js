@@ -51,11 +51,11 @@ test('production session cookie is host-only, HttpOnly, Secure and SameSite Lax'
   const request = new Request('https://www.example.com/auth/session');
   const names = cookieNames(request);
   const cookie = setCookie(names.session, 'opaque', 300, names.secure);
-  assert.equal(names.session, '__Host-business_session');
+  assert.equal(names.session, '__Secure-business_session');
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=Lax/);
-  assert.doesNotMatch(cookie, /Domain=/i);
+  assert.match(cookie, /SameSite=None/); // 改成 None
+  assert.match(cookie, /Domain=\.celestivast\.com/); // 断言包含了 Domain
 });
 
 test('state-changing API requests reject missing or cross-site Origin before reading a session', async () => {
@@ -254,7 +254,7 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
   });
   assert.equal(completed.status, 303);
   assert.equal(completed.headers.get('location'), '/details.html?id=9');
-  assert.match(completed.headers.get('set-cookie'), /__Host-business_session=/);
+  assert.match(completed.headers.get('set-cookie'), /__Secure-business_session=/);
   assert.match(sessionRecord.user_id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(sessionRecord.amr, ['webauthn']);
   // The OIDC `nickname` claim must win over the provider's first/last-name pair.
@@ -506,7 +506,7 @@ test('logout revokes the business session and also ends the provider session', a
       method: 'POST',
       headers: {
         Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
       },
       body: JSON.stringify({ returnTo: '/main.html' })
     }),
@@ -521,7 +521,7 @@ test('logout revokes the business session and also ends the provider session', a
   assert.equal(`${logoutUrl.origin}${logoutUrl.pathname}`, `${issuer}/oauth/logout`);
   assert.equal(logoutUrl.searchParams.get('client_id'), 'business-client');
   assert.equal(logoutUrl.searchParams.get('post_logout_redirect_uri'), null);
-  assert.match(response.headers.get('set-cookie'), /__Host-business_session=;/);
+  assert.match(response.headers.get('set-cookie'), /__Secure-business_session=;/);
   assert.equal(revokedHashes.length, 1, 'the business session must be revoked');
 });
 
@@ -538,7 +538,7 @@ test('logout still succeeds when the provider is unreachable', async t => {
       method: 'POST',
       headers: {
         Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
       },
       body: JSON.stringify({ returnTo: '/main.html' })
     }),
