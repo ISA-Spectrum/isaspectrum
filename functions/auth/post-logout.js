@@ -5,7 +5,10 @@ export async function onRequestGet({ request, env }) {
   const setCookieStr = await destroyBusinessSession(request, env);
 
   const headers = new Headers();
-  headers.set("Location", "/main.html");
+  
+  // 🎯 核心修改：写死主站绝对路径，并且去掉 .html
+  headers.set("Location", "https://isaspectrum.celestivast.com/main");
+  
   // Set‑Cookie允许多个，用append，不要set，防止覆盖
   headers.append("Set-Cookie", setCookieStr);
 

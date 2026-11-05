@@ -1,5 +1,5 @@
 import { getConfig } from '../_lib/config.js';
-import { json, methodNotAllowed, sameOriginRequest, safeReturnPath } from '../_lib/http.js';
+import { json, methodNotAllowed, sameOriginRequest, safeReturnPath, redirect } from '../_lib/http.js';
 import { discover } from '../_lib/oidc.js';
 import { destroyBusinessSession, getBusinessSession } from '../_lib/session.js';
 
@@ -23,23 +23,32 @@ async function providerLogoutUrl(env, rawIdToken) {
   }
 }
 
+async function logoutResult(request, env) {
+  const { session } = await getBusinessSession(request, env, getConfig(env));
+  const cookie = await destroyBusinessSession(request, env, true);
+  return { cookie, idpLogoutUrl: await providerLogoutUrl(env, session?.id_token_raw) };
+}
+
+export async function onRequestGet({ request, env }) {
+  let result;
+  try { result = await logoutResult(request, env); } catch {
+    return json({ error: 'session_unavailable' }, 503);
+  }
+  const returnTo = safeReturnPath(new URL(request.url).searchParams.get('return_to'), '/main');
+  return redirect(result.idpLogoutUrl || `https://isaspectrum.celestivast.com${returnTo}`, 302, { 'Set-Cookie': result.cookie });
+}
+
 export async function onRequestPost({ request, env }) {
   if (!sameOriginRequest(request)) return json({ error: 'invalid_origin' }, 403);
-
-  let session, cookie;
-  try {
-    const config = getConfig(env);
-    ({ session } = await getBusinessSession(request, env, config));
-    cookie = await destroyBusinessSession(request, env, true);
-  } catch {
+  let result;
+  try { result = await logoutResult(request, env); } catch {
     return json({ error: 'session_unavailable' }, 503);
   }
   let body = {};
   try { body = await request.json(); } catch {}
-  const idpLogoutUrl = await providerLogoutUrl(env, session?.id_token_raw);
-  return json({ idpLogoutUrl, returnTo: safeReturnPath(body?.returnTo) }, 200, { 'Set-Cookie': cookie });
+  return json({ idpLogoutUrl: result.idpLogoutUrl, returnTo: safeReturnPath(body?.returnTo) }, 200, { 'Set-Cookie': result.cookie });
 }
 
 export function onRequest() {
-  return methodNotAllowed('POST');
+  return methodNotAllowed('GET, POST');
 }

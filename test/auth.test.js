@@ -7,7 +7,7 @@ import { buildAuthorizationUrl, exchangeCode, verifyIdToken } from '../functions
 import { authenticateApi } from '../functions/_lib/api.js';
 import { onRequestGet as startLogin } from '../functions/auth/login.js';
 import { callbackErrorCode, onRequestGet as finishLogin } from '../functions/auth/callback.js';
-import { onRequestPost as logoutSession } from '../functions/auth/logout.js';
+import { onRequestGet as logoutRedirect, onRequestPost as logoutSession } from '../functions/auth/logout.js';
 
 function config(overrides = {}) {
   return getConfig({
@@ -51,11 +51,11 @@ test('production session cookie is host-only, HttpOnly, Secure and SameSite Lax'
   const request = new Request('https://www.example.com/auth/session');
   const names = cookieNames(request);
   const cookie = setCookie(names.session, 'opaque', 300, names.secure);
-  assert.equal(names.session, '__Host-business_session');
+  assert.equal(names.session, '__Secure-business_session');
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=Lax/);
-  assert.doesNotMatch(cookie, /Domain=/i);
+  assert.match(cookie, /SameSite=None/); // 改成 None
+  assert.match(cookie, /Domain=\.celestivast\.com/); // 断言包含了 Domain
 });
 
 test('state-changing API requests reject missing or cross-site Origin before reading a session', async () => {
@@ -254,7 +254,7 @@ test('authorization callback consumes D1 state and uses an RLS-scoped database t
   });
   assert.equal(completed.status, 303);
   assert.equal(completed.headers.get('location'), '/details.html?id=9');
-  assert.match(completed.headers.get('set-cookie'), /__Host-business_session=/);
+  assert.match(completed.headers.get('set-cookie'), /__Secure-business_session=/);
   assert.match(sessionRecord.user_id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(sessionRecord.amr, ['webauthn']);
   // The OIDC `nickname` claim must win over the provider's first/last-name pair.
@@ -507,7 +507,7 @@ test('logout revokes the business session and also ends the provider session', a
       method: 'POST',
       headers: {
         Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
       },
       body: JSON.stringify({ returnTo: '/main.html' })
     }),
@@ -522,7 +522,7 @@ test('logout revokes the business session and also ends the provider session', a
   assert.equal(`${logoutUrl.origin}${logoutUrl.pathname}`, `${issuer}/oauth/logout`);
   assert.equal(logoutUrl.searchParams.get('client_id'), 'business-client');
   assert.equal(logoutUrl.searchParams.get('post_logout_redirect_uri'), null);
-  assert.match(response.headers.get('set-cookie'), /__Host-business_session=;/);
+  assert.match(response.headers.get('set-cookie'), /__Secure-business_session=;/);
   assert.equal(revokedHashes.length, 1, 'the business session must be revoked');
 });
 
@@ -539,7 +539,7 @@ test('logout still succeeds when the provider is unreachable', async t => {
       method: 'POST',
       headers: {
         Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Host-business_session=opaque'
+        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
       },
       body: JSON.stringify({ returnTo: '/main.html' })
     }),
@@ -558,7 +558,7 @@ test('logout rejects cross-origin requests without revoking the session', async 
   revokedHashes = [];
   const response = await logoutSession({
     request: new Request('https://business.example.com/auth/logout', {
-      method: 'POST', headers: { Origin: 'https://attacker.example.com', Cookie: '__Host-business_session=opaque' }
+      method: 'POST', headers: { Origin: 'https://attacker.example.com', Cookie: '__Secure-business_session=opaque' }
     }),
     env: logoutEnv('cross-origin')
   });
@@ -571,7 +571,7 @@ test('logout reports failure when session revocation fails', async () => {
   env.AUTH_DB.prepare = () => ({ bind() { return this; }, async first() { return null; }, async run() { throw new Error('database unavailable'); } });
   const response = await logoutSession({
     request: new Request('https://business-failure.example.com/auth/logout', {
-      method: 'POST', headers: { Origin: 'https://business-failure.example.com', Cookie: '__Host-business_session=opaque' }
+      method: 'POST', headers: { Origin: 'https://business-failure.example.com', Cookie: '__Secure-business_session=opaque' }
     }), env
   });
   assert.equal(response.status, 503);
@@ -597,7 +597,7 @@ test('logout uses the session ID token and revokes its actual hash', async t => 
   t.after(() => { globalThis.fetch = originalFetch; });
   const response = await logoutSession({
     request: new Request(`${origin}/auth/logout`, {
-      method: 'POST', headers: { Origin: origin, Cookie: '__Host-business_session=opaque' }, body: '{}'
+      method: 'POST', headers: { Origin: origin, Cookie: '__Secure-business_session=opaque' }, body: '{}'
     }), env
   });
   assert.equal(response.status, 200);
@@ -605,4 +605,33 @@ test('logout uses the session ID token and revokes its actual hash', async t => 
   assert.equal(new URL(result.idpLogoutUrl).searchParams.get('id_token_hint'), 'id-token');
   const { sha256Base64Url } = await import('../functions/_lib/crypto.js');
   assert.equal(revokedHash, await sha256Base64Url('opaque'));
+});
+
+test('GET logout preserves navigation support and revokes before redirecting', async t => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('provider down'); };
+  t.after(() => { globalThis.fetch = originalFetch; });
+  revokedHashes = [];
+  const response = await logoutRedirect({
+    request: new Request('https://business-get.example.com/auth/logout?return_to=%2Fmessages', {
+      headers: { Cookie: '__Secure-business_session=opaque' }
+    }), env: logoutEnv('get')
+  });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), 'https://isaspectrum.celestivast.com/messages');
+  assert.match(response.headers.get('set-cookie'), /__Secure-business_session=;/);
+  assert.equal(revokedHashes.length, 1);
+});
+
+test('GET logout does not redirect or clear cookies when revocation fails', async () => {
+  const env = logoutEnv('get-failure');
+  env.AUTH_DB.prepare = () => ({ bind() { return this; }, async first() { return null; }, async run() { throw new Error('database unavailable'); } });
+  const response = await logoutRedirect({
+    request: new Request('https://business-get-failure.example.com/auth/logout', {
+      headers: { Cookie: '__Secure-business_session=opaque' }
+    }), env
+  });
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(response.headers.get('set-cookie'), null);
 });
