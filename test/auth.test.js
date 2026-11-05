@@ -473,7 +473,7 @@ function logoutFixture(label = crypto.randomUUID()) {
           if (!flow || flow.binding !== this.args[1] || flow.expires <= this.args[2]) return null;
           flows.delete(this.args[0]); return flow;
         }
-        return { user_id: 'user', id_token_raw: 'private-id-token' };
+        return seen.missingSession ? null : { user_id: 'user', id_token_raw: 'private-id-token' };
       },
       async run() {
         if (sql.includes('insert into oauth_transactions')) {
@@ -567,4 +567,15 @@ test('a stalled discovery has a deadline and still clears the local session', as
   const response = await logoutSession({ request: f.request(), env: f.env });
   assert.equal(response.status, 200); assert.equal(f.seen.revoked, 1); assert.equal(signal.aborted, true);
   assert.equal((await response.json()).logoutPath, null);
+});
+
+
+test('an already logged-out request does not create provider flows', async t => {
+  const f=logoutFixture();f.seen.missingSession=true;
+  const original=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{calls++;throw Error('unexpected discovery');};
+  t.after(()=>{globalThis.fetch=original;});
+  const response=await logoutSession({request:f.request(),env:f.env});
+  assert.equal(response.status,200);assert.equal((await response.json()).logoutPath,null);
+  assert.equal(calls,0);assert.equal(f.flows.size,0);
 });

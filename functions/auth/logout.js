@@ -50,7 +50,7 @@ export async function onRequestPost({ request, env }) {
   const returnTo = safeReturnPath(body?.returnTo, '/main');
   let logoutPath = null, binding = null;
   try {
-    const providerUrl = await providerLogoutUrl(config, session?.id_token_raw);
+    const providerUrl = session?.user_id ? await providerLogoutUrl(config, session.id_token_raw) : null;
     if (providerUrl) {
       const ticket = randomBase64Url(32);
       binding = randomBase64Url(32);

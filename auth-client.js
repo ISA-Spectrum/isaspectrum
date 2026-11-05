@@ -29,7 +29,7 @@
   // revoke sessions twice, and manual redirects are opaque in browsers.
   async function authOrigin() {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 45000);
     try {
       const res = await fetch('/auth/session', { credentials: 'include', cache: 'no-store', signal: controller.signal });
       return res.status === 429 || res.status >= 500 ? BACKUP_DOMAIN : '';
@@ -66,7 +66,7 @@
       let timer;
       try {
         const origin = await authOrigin();
-        timer = setTimeout(() => controller.abort(), 20000);
+        timer = setTimeout(() => controller.abort(), 45000);
         const response = await fetch(`${origin}/auth/logout`, {
           method: 'POST', credentials: 'include', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
