@@ -58,20 +58,35 @@
     return session;
   }
 
-  async function logout(returnTo = '/main') {
-    try {
-      const origin = await authOrigin();
-      const response = await fetch(`${origin}/auth/logout`, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ returnTo: safeReturnTo(returnTo) })
-      });
-      if (!response.ok) throw new Error('logout_failed');
-      const result = await response.json();
-      location.href = result.idpLogoutUrl || safeReturnTo(result.returnTo);
-    } catch {
-      alert('退出失败，请稍后重试');
-    }
+  let logoutPending = null;
+  function logout(returnTo = '/main') {
+    if (logoutPending) return logoutPending;
+    logoutPending = (async () => {
+      const controller = new AbortController();
+      let timer;
+      try {
+        const origin = await authOrigin();
+        timer = setTimeout(() => controller.abort(), 20000);
+        const response = await fetch(`${origin}/auth/logout`, {
+          method: 'POST', credentials: 'include', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ returnTo: safeReturnTo(returnTo) })
+        });
+        if (!response.ok) throw new Error('logout_failed');
+        const result = await response.json();
+        if (typeof result.logoutPath === 'string' && /^\/auth\/logout\?ticket=[A-Za-z0-9_-]{43}$/.test(result.logoutPath)) {
+          location.href = origin + result.logoutPath;
+        } else {
+          location.href = safeReturnTo(result.returnTo);
+        }
+      } catch {
+        alert('未能确认退出结果，请检查网络后重试');
+      } finally {
+        clearTimeout(timer);
+        logoutPending = null;
+      }
+    })();
+    return logoutPending;
   }
 
   window.ISAAuth = { getSession, requireSession, handleLogin, logout, safeReturnTo };

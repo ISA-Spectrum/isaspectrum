@@ -116,3 +116,32 @@ test('logout failure stays on the page and never replays the write', async () =>
   assert.equal(location.href, '/messages');
   assert.equal(alerts, 1);
 });
+
+
+test('logout is single flight and follows only a valid opaque path', async () => {
+  const location = { origin: 'https://isaspectrum.celestivast.com', href: '/messages' };
+  const window = {}; let writes = 0;
+  vm.runInNewContext(authSource, { window, location, URL, AbortController, setTimeout, clearTimeout, alert: () => assert.fail(),
+    fetch: async (url, init) => {
+      if (url === '/auth/session') return new Response('{}');
+      writes++; assert.ok(init.signal);
+      return Response.json({ logoutPath: '/auth/logout?ticket=' + 'a'.repeat(43), returnTo: '/main' });
+    }
+  });
+  const first = window.ISAAuth.logout(); const second = window.ISAAuth.logout();
+  assert.equal(first, second); await first;
+  assert.equal(writes, 1); assert.equal(location.href, '/auth/logout?ticket=' + 'a'.repeat(43));
+});
+test('logout aborts a stalled write without replaying it', async () => {
+  const window = {}; let alerts = 0, writes = 0;
+  const location = { origin: 'https://isaspectrum.celestivast.com', href: '/messages' };
+  vm.runInNewContext(authSource, { window, location, URL, AbortController,
+    setTimeout: callback => setTimeout(callback, 5), clearTimeout, alert: () => { alerts++; },
+    fetch: async (url, init) => {
+      if (url === '/auth/session') return new Response('{}');
+      writes++; return new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(Error('timeout')), { once: true }));
+    }
+  });
+  await window.ISAAuth.logout();
+  assert.equal(writes, 1); assert.equal(alerts, 1); assert.equal(location.href, '/messages');
+});

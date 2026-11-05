@@ -1,3 +1,4 @@
+import { withDeadline } from './fetch-timeout.js';
 import { base64UrlDecode, base64UrlEncode, parseJwtPart, timingSafeEqual, utf8 } from './crypto.js';
 
 const discoveryCache = new Map();
@@ -18,7 +19,11 @@ async function cachedJson(cache, key, request, force = false) {
   if (!force && cached && cached.expiresAt > Date.now()) return cached.value;
   let response;
   try {
-    response = await fetch(request, { headers: { Accept: 'application/json' } });
+    response = await withDeadline(async signal => {
+      const response = await fetch(request, { headers: { Accept: 'application/json' }, signal });
+      const value = response.ok ? await response.json() : null;
+      return { ok: response.ok, json: async () => value };
+    }, 5000);
   } catch {
     throw new Error('authorization_server_unavailable');
   }

@@ -97,7 +97,7 @@ Session token 由 32 字节安全随机数生成，D1 只保存 SHA-256 哈希�
 
 ## 11. Logout
 
-`POST /auth/logout` 校验同源 `Origin`，在数据库撤销业务 Session 并清 Cookie，再尝试根据认证中心 discovery 引导浏览器退出认证中心。认证中心不可用时本地退出仍会完成；认证中心退出是否成功需要实际环境验证，不能共享父域 Cookie。
+`POST /auth/logout` 校验来源并严格撤销业务会话。前端仅收到一次性路径，不接触含 ID Token 的认证中心地址。服务端使用现有 transaction 存储保存退出地址，120 秒过期，并用独立 HttpOnly、host-only Cookie 绑定当前浏览器；GET 只原子消费此流程，不撤销会话。直接 GET 退出被拒绝。认证中心 discovery 最多等待 5 秒，共享存储单次调用最多 10 秒；前端 POST 20 秒超时且不自动重放，重复点击合并为同一请求。认证中心不可用时本地退出仍成功，真实 SSO 兼容性需在部署环境验收。退出 transaction 使用独立哈希命名空间，不会被登录 callback 消费。
 
 ## 12. 错误处理
 
