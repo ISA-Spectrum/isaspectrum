@@ -51,11 +51,11 @@ export async function getBusinessSession(request, env, config, rotate = false) {
   return { session, setCookie: setCookie(names.session, nextToken, cookieTtl, names.secure) };
 }
 
-export async function destroyBusinessSession(request, env) {
+export async function destroyBusinessSession(request, env, strict = false) {
   const names = cookieNames(request);
   const token = parseCookies(request)[names.session];
   if (token) {
-    try { await revokeSession(env, await sha256Base64Url(token)); } catch {}
+    try { await revokeSession(env, await sha256Base64Url(token)); } catch (error) { if (strict) throw error; }
   }
   return clearCookie(names.session, names.secure);
 }

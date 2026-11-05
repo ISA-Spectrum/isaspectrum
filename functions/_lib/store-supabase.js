@@ -1,3 +1,4 @@
+import { withDeadline } from './fetch-timeout.js';
 // Server-only shared session store. Never use a browser publishable key here.
 async function call(env, operation, args = {}) {
   const url = String(env.BUSINESS_SUPABASE_URL || '').replace(/\/$/, '');
@@ -6,11 +7,13 @@ async function call(env, operation, args = {}) {
   const headers = { apikey: key, 'Content-Type': 'application/json' };
   // Legacy service_role JWTs require Authorization; sb_secret keys use apikey.
   if (!key.startsWith('sb_secret_')) headers.Authorization = `Bearer ${key}`;
-  const response = await fetch(`${url}/rest/v1/rpc/isa_auth_store`, {
-    method: 'POST', headers, body: JSON.stringify({ operation, args })
+  return withDeadline(async signal => {
+    const response = await fetch(`${url}/rest/v1/rpc/isa_auth_store`, {
+      method: 'POST', headers, signal, body: JSON.stringify({ operation, args })
   });
   if (!response.ok) throw new Error(`auth_store_unavailable:${response.status}`);
   return response.json();
+  });
 }
 export const createTransaction = (env, value) => call(env, 'create_transaction', value);
 export const pruneAuthState = env => call(env, 'prune');

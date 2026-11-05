@@ -7,7 +7,7 @@ import { buildAuthorizationUrl, exchangeCode, verifyIdToken } from '../functions
 import { authenticateApi } from '../functions/_lib/api.js';
 import { onRequestGet as startLogin } from '../functions/auth/login.js';
 import { callbackErrorCode, onRequestGet as finishLogin } from '../functions/auth/callback.js';
-import { onRequestPost as logoutSession } from '../functions/auth/logout.js';
+import { onRequestGet as logoutRedirect, onRequestPost as logoutSession } from '../functions/auth/logout.js';
 
 function config(overrides = {}) {
   return getConfig({
@@ -458,96 +458,124 @@ test('a failing callback reports the real cause to the login page and logs its s
   assert.ok(logs.every(line => !line.includes('one-time-code')), 'the authorization code must not be logged');
 });
 
-function logoutEnv(env) {
-  return {
-    AUTH_ISSUER: `https://logout-${env}.example.com`,
-    AUTH_CLIENT_ID: 'business-client',
-    AUTH_REDIRECT_URI: `https://business-${env}.example.com/auth/callback`,
-    BUSINESS_SUPABASE_URL: 'https://store.supabase.co',
-    BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'publishable-test',
-    AUTH_DB: {
-      prepare() {
-        return {
-          bind(...args) { this.args = args; return this; },
-          async run() { revokedHashes.push(this.args[0]); return { meta: { changes: 1 } }; }
-        };
+function logoutFixture(label = crypto.randomUUID()) {
+  const flows = new Map();
+  const seen = { revoked: 0, failRevoke: false };
+  const env = {
+    AUTH_ISSUER: `https://logout-${label}.example.com`, AUTH_CLIENT_ID: 'business-client',
+    AUTH_REDIRECT_URI: 'https://business.example.com/auth/callback',
+    BUSINESS_SUPABASE_URL: 'https://store.supabase.co', BUSINESS_SUPABASE_PUBLISHABLE_KEY: 'fixture',
+    AUTH_DB: { prepare(sql) { return {
+      bind(...args) { this.args = args; return this; },
+      async first() {
+        if (sql.includes('delete from oauth_transactions')) {
+          const flow = flows.get(this.args[0]);
+          if (!flow || flow.binding !== this.args[1] || flow.expires <= this.args[2]) return null;
+          flows.delete(this.args[0]); return flow;
+        }
+        return seen.missingSession ? null : { user_id: 'user', id_token_raw: 'private-id-token' };
       },
-      async batch() { return []; }
-    }
+      async run() {
+        if (sql.includes('insert into oauth_transactions')) {
+          const a = this.args;
+          flows.set(a[0], { binding: a[1], code_verifier: a[2], nonce: a[3], redirect_path: a[4], expires: a[6] });
+        } else {
+          if (seen.failRevoke) throw Error('database unavailable');
+          seen.revoked++; seen.hash = this.args[1];
+        }
+        return { meta: { changes: 1 } };
+      }
+    }; } }
   };
-}
-let revokedHashes = [];
-
-test('logout revokes the business session and also ends the provider session', async t => {
-  const suffix = Date.now() + 29;
-  const issuer = `https://logout-${suffix}.example.com`;
-  const origin = `https://business-${suffix}.example.com`;
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async input => {
-    if (String(input) === `${issuer}/.well-known/openid-configuration`) {
-      return Response.json({
-        issuer,
-        authorization_endpoint: `${issuer}/oauth/authorize`,
-        token_endpoint: `${issuer}/oauth/token`,
-        jwks_uri: `${issuer}/jwks`,
-        end_session_endpoint: `${issuer}/oauth/logout`,
-        response_types_supported: ['code'],
-        code_challenge_methods_supported: ['S256']
-      });
-    }
-    throw new Error(`unexpected fetch: ${input}`);
-  };
-  t.after(() => { globalThis.fetch = originalFetch; });
-  revokedHashes = [];
-
-  const env = logoutEnv(suffix);
-  const response = await logoutSession({
-    request: new Request(`${origin}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
-      },
-      body: JSON.stringify({ returnTo: '/main.html' })
-    }),
-    env
+  const request = (method = 'POST', cookie = '__Secure-business_session=opaque', origin = 'https://business.example.com', query = '') => new Request('https://business.example.com/auth/logout' + query, {
+    method, headers: { Cookie: cookie, Origin: origin }, ...(method === 'POST' ? { body: JSON.stringify({ returnTo: '/messages' }) } : {})
   });
-
+  return { env, seen, flows, request };
+}
+function mockLogoutDiscovery(t, env, overrides = {}) {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    issuer: env.AUTH_ISSUER, authorization_endpoint: env.AUTH_ISSUER + '/authorize', token_endpoint: env.AUTH_ISSUER + '/token',
+    jwks_uri: env.AUTH_ISSUER + '/jwks', end_session_endpoint: env.AUTH_ISSUER + '/logout',
+    response_types_supported: ['code'], code_challenge_methods_supported: ['S256'], ...overrides
+  });
+  t.after(() => { globalThis.fetch = original; });
+}
+function bindingCookie(response) {
+  return response.headers.getSetCookie().find(value => value.startsWith('__Host-logout_flow=')).split(';')[0];
+}
+test('logout revokes the session and only returns a browser-bound single-use path', async t => {
+  const f = logoutFixture(); mockLogoutDiscovery(t, f.env);
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  const text = await response.text(); const result = JSON.parse(text);
   assert.equal(response.status, 200);
-  const body = await response.json();
-  const logoutUrl = new URL(body.idpLogoutUrl);
-  // Without a registered post_logout_redirect_uri the provider shows its own page; the
-  // client_id is what lets it end the right SSO session.
-  assert.equal(`${logoutUrl.origin}${logoutUrl.pathname}`, `${issuer}/oauth/logout`);
-  assert.equal(logoutUrl.searchParams.get('client_id'), 'business-client');
-  assert.equal(logoutUrl.searchParams.get('post_logout_redirect_uri'), null);
-  assert.match(response.headers.get('set-cookie'), /__Secure-business_session=;/);
-  assert.equal(revokedHashes.length, 1, 'the business session must be revoked');
+  assert.equal(f.seen.revoked, 1);
+  assert.equal(f.seen.hash, await sha256Base64Url('opaque'));
+  assert.doesNotMatch(text, /private-id-token|id_token_hint|example.com\/logout/);
+  assert.match(result.logoutPath, /^\/auth\/logout\?ticket=[A-Za-z0-9_-]{43}$/);
+  const cookies = response.headers.getSetCookie();
+  assert.match(cookies[0], /__Secure-business_session=;.*Max-Age=0/);
+  assert.match(cookies[1], /HttpOnly; SameSite=Lax; Secure/);
+  const query = result.logoutPath.slice('/auth/logout'.length);
+  const wrong = await logoutRedirect({ request: f.request('GET', '__Host-logout_flow=' + 'x'.repeat(43), '', query), env: f.env });
+  assert.equal(wrong.status, 400);
+  const finished = await logoutRedirect({ request: f.request('GET', bindingCookie(response), '', query), env: f.env });
+  assert.equal(finished.status, 303);
+  const target = new URL(finished.headers.get('location'));
+  assert.equal(target.searchParams.get('id_token_hint'), 'private-id-token');
+  assert.equal(target.searchParams.get('client_id'), 'business-client');
+  const replay = await logoutRedirect({ request: f.request('GET', bindingCookie(response), '', query), env: f.env });
+  assert.equal(replay.status, 400);
+});
+test('expired logout flows cannot redirect', async t => {
+  const f = logoutFixture(); mockLogoutDiscovery(t, f.env);
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  const result = await response.json();
+  for (const flow of f.flows.values()) flow.expires = '2000-01-01T00:00:00.000Z';
+  const finished = await logoutRedirect({ request: f.request('GET', bindingCookie(response), '', result.logoutPath.slice('/auth/logout'.length)), env: f.env });
+  assert.equal(finished.status, 400);
+});
+test('cross-site POST and direct GET never revoke a business session', async () => {
+  const f = logoutFixture();
+  const post = await logoutSession({ request: f.request('POST', '__Secure-business_session=opaque', 'https://evil.example'), env: f.env });
+  const get = await logoutRedirect({ request: f.request('GET'), env: f.env });
+  assert.equal(post.status, 403); assert.equal(get.status, 405); assert.equal(f.seen.revoked, 0);
+});
+test('revocation failure never clears the cookie or claims success', async () => {
+  const f = logoutFixture(); f.seen.failRevoke = true;
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  assert.equal(response.status, 503); assert.equal(response.headers.get('set-cookie'), null);
+});
+test('provider failures still finish local logout', async t => {
+  const f = logoutFixture(); const original = globalThis.fetch;
+  globalThis.fetch = async () => { throw Error('provider down'); };
+  t.after(() => { globalThis.fetch = original; });
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  assert.equal(response.status, 200); assert.equal(f.seen.revoked, 1);
+  assert.deepEqual(await response.json(), { logoutPath: null, returnTo: '/messages', providerLogoutAvailable: false });
+});
+test('insecure provider logout endpoints are rejected', async t => {
+  const f = logoutFixture(); mockLogoutDiscovery(t, f.env, { end_session_endpoint: 'http://evil.example/logout' });
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  assert.equal((await response.json()).logoutPath, null);
+});
+test('a stalled discovery has a deadline and still clears the local session', async t => {
+  const f = logoutFixture(); const original = globalThis.fetch;
+  let signal;
+  globalThis.fetch = async (_, init) => { signal = init.signal; return new Promise(() => {}); };
+  t.after(() => { globalThis.fetch = original; });
+  const response = await logoutSession({ request: f.request(), env: f.env });
+  assert.equal(response.status, 200); assert.equal(f.seen.revoked, 1); assert.equal(signal.aborted, true);
+  assert.equal((await response.json()).logoutPath, null);
 });
 
-test('logout still succeeds when the provider is unreachable', async t => {
-  const suffix = Date.now() + 31;
-  const origin = `https://business-${suffix}.example.com`;
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => { throw new Error('provider down'); };
-  t.after(() => { globalThis.fetch = originalFetch; });
-  revokedHashes = [];
 
-  const response = await logoutSession({
-    request: new Request(`${origin}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        Origin: origin, 'Content-Type': 'application/json',
-        Accept: 'application/json', Cookie: '__Secure-business_session=opaque'
-      },
-      body: JSON.stringify({ returnTo: '/main.html' })
-    }),
-    env: logoutEnv(suffix)
-  });
-
-  assert.equal(response.status, 200);
-  const body = await response.json();
-  assert.equal(body.idpLogoutUrl, null);
-  assert.equal(body.returnTo, '/main.html');
-  assert.equal(revokedHashes.length, 1, 'the local session must still be revoked');
+test('an already logged-out request does not create provider flows', async t => {
+  const f=logoutFixture();f.seen.missingSession=true;
+  const original=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{calls++;throw Error('unexpected discovery');};
+  t.after(()=>{globalThis.fetch=original;});
+  const response=await logoutSession({request:f.request(),env:f.env});
+  assert.equal(response.status,200);assert.equal((await response.json()).logoutPath,null);
+  assert.equal(calls,0);assert.equal(f.flows.size,0);
 });
