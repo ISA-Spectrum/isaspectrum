@@ -4,7 +4,7 @@
   if (window.ISAAvatarEditor) return;
   const prefix = 'avatar-editor-';
   let dialog, nodes, cropper = null, sourceUrl = null, probe = null;
-  let revision = 0, busy = false, timer = null, session = null, mountedMobile = false;
+  let revision = 0, busy = false, timer = null, session = null, mountedMobile = false, mountedLayout = '';
   let scrollState = null, previewCanvas = null, previewFrame = null, exportedFile = null;
   const media = window.matchMedia('(max-width:760px)');
   const get = key => nodes[key];
@@ -117,7 +117,7 @@
     });
   }
   function mountCropper(generation, label, data = {}) {
-    mountedMobile = media.matches;
+    mountedMobile = media.matches; mountedLayout = layoutKey();
     try {
       if (typeof window.Cropper !== 'function') throw new Error('Cropper unavailable');
       timer = window.setTimeout(() => {
@@ -127,7 +127,7 @@
       cropper = new window.Cropper(get('source'), {
         aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 0.8,
         crop: queuePreview,
-        background: false, responsive: true, data,
+        background: false, responsive: false, data,
         toggleDragModeOnDblclick: false, checkOrientation: true,
         ready() {
           if (generation !== revision || !dialog.open) return;
@@ -141,8 +141,13 @@
       failLoad('头像编辑器加载失败，请重新选择照片。');
     }
   }
+  function layoutKey() {
+    const rect = get('stage').getBoundingClientRect();
+    return `${Math.round(rect.right - rect.left)}:${Math.round(rect.bottom - rect.top)}`;
+  }
+  function layoutChanged() { return media.matches !== mountedMobile || layoutKey() !== mountedLayout; }
   function rebuildAtBreakpoint() {
-    if (!dialog?.open || !cropper?.ready || busy || media.matches === mountedMobile) return;
+    if (!dialog?.open || !cropper?.ready || busy || !layoutChanged()) return;
     try {
       const data = cropper.getData();
       revision++; releaseCropper(); controls();
@@ -213,7 +218,7 @@
       if (session === activeSession && dialog.open) {
         busy = false; cropper?.enable(); controls();
         // Do not lose breakpoint changes made while onSave was pending.
-        if (media.matches !== mountedMobile) {
+        if (layoutChanged()) {
           const message = get('note').textContent;
           const isError = get('note').classList.contains('isa-avatar-editor-error');
           rebuildAtBreakpoint();
@@ -271,6 +276,7 @@
     });
     if (media.addEventListener) media.addEventListener('change', rebuildAtBreakpoint);
     else media.addListener(rebuildAtBreakpoint);
+    if (window.ResizeObserver) new window.ResizeObserver(rebuildAtBreakpoint).observe(get('stage'));
   }
   function rejected(error) {
     const promise = Promise.reject(error);

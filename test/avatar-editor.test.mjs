@@ -46,16 +46,20 @@ function harness() {
     destroy() { this.destroyed=true; }
     disable() { this.disabled=true; } enable() { this.disabled=false; }
     move(...args) { this.moves.push(args); } zoom() {} rotate() {} reset() {}
+    getData() { return this.data || {x:10,y:20,width:300,height:300,rotate:90}; }
     getCroppedCanvas(options) { this.exportOptions=options; return {toDataURL: () => 'data:image/png;base64,c2FtcGxl', toBlob: (cb,type,quality) => blobs.push({cb,type,quality})}; }
   }
+  let resizeCallback;
+  class ResizeObserverMock { constructor(callback) { resizeCallback=callback; } observe() {} }
   const media={matches:false, addEventListener() {}};
-  const window={File:FileMock, Image:ImageMock, Cropper, matchMedia:()=>media, scrollX:12, scrollY:34, scrollTo(value){this.scrolled=value;}, requestAnimationFrame(fn){return setImmediate(fn);}, cancelAnimationFrame(id){clearImmediate(id);}, setTimeout, URL:{createObjectURL(){const url='blob:test/'+(created.length+1); created.push(url); return url;}, revokeObjectURL(url){revoked.push(url);}}};
+  const window={ResizeObserver:ResizeObserverMock, File:FileMock, Image:ImageMock, Cropper, matchMedia:()=>media, scrollX:12, scrollY:34, scrollTo(value){this.scrolled=value;}, requestAnimationFrame(fn){return setImmediate(fn);}, cancelAnimationFrame(id){clearImmediate(id);}, setTimeout, URL:{createObjectURL(){const url='blob:test/'+(created.length+1); created.push(url); return url;}, revokeObjectURL(url){revoked.push(url);}}};
   vm.runInNewContext(code, {window,document,setTimeout,clearTimeout,console});
   const open = options => window.ISAAvatarEditor.open({onSave:()=>{}, ...options});
   const input = () => new FileMock([{size:100}], 'photo.png', {type:'image/png'});
   const load = () => { const p=probes.at(-1); p.onload(); return crops.at(-1); };
   const ready = () => { const c=load(); c.triggerReady(); return c; };
-  return {el,actions,previews,dialog,document,window,opener,probes,crops,blobs,revoked,created,open,input,load,ready};
+  const resize=(width,height)=>{el.stage.getBoundingClientRect=()=>({left:0,top:0,right:width,bottom:height});resizeCallback();};
+  return {resize,el,actions,previews,dialog,document,window,opener,probes,crops,blobs,revoked,created,open,input,load,ready};
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -142,4 +146,15 @@ test('retrying a failed persistence call reuses the exact encoded File', async (
   h.ready(); h.el.save.click(); h.blobs[0].cb({ type: 'image/png', size: 42 }); await tick();
   h.el.save.click(); const saved = await pending;
   assert.equal(h.blobs.length, 1); assert.equal(files.length, 2); assert.equal(files[0], files[1]); assert.equal(saved, files[0]);
+});
+
+
+test('resizing rebuilds from natural crop coordinates without Cropper responsive drift', async () => {
+  const h=harness(), pending=h.open({file:h.input()}), first=h.ready();
+  assert.equal(first.options.responsive,false);
+  const crop={x:33,y:47,width:200,height:200,rotate:90};first.data=crop;
+  h.resize(350,180);
+  assert.equal(first.destroyed,true);assert.equal(h.crops.length,2);
+  const second=h.crops[1];assert.deepEqual(second.options.data,crop);
+  second.triggerReady();h.el.cancel.click();assert.equal(await pending,null);
 });
