@@ -40,11 +40,12 @@ export async function onRequestPost({ request, env }) {
       }
       const own = all.filter(item => item.name?.startsWith(auth.session.user_id + '.'));
       const rows = await requestBusinessData(env, auth.session, `business_users?user_id=eq.${encodeURIComponent(auth.session.user_id)}&select=avatar_url&limit=1`);
-      const current = rows?.[0]?.avatar_url;
-      const base = String(env.BUSINESS_SUPABASE_URL).replace(/\/$/, '') + '/storage/v1/object/public/avatars/';
+      let currentPath = null;
+      try { currentPath = new URL(rows?.[0]?.avatar_url).pathname; } catch {}
+      const prefix = '/storage/v1/object/public/avatars/business/';
       const obsolete = own.filter(item => {
         const created = Date.parse(item.created_at);
-        return Number.isFinite(created) && Date.now() - created > AVATAR_RETENTION_MS && base + 'business/' + item.name !== current;
+        return Number.isFinite(created) && Date.now() - created > AVATAR_RETENTION_MS && prefix + item.name !== currentPath;
       });
       // The accompanying database policies serialize deletion with profile saves
       // and refuse removal of any object currently referenced by a profile.

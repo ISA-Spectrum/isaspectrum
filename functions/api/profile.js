@@ -20,7 +20,7 @@ export async function onRequestPut({ request, env }) {
   try { avatar = new URL(body.avatarUrl); } catch { return json({ error: 'invalid_avatar' }, 400, auth.headers); }
   const base = new URL(String(env.BUSINESS_SUPABASE_URL));
   const requiredPrefix = `/storage/v1/object/public/avatars/business/${auth.session.user_id}.`;
-  if (avatar.origin !== base.origin || !avatar.pathname.startsWith(requiredPrefix)) return json({ error: 'invalid_avatar' }, 400, auth.headers);
+  if (avatar.username || avatar.password || avatar.search || avatar.hash || avatar.origin !== base.origin || !avatar.pathname.startsWith(requiredPrefix) || !/^[a-f0-9]{64}\.png$/.test(avatar.pathname.slice(requiredPrefix.length))) return json({ error: 'invalid_avatar' }, 400, auth.headers);
   try {
     await requestBusinessData(env, auth.session, `business_users?user_id=eq.${encodeURIComponent(auth.session.user_id)}`, {
       method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ avatar_url: avatar.toString() })

@@ -17,7 +17,7 @@ declare uid text := auth.uid()::text;
 begin
   if uid is null or object_name not like 'business/' || uid || '.%' then return false; end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('isa-avatar:' || uid, 0));
-  return not exists (select 1 from public.business_users where split_part(avatar_url, '/storage/v1/object/public/avatars/', 2)=object_name);
+  return not exists (select 1 from public.business_users where split_part(split_part(split_part(avatar_url, '?', 1), '#', 1), '/storage/v1/object/public/avatars/', 2)=object_name);
 end;
 $$;
 create or replace function public.isa_validate_avatar_reference()
