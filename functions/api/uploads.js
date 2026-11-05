@@ -45,11 +45,12 @@ export async function onRequestPost({ request, env }) {
       const prefix = '/storage/v1/object/public/avatars/business/';
       const obsolete = own.filter(item => {
         const created = Date.parse(item.created_at);
-        return Number.isFinite(created) && Date.now() - created > AVATAR_RETENTION_MS && prefix + item.name !== currentPath;
+        return Number.isFinite(created) && Date.now() - created > AVATAR_RETENTION_MS && prefix + item.name !== currentPath && 'business/' + item.name !== avatarPath;
       });
       // The accompanying database policies serialize deletion with profile saves
       // and refuse removal of any object currently referenced by a profile.
       for (const item of obsolete) await deleteAvatarObjects(env, auth.session, ['business/' + item.name]);
+      if (own.some(item => 'business/' + item.name === avatarPath)) return json({ urls: [String(env.BUSINESS_SUPABASE_URL).replace(/\/$/, '') + '/storage/v1/object/public/avatars/' + avatarPath] }, 201, auth.headers);
       if (own.length - obsolete.length >= AVATAR_LIMIT && !own.some(item => 'business/' + item.name === avatarPath)) return json({ error: 'avatar_storage_limit' }, 429, auth.headers);
     } catch { return json({ error: 'avatar_storage_unavailable' }, 503, auth.headers); }
   }

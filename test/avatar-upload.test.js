@@ -5,7 +5,7 @@ import { onRequestPost as upload } from '../functions/api/uploads.js';
 import { validateAvatar } from '../functions/_lib/avatar.js';
 const pixels = await readFile(new URL('./fixtures/avatar.png', import.meta.url));
 const uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-async function fixture(t, items = []) {
+async function fixture(t, items = [], conflictStatus = 409) {
   const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const jwk=await crypto.subtle.exportKey('jwk',pair.privateKey);jwk.kid='test-key';
   const env={AUTH_ISSUER:'https://auth.example.com',AUTH_CLIENT_ID:'client',AUTH_REDIRECT_URI:'https://site.example/auth/callback',BUSINESS_SUPABASE_URL:'https://db.example',BUSINESS_SUPABASE_PUBLISHABLE_KEY:'public',BUSINESS_SUPABASE_SIGNING_JWK:JSON.stringify(jwk),AUTH_DB:{prepare(){return {bind(){return {first:async()=>({user_id:uid,identity_provider:'https://auth.example.com',identity_subject:'user',last_seen_at:new Date().toISOString()})}}}}}};
@@ -17,7 +17,7 @@ async function fixture(t, items = []) {
     if (u.pathname === '/storage/v1/object/avatars') { deletes.push(...JSON.parse(init.body).prefixes); return Response.json([]); }
     if (u.pathname.startsWith('/storage/v1/object/avatars/')) {
       const key = u.pathname.split('/avatars/')[1]; assert.equal(init.headers['x-upsert'], 'false');
-      if (objects.has(key)) return new Response('',{status:409}); objects.set(key, await init.body.arrayBuffer()); return Response.json({});
+      if (objects.has(key)) return Response.json({ error: 'Duplicate', message: 'The resource already exists' },{status:conflictStatus}); objects.set(key, await init.body.arrayBuffer()); return Response.json({});
     }
     if (u.pathname === '/rest/v1/business_users') return Response.json([{avatar_url:current}]);
     throw Error('unexpected request');
@@ -54,4 +54,10 @@ test('the server validates the entire PNG payload and exact 256px dimensions', a
   assert.match(await validateAvatar(new File([pixels],'avatar.png',{type:'image/png'})),/^[a-f0-9]{64}$/);
   await assert.rejects(validateAvatar(new File([pixels.subarray(0,pixels.length-12)],'truncated.png',{type:'image/png'})));
   await assert.rejects(validateAvatar(new File([pixels],'fake.webp',{type:'image/webp'})));
+});
+
+
+test('legacy 400 duplicate responses also preserve idempotent retries', async t => {
+  const h=await fixture(t,[],400);
+  assert.equal((await h.send()).status,201);assert.equal((await h.send()).status,201);assert.equal(h.objects.size,1);
 });

@@ -135,7 +135,7 @@ export async function uploadBusinessObject(env, session, bucket, path, file, ups
   await result.arrayBuffer();
   return { ok: result.ok, status: result.status };
   });
-  if (!response.ok && !(reuseExisting && response.status === 409)) throw new Error('upload_failed');
+  if (!response.ok && !(reuseExisting && response.duplicate)) throw new Error('upload_failed');
   return `${url}/storage/v1/object/public/${bucket}/${path}`;
 }
 
