@@ -46,10 +46,10 @@ function harness() {
     destroy() { this.destroyed=true; }
     disable() { this.disabled=true; } enable() { this.disabled=false; }
     move(...args) { this.moves.push(args); } zoom() {} rotate() {} reset() {}
-    getCroppedCanvas(options) { this.exportOptions=options; return {toBlob: (cb,type,quality) => blobs.push({cb,type,quality})}; }
+    getCroppedCanvas(options) { this.exportOptions=options; return {toDataURL: () => 'data:image/png;base64,c2FtcGxl', toBlob: (cb,type,quality) => blobs.push({cb,type,quality})}; }
   }
   const media={matches:false, addEventListener() {}};
-  const window={File:FileMock, Image:ImageMock, Cropper, matchMedia:()=>media, scrollX:12, scrollY:34, scrollTo(value){this.scrolled=value;}, requestAnimationFrame(fn){fn();}, setTimeout, URL:{createObjectURL(){const url='blob:test/'+(created.length+1); created.push(url); return url;}, revokeObjectURL(url){revoked.push(url);}}};
+  const window={File:FileMock, Image:ImageMock, Cropper, matchMedia:()=>media, scrollX:12, scrollY:34, scrollTo(value){this.scrolled=value;}, requestAnimationFrame(fn){return setImmediate(fn);}, cancelAnimationFrame(id){clearImmediate(id);}, setTimeout, URL:{createObjectURL(){const url='blob:test/'+(created.length+1); created.push(url); return url;}, revokeObjectURL(url){revoked.push(url);}}};
   vm.runInNewContext(code, {window,document,setTimeout,clearTimeout,console});
   const open = options => window.ISAAvatarEditor.open({onSave:()=>{}, ...options});
   const input = () => new FileMock([{size:100}], 'photo.png', {type:'image/png'});
@@ -79,16 +79,16 @@ test('save is single flight, blocks close and duplicate open until host succeeds
   assert.equal(h.open(),p); const c=h.ready(); h.el.save.click(); h.el.save.fire('click');
   assert.equal(h.blobs.length,1); assert.equal(c.disabled,true); assert.equal(h.el.cancel.disabled,true); assert.equal(h.dialog.attrs['aria-busy'],'true');
   assert.equal(h.dialog.fire('cancel').defaultPrevented,true); assert.equal(h.dialog.open,true);
-  await assert.rejects(h.open(),/正在保存/); assert.equal(h.blobs[0].type,'image/webp'); assert.equal(h.blobs[0].quality,0.9);
+  await assert.rejects(h.open(),/正在保存/); assert.equal(h.blobs[0].type,'image/png');
   assert.equal(c.exportOptions.width,256); assert.equal(c.exportOptions.height,256);
-  h.blobs[0].cb({type:'image/webp',size:42}); await tick(); assert.equal(calls,1); assert.equal(received.name,'isa-avatar-256.webp'); assert.equal(received.type,'image/webp'); assert.equal(h.dialog.open,true);
+  h.blobs[0].cb({type:'image/png',size:42}); await tick(); assert.equal(calls,1); assert.equal(received.name,'isa-avatar-256.png'); assert.equal(received.type,'image/png'); assert.equal(h.dialog.open,true);
   resolveSave(); assert.equal(await p,received); assert.equal(h.dialog.open,false); assert.equal(c.destroyed,true); assert.deepEqual(h.revoked,['blob:test/1']);
 });
 
 test('encoding and host failures preserve crop and allow retry', async () => {
   const h=harness(); let calls=0; const p=h.open({file:h.input(), onSave:()=>{calls++; throw Error('host failed');}}); const c=h.ready();
   h.el.save.click(); h.blobs[0].cb(null); await tick(); assert.match(h.el.note.textContent,/保存失败/); assert.equal(h.el.save.disabled,false); assert.equal(c.disabled,false); assert.equal(calls,0);
-  h.el.save.click(); h.blobs[1].cb({type:'image/webp',size:1}); await tick(); assert.equal(calls,1); assert.match(h.el.note.textContent,/保存失败/); assert.equal(h.dialog.open,true); assert.equal(c.destroyed,undefined); assert.equal(h.el.save.disabled,false);
+  h.el.save.click(); h.blobs[1].cb({type:'image/png',size:1}); await tick(); assert.equal(calls,1); assert.match(h.el.note.textContent,/保存失败/); assert.equal(h.dialog.open,true); assert.equal(c.destroyed,undefined); assert.equal(h.el.save.disabled,false);
   h.el.cancel.click(); assert.equal(await p,null);
 });
 
@@ -116,9 +116,12 @@ test('cancelling the file picker keeps the current crop open; Escape closes the 
   assert.equal(h.dialog.open, false);
 });
 
-test('browser PNG fallback retains its actual type and can be saved', async () => {
+test('PNG export uses the exact bitmap displayed in both previews', async () => {
   const h=harness(); let received; const p=h.open({file:h.input(),onSave:file=>{received=file;}}); h.ready();
-  h.el.save.click(); h.blobs[0].cb({type:'image/png',size:42});
+  h.el.save.click();
+  assert.equal(h.previews[0].children[0].src, h.previews[1].children[0].src);
+  assert.equal(h.previews[0].children[0].src, 'data:image/png;base64,c2FtcGxl');
+  h.blobs[0].cb({type:'image/png',size:42});
   assert.equal(await p,received); assert.equal(received.type,'image/png'); assert.equal(received.name,'isa-avatar-256.png');
 });
 
@@ -130,4 +133,13 @@ test('cancel completes and releases the image even when Cropper cleanup fails', 
   assert.equal(h.dialog.open,false);
   assert.deepEqual(h.revoked,['blob:test/1']);
   assert.equal(h.document.body.classList.contains('isa-avatar-editor-scroll-lock'),false);
+});
+
+
+test('retrying a failed persistence call reuses the exact encoded File', async () => {
+  const h = harness(); let attempts = 0; const files = [];
+  const pending = h.open({ file: h.input(), onSave: file => { files.push(file); if (++attempts === 1) throw Error('profile unavailable'); } });
+  h.ready(); h.el.save.click(); h.blobs[0].cb({ type: 'image/png', size: 42 }); await tick();
+  h.el.save.click(); const saved = await pending;
+  assert.equal(h.blobs.length, 1); assert.equal(files.length, 2); assert.equal(files[0], files[1]); assert.equal(saved, files[0]);
 });

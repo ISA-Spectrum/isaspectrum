@@ -76,6 +76,7 @@ body.isa-avatar-editor-scroll-lock {
 #avatar-editor-dialog .isa-avatar-editor-previews { min-width: 0; }
 #avatar-editor-dialog .isa-avatar-editor-previews h3 { font-size: 12px; font-weight: 650; margin-bottom: 20px; }
 #avatar-editor-dialog .isa-avatar-editor-preview { overflow: hidden; border-radius: 50%; background: var(--theme-soft); flex-shrink: 0; }
+#avatar-editor-dialog .isa-avatar-editor-preview img { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; }
 #avatar-editor-dialog .isa-avatar-editor-large { width: 116px; height: 116px; box-shadow: 0 0 0 4px #fff, var(--shadow-lg); }
 #avatar-editor-dialog .isa-avatar-editor-small { width: 34px; height: 34px; }
 #avatar-editor-dialog .isa-avatar-editor-big-wrap {

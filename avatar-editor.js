@@ -5,7 +5,7 @@
   const prefix = 'avatar-editor-';
   let dialog, nodes, cropper = null, sourceUrl = null, probe = null;
   let revision = 0, busy = false, timer = null, session = null, mountedMobile = false;
-  let scrollState = null;
+  let scrollState = null, previewCanvas = null, previewFrame = null, exportedFile = null;
   const media = window.matchMedia('(max-width:760px)');
   const get = key => nodes[key];
   const note = (text, error = false) => {
@@ -28,6 +28,8 @@
   }
   function releaseCropper() {
     clearTimeout(timer); timer = null;
+    if (previewFrame !== null) window.cancelAnimationFrame(previewFrame);
+    previewFrame = null; previewCanvas = null; exportedFile = null;
     const previous = cropper;
     cropper = null;
     // 1.6.2 clone() stores its clone in .image; destroy during sizing can leave it behind.
@@ -91,6 +93,29 @@
   function failLoad(message) {
     clearEditor(); note(message, true);
   }
+  function renderPreview() {
+    if (!cropper?.ready) return null;
+    const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, fillColor: '#fff',
+      imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+    if (!canvas) throw new Error('无法生成裁切图片');
+    const url = canvas.toDataURL('image/png');
+    dialog.querySelectorAll('.isa-avatar-editor-preview').forEach(preview => {
+      const image = document.createElement('img');
+      image.src = url; image.alt = '保存后的头像预览';
+      preview.replaceChildren(image);
+    });
+    previewCanvas = canvas;
+    return canvas;
+  }
+  function queuePreview() {
+    exportedFile = null;
+    if (previewFrame !== null) return;
+    previewFrame = window.requestAnimationFrame(() => {
+      previewFrame = null;
+      if (!dialog?.open || !cropper?.ready) return;
+      try { renderPreview(); } catch { failLoad('无法生成头像预览，请重新选择照片。'); }
+    });
+  }
   function mountCropper(generation, label, data = {}) {
     mountedMobile = media.matches;
     try {
@@ -101,12 +126,12 @@
       }, 20000);
       cropper = new window.Cropper(get('source'), {
         aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 0.8,
-        preview: dialog.querySelectorAll('.isa-avatar-editor-preview'),
+        crop: queuePreview,
         background: false, responsive: true, data,
         toggleDragModeOnDblclick: false, checkOrientation: true,
         ready() {
           if (generation !== revision || !dialog.open) return;
-          clearTimeout(timer); timer = null; controls();
+          clearTimeout(timer); timer = null; controls(); queuePreview();
           note(label + '已载入。拖动、缩放或旋转后保存。');
           // A media change may have happened while decoding the source image.
           window.requestAnimationFrame(rebuildAtBreakpoint);
@@ -166,16 +191,17 @@
     busy = true; controls();
     try {
       cropper.disable(); note('正在生成并保存头像…');
-      const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, fillColor: '#fff',
-        imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+      const canvas = renderPreview();
       if (!canvas) throw new Error('无法生成裁切图片');
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(value => value ? resolve(value) : reject(new Error('图片编码失败')), 'image/webp', 0.9);
-      });
-      if (generation !== revision || session !== activeSession || !dialog.open) return;
-      if (!['image/webp', 'image/png'].includes(blob.type)) throw new Error('浏览器无法生成支持的图片格式');
-      const extension = blob.type === 'image/webp' ? 'webp' : 'png';
-      const file = new window.File([blob], 'isa-avatar-256.' + extension, { type: blob.type, lastModified: Date.now() });
+      if (!exportedFile) {
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob(value => value ? resolve(value) : reject(new Error('图片编码失败')), 'image/png');
+        });
+        if (generation !== revision || session !== activeSession || !dialog.open) return;
+        if (blob.type !== 'image/png') throw new Error('浏览器无法生成 PNG 图片');
+        exportedFile = new window.File([blob], 'isa-avatar-256.png', { type: 'image/png', lastModified: Date.now() });
+      }
+      const file = exportedFile;
       // The host owns persistence. Never close until its asynchronous callback succeeds.
       await activeSession.onSave(file);
       if (generation !== revision || session !== activeSession || !dialog.open) return;

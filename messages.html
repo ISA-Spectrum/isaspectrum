@@ -757,27 +757,29 @@
             });
         }
 
+        const pendingAvatarUploads = new WeakMap();
         async function uploadAvatar(file) {
             try {
-                const compressedFile = await compressImage(file, {
-                    maxWidth: 200,
-                    maxHeight: 200,
-                    quality: 0.5,
-                    mimeType: "image/webp"
-                });
-                const form = new FormData();
-                form.append('kind', 'avatar');
-                form.append('files', compressedFile, compressedFile.name);
-                const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
-                if (!upload.ok) throw new Error('上传失败');
-                const publicUrl = (await upload.json()).urls[0];
+                let publicUrl = pendingAvatarUploads.get(file);
+                if (!publicUrl) {
+                    const form = new FormData();
+                    form.append('kind', 'avatar');
+                    form.append('files', file, file.name);
+                    const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
+                    if (!upload.ok) throw new Error(upload.status === 429 ? '头像更换过于频繁，请稍后重试' : '上传失败');
+                    publicUrl = (await upload.json()).urls[0];
+                    if (typeof publicUrl !== 'string') throw new Error('上传响应无效');
+                    pendingAvatarUploads.set(file, publicUrl);
+                }
                 const saved = await request('/api/profile', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
                 if (!saved.ok) throw new Error('头像保存失败');
-                avatarImg.src = getFreshAvatar(publicUrl);
-                avatarImg.style.display = "block";
-                avatarPlaceholder.style.display = "none";
+                const result = await saved.json();
+                if (result.avatarUrl !== publicUrl) throw new Error('头像保存结果不一致');
+                avatarImg.src = publicUrl;
+                avatarImg.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
             } catch (err) {
-                throw new Error('头像压缩/上传失败：' + (err.message || err));
+                throw new Error('头像上传/保存失败：' + (err.message || err));
             }
         }
 
