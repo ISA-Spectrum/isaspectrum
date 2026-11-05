@@ -1008,10 +1008,11 @@
 
         async function loadMainMessages(isLoadMore = false) {
             if (isLoadMore && (!hasMore || isLoadingMore)) return;
-            isLoadingMore = true;
             if (abortController) abortController.abort();
-            abortController = new AbortController();
-            const signal = abortController.signal;
+            const controller = new AbortController();
+            abortController = controller;
+            const signal = controller.signal;
+            isLoadingMore = true;
             const container = document.getElementById('messageContainer');
             const loadMoreWrap = document.getElementById('loadMoreWrapper');
 
@@ -1114,11 +1115,12 @@
                 });
             } catch (err) {
                 if (signal.aborted) return;
+                document.querySelector('.list-loading-tip')?.remove();
                 if (!isLoadMore) {
                     container.innerHTML = `<div class="empty-message">加载失败：${err.message}</div>`;
                 }
             } finally {
-                if (!signal.aborted) isLoadingMore = false;
+                if (abortController === controller) isLoadingMore = false;
             }
         }
 
