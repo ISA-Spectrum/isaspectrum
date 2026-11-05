@@ -122,18 +122,21 @@ export async function uploadBusinessObject(env, session, bucket, path, file, ups
   const token = await createDatabaseToken(env, session);
   const response = await withDeadline(async signal => {
     const result = await fetch(`${url}/storage/v1/object/${bucket}/${path}`, {
-      signal,
-      method: 'POST',
+      signal, method: 'POST',
       headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': file.type,
-        'x-upsert': upsert ? 'true' : 'false'
+        apikey: publishableKey, Authorization: `Bearer ${token}`,
+        'Content-Type': file.type, 'x-upsert': upsert ? 'true' : 'false'
       },
       body: file
-  });
-  await result.arrayBuffer();
-  return { ok: result.ok, status: result.status };
+    });
+    const text = await result.text();
+    let error;
+    try { error = JSON.parse(text); } catch {}
+    const duplicate = result.status === 409 || (result.status === 400 && (
+      ['Duplicate', 'ResourceAlreadyExists', 'KeyAlreadyExists'].includes(error?.code || error?.error) ||
+      ['The resource already exists', 'Asset already exists'].includes(error?.message)
+    ));
+    return { ok: result.ok, duplicate };
   });
   if (!response.ok && !(reuseExisting && response.duplicate)) throw new Error('upload_failed');
   return `${url}/storage/v1/object/public/${bucket}/${path}`;
