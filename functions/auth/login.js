@@ -39,6 +39,7 @@ export async function onRequestGet({ request, env }) {
   }
 }
 
+// 只允许 GET，其他方法（包括 HEAD）一律返回 405
 export function onRequest() {
   return methodNotAllowed('GET');
 }

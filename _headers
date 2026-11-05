@@ -40,6 +40,10 @@
   ! Cache-Control
   Cache-Control: no-cache, no-store, must-revalidate
 
+/request.js
+  ! Cache-Control
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /auth-client.js
   ! Cache-Control
   Cache-Control: no-cache, no-store, must-revalidate

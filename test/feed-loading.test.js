@@ -8,12 +8,14 @@ const loader = page.slice(page.indexOf('        async function loadMainMessages(
 
 function setup() {
   const calls = [];
+  const frames = [];
+  const feed = { scrollTop: 100, clientHeight: 600, scrollHeight: 1200 };
   const container = {
     innerHTML: '',
     insertAdjacentHTML(_where, html) { this.innerHTML += html; }
   };
   const document = {
-    getElementById(id) { return id === 'messageContainer' ? container : null; },
+    getElementById(id) { return id === 'messageContainer' ? container : id === 'messageFeed' ? feed : null; },
     querySelector(selector) {
       if (selector === '.list-loading-tip' && container.innerHTML.includes('list-loading-tip')) {
         return { remove() { container.innerHTML = container.innerHTML.replace('<div class="loading list-loading-tip">加载更多...</div>', ''); } };
@@ -23,12 +25,12 @@ function setup() {
   };
   const ISAPublicData = { listMessages() { return new Promise((resolve, reject) => calls.push({ resolve, reject })); } };
   const context = vm.createContext({
-    document, AbortController, window: { ISAPublicData }, ISAPublicData,
+    document, AbortController, requestAnimationFrame: callback => frames.push(callback), window: { ISAPublicData }, ISAPublicData,
     parseMessageContent: () => ({ zone: '校园生活', text: '留言' }),
     escapeHtml: value => value || '', renderMessageAvatars() {}, showNoMoreTip() {}
   });
   vm.runInContext(`let currentPage=0, PAGE_SIZE=20, hasMore=true, isLoadingMore=false, abortController=null, activeSearch='', activeSort='newest', activeZone='all', userMap={};\n${loader}\nglobalThis.load=loadMainMessages;`, context);
-  return { calls, container, load: context.load };
+  return { calls, container, feed, frames, load: context.load };
 }
 const item = { id: '1', username: '测试', content: '留言', created_at: '2026-01-01', pic_url: [] };
 
@@ -65,4 +67,33 @@ test('a failed load-more request clears its loading indicator', async () => {
   h.calls[1].reject(new Error('offline'));
   await more;
   assert.doesNotMatch(h.container.innerHTML, /加载更多/);
+});
+
+
+test('first-page loads reset the feed and fill a short viewport', async () => {
+  const h = setup();
+  h.feed.scrollHeight = 100;
+  const first = h.load();
+  assert.equal(h.feed.scrollTop, 0);
+  h.calls[0].resolve({ messages: [item], hasMore: true });
+  await first;
+  assert.equal(h.frames.length, 1);
+  h.frames.shift()();
+  assert.equal(h.calls.length, 2);
+  h.calls[1].resolve({ messages: [item], hasMore: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.doesNotMatch(h.container.innerHTML, /加载更多/);
+});
+
+test('a replaced request cannot auto-load another page from its old frame', async () => {
+  const h = setup();
+  h.feed.scrollHeight = 100;
+  const first = h.load();
+  h.calls[0].resolve({ messages: [item], hasMore: true });
+  await first;
+  const current = h.load();
+  h.frames.shift()();
+  assert.equal(h.calls.length, 2);
+  h.calls[1].resolve({ messages: [item], hasMore: false });
+  await current;
 });
