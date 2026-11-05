@@ -435,6 +435,7 @@
             }
             .community-heading { display:block; }
             .logout-bar { margin-top:18px; justify-content:flex-start; }
+            .avatar-dropdown { left:0; right:auto; }
             .community-layout { grid-template-columns:1fr; }
             .message-list-section { height:80vh; height:80svh; min-height:560px; }
             .message-list-inner { inset:20px; }
@@ -476,10 +477,9 @@
                         <div class="notification-dot" id="notificationDot"></div>
                     </button>
                     <div class="avatar-dropdown" id="avatarDropdown">
-                        <div id="changeAvatar">更改头像</div>
+                        <button type="button" id="changeAvatar" style="display:block;width:100%;padding:10px 14px;border:0;background:transparent;text-align:left;cursor:pointer;color:inherit;font:inherit;">更改头像</button>
                         <div id="openNotifications">通知中心 <span class="dropdown-dot" id="dropdownDot" style="display:none"></span></div>
                     </div>
-                    <input type="file" id="avatarInput" accept="image/*" hidden>
                 </div>
                 <button id="logoutBtn" class="logout-btn" style="background: #dc3545; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer;">退出登录</button>
             </div>
@@ -744,9 +744,11 @@
                         ctx.drawImage(img, 0, 0, width, height);
                         canvas.toBlob(blob => {
                             if (!blob) return reject("图片压缩失败");
-                            const suffix = opts.mimeType === "image/webp" ? ".webp" : ".jpg";
+                            const suffixes = { "image/webp": ".webp", "image/png": ".png", "image/jpeg": ".jpg" };
+                            const suffix = suffixes[blob.type];
+                            if (!suffix) return reject(new Error("图片格式不受支持"));
                             const newFileName = file.name.replace(/(\.\w+)$/, suffix);
-                            const compressedFile = new File([blob], newFileName, { type: opts.mimeType });
+                            const compressedFile = new File([blob], newFileName, { type: blob.type });
                             resolve(compressedFile);
                         }, opts.mimeType, opts.quality);
                     };
@@ -756,28 +758,29 @@
             });
         }
 
+        const pendingAvatarUploads = new WeakMap();
         async function uploadAvatar(file) {
             try {
-                const compressedFile = await compressImage(file, {
-                    maxWidth: 200,
-                    maxHeight: 200,
-                    quality: 0.5,
-                    mimeType: "image/webp"
-                });
-                const form = new FormData();
-                form.append('kind', 'avatar');
-                form.append('files', compressedFile, 'avatar.webp');
-                const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
-                if (!upload.ok) throw new Error('上传失败');
-                const publicUrl = (await upload.json()).urls[0];
+                let publicUrl = pendingAvatarUploads.get(file);
+                if (!publicUrl) {
+                    const form = new FormData();
+                    form.append('kind', 'avatar');
+                    form.append('files', file, file.name);
+                    const upload = await request('/api/uploads', { method: 'POST', credentials: 'include', body: form });
+                    if (!upload.ok) throw new Error(upload.status === 429 ? '头像更换过于频繁，请稍后重试' : '上传失败');
+                    publicUrl = (await upload.json()).urls[0];
+                    if (typeof publicUrl !== 'string') throw new Error('上传响应无效');
+                    pendingAvatarUploads.set(file, publicUrl);
+                }
                 const saved = await request('/api/profile', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarUrl: publicUrl }) });
                 if (!saved.ok) throw new Error('头像保存失败');
-                avatarImg.src = getFreshAvatar(publicUrl);
-                avatarImg.style.display = "block";
-                avatarPlaceholder.style.display = "none";
-                alert("头像更新成功");
+                const result = await saved.json();
+                if (result.avatarUrl !== publicUrl) throw new Error('头像保存结果不一致');
+                avatarImg.src = publicUrl;
+                avatarImg.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
             } catch (err) {
-                alert("头像压缩/上传失败：" + err.message);
+                throw new Error('头像上传/保存失败：' + (err.message || err));
             }
         }
 
@@ -1206,14 +1209,51 @@
                 }
             });
 
-            document.getElementById('changeAvatar').onclick = () => {
-                document.getElementById('avatarInput').click();
-                avatarDropdown.style.display = "none";
-            };
+            let avatarAssetsPromise;
+            function loadAvatarAssets() {
+                if (avatarAssetsPromise) return avatarAssetsPromise;
+                const assets = [
+                    ['link', './vendor/cropper.min.css'], ['link', './avatar-editor.css'],
+                    ['script', './vendor/cropper.min.js'], ['script', './avatar-editor.js']
+                ];
+                const elements = [];
+                const loads = assets.map(([tag, url]) => new Promise((resolve, reject) => {
+                    const element = document.createElement(tag);
+                    elements.push(element);
+                    if (tag === 'link') { element.rel = 'stylesheet'; element.href = url; }
+                    else element.src = url;
+                    element.onload = resolve;
+                    element.onerror = reject;
+                    document.head.append(element);
+                }));
+                let timer;
+                const timeout = new Promise((_, reject) => { timer = setTimeout(reject, 15000); });
+                avatarAssetsPromise = Promise.race([Promise.all(loads), timeout]).then(() => {
+                    if (!window.Cropper || !window.ISAAvatarEditor) throw new Error('加载失败');
+                }).catch(() => {
+                    elements.forEach(element => element.remove());
+                    avatarAssetsPromise = null;
+                    throw new Error('头像组件加载失败，请重试');
+                }).finally(() => clearTimeout(timer));
+                return avatarAssetsPromise;
+            }
 
-            document.getElementById('avatarInput').onchange = async (e) => {
-                const file = e.target.files[0];
-                if (file) await uploadAvatar(file);
+            const changeAvatar = document.getElementById('changeAvatar');
+            changeAvatar.onclick = async () => {
+                if (changeAvatar.disabled) return;
+                avatarDropdown.style.display = 'none';
+                avatarBtn.setAttribute('aria-expanded', 'false');
+                avatarBtn.focus();
+                changeAvatar.disabled = true;
+                try {
+                    await loadAvatarAssets();
+                    window.ISAAvatarEditor.open({ name: currentUserRealName, onSave: uploadAvatar })
+                        .catch(error => { alert('无法打开头像编辑器：' + (error.message || '请刷新后重试')); });
+                } catch (error) {
+                    alert(error.message || '头像组件加载失败，请重试');
+                } finally {
+                    changeAvatar.disabled = false;
+                }
             };
 
             document.getElementById('openNotifications').onclick = async () => {

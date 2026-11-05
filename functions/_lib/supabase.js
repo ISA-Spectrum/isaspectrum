@@ -1,3 +1,4 @@
+import { withDeadline } from './fetch-timeout.js';
 import { base64UrlEncode, utf8 } from './crypto.js';
 
 const keyCache = new Map();
@@ -69,14 +70,16 @@ export async function createDatabaseToken(env, identity) {
 async function requestSupabase(env, session, route, init = {}) {
   const { url, publishableKey } = supabaseConfig(env);
   const token = await createDatabaseToken(env, session);
-  const response = await fetch(`${url}/${route}`, {
-    ...init,
-    headers: {
-      apikey: publishableKey,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init.headers
-    }
+  return withDeadline(async signal => {
+    const response = await fetch(`${url}/${route}`, {
+      ...init,
+      signal,
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...init.headers
+      }
   });
   if (!response.ok) {
     // Keep the HTTP status and the PostgREST error code. A 42501 "permission denied"
@@ -91,6 +94,7 @@ async function requestSupabase(env, session, route, init = {}) {
   if (response.status === 204) return null;
   const text = await response.text();
   return text ? JSON.parse(text) : null;
+  });
 }
 
 export function requestBusinessData(env, session, path, init = {}) {
@@ -113,20 +117,28 @@ export async function requestPublicData(env, path, init = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-export async function uploadBusinessObject(env, session, bucket, path, file, upsert = false) {
+export async function uploadBusinessObject(env, session, bucket, path, file, upsert = false, reuseExisting = false) {
   const { url, publishableKey } = supabaseConfig(env);
   const token = await createDatabaseToken(env, session);
-  const response = await fetch(`${url}/storage/v1/object/${bucket}/${path}`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': file.type,
-      'x-upsert': upsert ? 'true' : 'false'
-    },
-    body: file
+  const response = await withDeadline(async signal => {
+    const result = await fetch(`${url}/storage/v1/object/${bucket}/${path}`, {
+      signal, method: 'POST',
+      headers: {
+        apikey: publishableKey, Authorization: `Bearer ${token}`,
+        'Content-Type': file.type, 'x-upsert': upsert ? 'true' : 'false'
+      },
+      body: file
+    });
+    const text = await result.text();
+    let error;
+    try { error = JSON.parse(text); } catch {}
+    const duplicate = result.status === 409 || (result.status === 400 && (
+      ['Duplicate', 'ResourceAlreadyExists', 'KeyAlreadyExists'].includes(error?.code || error?.error) ||
+      ['The resource already exists', 'Asset already exists'].includes(error?.message)
+    ));
+    return { ok: result.ok, duplicate };
   });
-  if (!response.ok) throw new Error('upload_failed');
+  if (!response.ok && !(reuseExisting && response.duplicate)) throw new Error('upload_failed');
   return `${url}/storage/v1/object/public/${bucket}/${path}`;
 }
 
@@ -160,4 +172,15 @@ export async function refreshChecker(env, session) {
     `business_users?user_id=eq.${encodeURIComponent(session.user_id)}&select=is_checker&limit=1`
   );
   return rows?.[0]?.is_checker === true;
+}
+
+export function listAvatarObjects(env, session, offset = 0) {
+  return requestSupabase(env, session, 'storage/v1/object/list/avatars', {
+    method: 'POST', body: JSON.stringify({ prefix: 'business/', search: session.user_id + '.', limit: 100, offset, sortBy: { column: 'name', order: 'asc' } })
+  });
+}
+export function deleteAvatarObjects(env, session, paths) {
+  return requestSupabase(env, session, 'storage/v1/object/avatars', {
+    method: 'DELETE', body: JSON.stringify({ prefixes: paths })
+  });
 }
