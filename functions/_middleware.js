@@ -90,6 +90,20 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
 
+  const pausedHosts = ['isaspectrum.celestivast.com', 'isaspectrum.pages.dev'];
+  if (pausedHosts.includes(url.hostname)) {
+    if (path === '/project-paused' || path === '/project-paused.html') return next();
+
+    const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' };
+    if (/^\/(?:api|auth)(?:\/|$)/.test(path)) {
+      return new Response('ISA Spectrum project paused', { status: 410, headers });
+    }
+    return new Response(null, {
+      status: 303,
+      headers: { ...headers, Location: '/project-paused' }
+    });
+  }
+
   // 1. 拦截 OPTIONS 预检请求
   if (request.method === 'OPTIONS') {
     return addCorsHeaders(new Response(null, { status: 204 }), request);
