@@ -44,13 +44,13 @@
       width: 110px;
       aspect-ratio: 192 / 230;
       margin: 0 auto 16px;
+      mix-blend-mode: multiply;
       transition: opacity 0.8s ease, transform 0.8s ease;
     }
 
     .logo img {
       display: block;
       width: 100%;
-      filter: url(#logo-matte);
     }
 
     .status {
@@ -131,14 +131,9 @@
       transform: translateY(-20px);
     }
 
-    .opening {
-      transition: opacity .6s ease, transform .8s ease, visibility .6s;
-    }
-
-    :is(.story, .second, .final) .opening {
+    :is(.story, .second, .final) .opening .status {
       opacity: 0;
       transform: translateY(-40px);
-      visibility: hidden;
     }
 
     :is(.story, .second, .final) .closing {
@@ -168,11 +163,6 @@
   </style>
 </head>
 <body>
-  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
-    <filter id="logo-matte" color-interpolation-filters="sRGB">
-      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -3 -3 -3 0 9" />
-    </filter>
-  </svg>
   <main>
     <!-- 第一阶段：白底蓝字 -->
     <section class="opening">
